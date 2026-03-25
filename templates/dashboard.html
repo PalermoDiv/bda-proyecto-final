@@ -36,45 +36,45 @@
         <div class="section-title">Red de sedes</div>
         <div class="section-sub">Estadísticas operativas por sucursal</div>
     </div>
-    <span style="font-size:11px; background:#e6f1fb; color:#0c447c; font-weight:700; padding:4px 10px; border-radius:5px;">
+    <span style="font-size:10px; background:#CFFAFE; color:#0E4F60; font-weight:700; padding:4px 12px; border-radius:100px; letter-spacing:.5px; text-transform:uppercase; border:1px solid #A5F3FC;">
         {{ sucursales | length }} sedes activas
     </span>
 </div>
 
 <div style="display:grid; grid-template-columns: repeat({{ sucursales | length }}, 1fr); gap:14px; margin-bottom:24px;">
     {% for s in stats_por_sede %}
-    <div class="card" style="border-top: 3px solid {% if loop.index == 1 %}#185fa5{% else %}#27500a{% endif %};">
-        <div style="padding:16px 20px 12px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+    <div class="card" style="border-top: 3px solid {% if loop.index == 1 %}#0E7490{% else %}#059669{% endif %};">
+        <div style="padding:18px 22px 16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
                 <div>
-                    <div style="font-size:13px; font-weight:700; color:#1a1a2e;">{{ s.sucursal.nombre }}</div>
-                    <div style="font-size:11px; color:#8892a4; margin-top:2px;">{{ s.sucursal.zona }}</div>
+                    <div style="font-size:14px; font-weight:700; color:#0F172A; letter-spacing:-0.1px;">{{ s.sucursal.nombre }}</div>
+                    <div style="font-size:11px; color:#94A3B8; margin-top:3px;">{{ s.sucursal.zona }}</div>
                 </div>
-                <span style="font-size:10px; background:#eaf3de; color:#27500a; font-weight:700; padding:3px 8px; border-radius:4px;">Activa</span>
+                <span style="font-size:10px; background:#ECFDF5; color:#065F46; font-weight:700; padding:3px 10px; border-radius:100px; border:1px solid #A7F3D0; letter-spacing:.3px;">Activa</span>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                <div style="background:#f7f8fa; border-radius:7px; padding:10px 12px;">
-                    <div style="font-size:10px; font-weight:700; color:#8892a4; letter-spacing:.5px; text-transform:uppercase;">Pacientes</div>
-                    <div style="font-size:22px; font-weight:800; color:#185fa5; margin-top:2px;">{{ s.pacientes }}</div>
+                <div style="background:#F8FAFC; border-radius:8px; padding:10px 12px; border:1px solid #F1F5F9;">
+                    <div style="font-size:9.5px; font-weight:700; color:#94A3B8; letter-spacing:.8px; text-transform:uppercase;">Pacientes</div>
+                    <div style="font-size:24px; font-weight:800; color:#0E7490; margin-top:3px; font-variant-numeric:tabular-nums;">{{ s.pacientes }}</div>
                 </div>
-                <div style="background:#f7f8fa; border-radius:7px; padding:10px 12px;">
-                    <div style="font-size:10px; font-weight:700; color:#8892a4; letter-spacing:.5px; text-transform:uppercase;">Cuidadores</div>
-                    <div style="font-size:22px; font-weight:800; color:#27500a; margin-top:2px;">{{ s.cuidadores }}</div>
+                <div style="background:#F8FAFC; border-radius:8px; padding:10px 12px; border:1px solid #F1F5F9;">
+                    <div style="font-size:9.5px; font-weight:700; color:#94A3B8; letter-spacing:.8px; text-transform:uppercase;">Cuidadores</div>
+                    <div style="font-size:24px; font-weight:800; color:#059669; margin-top:3px; font-variant-numeric:tabular-nums;">{{ s.cuidadores }}</div>
                 </div>
-                <div style="background:#f7f8fa; border-radius:7px; padding:10px 12px;">
-                    <div style="font-size:10px; font-weight:700; color:#8892a4; letter-spacing:.5px; text-transform:uppercase;">Dispositivos</div>
-                    <div style="font-size:22px; font-weight:800; color:#633806; margin-top:2px;">{{ s.dispositivos }}</div>
+                <div style="background:#F8FAFC; border-radius:8px; padding:10px 12px; border:1px solid #F1F5F9;">
+                    <div style="font-size:9.5px; font-weight:700; color:#94A3B8; letter-spacing:.8px; text-transform:uppercase;">Dispositivos</div>
+                    <div style="font-size:24px; font-weight:800; color:#D97706; margin-top:3px; font-variant-numeric:tabular-nums;">{{ s.dispositivos }}</div>
                 </div>
-                <div style="background:{% if s.alertas_activas > 0 %}#fcebeb{% else %}#f7f8fa{% endif %}; border-radius:7px; padding:10px 12px;">
-                    <div style="font-size:10px; font-weight:700; color:#8892a4; letter-spacing:.5px; text-transform:uppercase;">Alertas</div>
-                    <div style="font-size:22px; font-weight:800; color:{% if s.alertas_activas > 0 %}#a32d2d{% else %}#27500a{% endif %}; margin-top:2px;">{{ s.alertas_activas }}</div>
+                <div style="background:{% if s.alertas_activas > 0 %}#FFF1F2{% else %}#F8FAFC{% endif %}; border-radius:8px; padding:10px 12px; border:1px solid {% if s.alertas_activas > 0 %}#FECDD3{% else %}#F1F5F9{% endif %};">
+                    <div style="font-size:9.5px; font-weight:700; color:#94A3B8; letter-spacing:.8px; text-transform:uppercase;">Alertas</div>
+                    <div style="font-size:24px; font-weight:800; color:{% if s.alertas_activas > 0 %}#E11D48{% else %}#059669{% endif %}; margin-top:3px; font-variant-numeric:tabular-nums;">{{ s.alertas_activas }}</div>
                 </div>
             </div>
-            <div style="margin-top:12px; padding-top:10px; border-top:1px solid #f0f2f5; font-size:11px; color:#8892a4;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:3px;"><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+            <div style="margin-top:14px; padding-top:12px; border-top:1px solid #F1F5F9; font-size:11px; color:#94A3B8;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;display:inline;vertical-align:middle;margin-right:4px;opacity:.6;"><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
                 {{ s.sucursal.direccion }}
             </div>
-            <div style="font-size:11px; color:#8892a4; margin-top:4px;">
+            <div style="font-size:11px; color:#94A3B8; margin-top:4px;">
                 Dir. {{ s.sucursal.director }}
             </div>
         </div>
@@ -143,7 +143,7 @@
             <div id="chart-bars" style="display:flex; align-items:flex-end; gap:12px; height:130px; padding-bottom:8px; border-bottom:1px solid #f0f2f5; margin-bottom:12px;">
                 <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end;">
                     <span id="val-salida" style="font-size:13px; font-weight:700; color:#1a1a2e;">—</span>
-                    <div id="bar-salida" style="width:100%; background:#185fa5; border-radius:5px 5px 0 0; height:0%; min-height:4px; transition:height .5s ease;"></div>
+                    <div id="bar-salida" style="width:100%; background:#0E7490; border-radius:5px 5px 0 0; height:0%; min-height:4px; transition:height .5s ease;"></div>
                     <span style="font-size:10px; color:#8892a4; font-weight:500; text-align:center;">Salida zona</span>
                 </div>
                 <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end;">
@@ -159,7 +159,7 @@
             </div>
             <div style="display:flex; gap:14px; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#8892a4;">
-                    <div style="width:8px; height:8px; border-radius:2px; background:#185fa5;"></div>Salida de zona
+                    <div style="width:8px; height:8px; border-radius:2px; background:#0E7490;"></div>Salida de zona
                 </div>
                 <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#8892a4;">
                     <div style="width:8px; height:8px; border-radius:2px; background:#ba7517;"></div>Batería baja
@@ -179,7 +179,7 @@
         <div class="section-title">Mapa de zonas seguras</div>
         <div class="section-sub">Visualización geográfica de los geofences activos — Integración GPS en Fase 5</div>
     </div>
-    <span style="font-size:11px; background:#eaf3de; color:#27500a; font-weight:700; padding:4px 10px; border-radius:5px;">
+    <span style="font-size:10px; background:#ECFDF5; color:#065F46; font-weight:700; padding:4px 12px; border-radius:100px; letter-spacing:.5px; text-transform:uppercase; border:1px solid #A7F3D0;">
         3 zonas activas
     </span>
 </div>
@@ -191,19 +191,19 @@
             <div style="font-size:10px; font-weight:700; color:#8892a4; letter-spacing:.8px; text-transform:uppercase; margin-bottom:6px;">Zonas registradas</div>
             <div style="display:flex; flex-direction:column; gap:6px;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <div style="width:8px; height:8px; border-radius:50%; background:#185fa5; flex-shrink:0;"></div>
-                    <span style="font-size:12px; font-weight:500; color:#1a1a2e;">Jardín Norte</span>
-                    <span style="font-size:11px; color:#8892a4; margin-left:auto;">Radio: 50m</span>
+                    <div style="width:8px; height:8px; border-radius:50%; background:#0E7490; flex-shrink:0;"></div>
+                    <span style="font-size:12px; font-weight:500; color:#0F172A;">Jardín Norte</span>
+                    <span style="font-size:11px; color:#94A3B8; margin-left:auto;">Radio: 50m</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <div style="width:8px; height:8px; border-radius:50%; background:#27500a; flex-shrink:0;"></div>
-                    <span style="font-size:12px; font-weight:500; color:#1a1a2e;">Ala Oriente</span>
-                    <span style="font-size:11px; color:#8892a4; margin-left:auto;">Radio: 40m</span>
+                    <div style="width:8px; height:8px; border-radius:50%; background:#059669; flex-shrink:0;"></div>
+                    <span style="font-size:12px; font-weight:500; color:#0F172A;">Ala Oriente</span>
+                    <span style="font-size:11px; color:#94A3B8; margin-left:auto;">Radio: 40m</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <div style="width:8px; height:8px; border-radius:50%; background:#ba7517; flex-shrink:0;"></div>
-                    <span style="font-size:12px; font-weight:500; color:#1a1a2e;">Patio Sur</span>
-                    <span style="font-size:11px; color:#8892a4; margin-left:auto;">Radio: 60m</span>
+                    <div style="width:8px; height:8px; border-radius:50%; background:#D97706; flex-shrink:0;"></div>
+                    <span style="font-size:12px; font-weight:500; color:#0F172A;">Patio Sur</span>
+                    <span style="font-size:11px; color:#94A3B8; margin-left:auto;">Radio: 60m</span>
                 </div>
             </div>
         </div>
@@ -227,30 +227,30 @@
     </div>
 
     <!-- Placeholder del mapa -->
-    <div style="height:300px; background:#e8f0f7; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; position:relative; overflow:hidden;">
+    <div style="height:300px; background:#F0FDFF; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; position:relative; overflow:hidden;">
 
         <!-- Grid decorativo de fondo -->
-        <svg style="position:absolute; inset:0; width:100%; height:100%; opacity:.15;" xmlns="http://www.w3.org/2000/svg">
+        <svg style="position:absolute; inset:0; width:100%; height:100%; opacity:.12;" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#185fa5" stroke-width="0.5"/>
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0E7490" stroke-width="0.5"/>
                 </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)"/>
         </svg>
 
         <!-- Círculos de zona decorativos -->
-        <svg style="position:absolute; inset:0; width:100%; height:100%; opacity:.25;" viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="250" cy="150" r="70" fill="none" stroke="#185fa5" stroke-width="1.5" stroke-dasharray="6 4"/>
-            <circle cx="250" cy="150" r="8" fill="#185fa5" opacity=".6"/>
-            <circle cx="480" cy="120" r="55" fill="none" stroke="#27500a" stroke-width="1.5" stroke-dasharray="6 4"/>
-            <circle cx="480" cy="120" r="8" fill="#27500a" opacity=".6"/>
-            <circle cx="600" cy="180" r="80" fill="none" stroke="#ba7517" stroke-width="1.5" stroke-dasharray="6 4"/>
-            <circle cx="600" cy="180" r="8" fill="#ba7517" opacity=".6"/>
+        <svg style="position:absolute; inset:0; width:100%; height:100%; opacity:.30;" viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="250" cy="150" r="70" fill="rgba(14,116,144,0.05)" stroke="#0E7490" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <circle cx="250" cy="150" r="8" fill="#0E7490" opacity=".7"/>
+            <circle cx="480" cy="120" r="55" fill="rgba(5,150,105,0.05)" stroke="#059669" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <circle cx="480" cy="120" r="8" fill="#059669" opacity=".7"/>
+            <circle cx="600" cy="180" r="80" fill="rgba(217,119,6,0.05)" stroke="#D97706" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <circle cx="600" cy="180" r="8" fill="#D97706" opacity=".7"/>
         </svg>
 
         <!-- Texto central -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="1.5" style="width:40px; height:40px; opacity:.5; position:relative; z-index:1;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0E7490" stroke-width="1.5" style="width:40px; height:40px; opacity:.45; position:relative; z-index:1;">
             <circle cx="12" cy="12" r="10"/>
             <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
         </svg>

@@ -37,17 +37,17 @@
                     <td>{{ d.tipo }}</td>
                     <td>{{ d.paciente }}</td>
                     <td>
-                        <span class="badge" style="background:{% if d.id_sucursal == 1 %}#e6f1fb; color:#0c447c{% else %}#eaf3de; color:#27500a{% endif %};">
+                        <span class="badge" style="background:{% if d.id_sucursal == 1 %}#CFFAFE; color:#0E4F60{% else %}#ECFDF5; color:#065F46{% endif %}; border:1px solid {% if d.id_sucursal == 1 %}#A5F3FC{% else %}#A7F3D0{% endif %};">
                             {{ d.nombre_sucursal }}
                         </span>
                     </td>
                     <td>
                         {% if d.bateria <= 20 %}
-                            <span style="color:#a32d2d; font-weight:600;">{{ d.bateria }}%</span>
+                            <span style="color:#E11D48; font-weight:700; font-variant-numeric:tabular-nums;">{{ d.bateria }}%</span>
                         {% elif d.bateria >= 80 %}
-                            <span style="color:#27500a; font-weight:600;">{{ d.bateria }}%</span>
+                            <span style="color:#059669; font-weight:700; font-variant-numeric:tabular-nums;">{{ d.bateria }}%</span>
                         {% else %}
-                            <span style="color:#7a5a00; font-weight:600;">{{ d.bateria }}%</span>
+                            <span style="color:#D97706; font-weight:700; font-variant-numeric:tabular-nums;">{{ d.bateria }}%</span>
                         {% endif %}
                     </td>
                     <td>

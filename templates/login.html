@@ -6,98 +6,135 @@
     <title>Iniciar sesión — AlzMonitor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Inter', system-ui, sans-serif;
-            background: #f0f2f5;
+            background: #F1F5F9;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            -webkit-font-smoothing: antialiased;
         }
 
         .login-wrapper {
             display: flex;
-            width: 860px;
-            min-height: 480px;
-            border-radius: 16px;
+            width: 880px;
+            min-height: 500px;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 8px 40px rgba(15, 41, 68, 0.14);
+            box-shadow: 0 20px 60px rgba(8, 47, 62, 0.16), 0 4px 16px rgba(8, 47, 62, 0.08);
         }
 
-        /* Panel izquierdo decorativo */
+        /* ── Panel izquierdo ──────────────────────────── */
         .login-panel {
-            width: 340px;
-            background: #0f2944;
-            padding: 48px 40px;
+            width: 360px;
+            background: linear-gradient(160deg, #0E6A84 0%, #082F3E 100%);
+            padding: 52px 44px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Textura sutil de fondo — círculos tonal */
+        .login-panel::before {
+            content: '';
+            position: absolute;
+            top: -80px; right: -80px;
+            width: 280px; height: 280px;
+            border-radius: 50%;
+            background: rgba(45, 212, 191, 0.07);
+            pointer-events: none;
+        }
+        .login-panel::after {
+            content: '';
+            position: absolute;
+            bottom: -60px; left: -60px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: rgba(165, 243, 252, 0.05);
+            pointer-events: none;
         }
 
         .panel-brand {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
-            color: #7eb8f7;
-            letter-spacing: 2px;
+            color: #5EEAD4;
+            letter-spacing: 3px;
             text-transform: uppercase;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 9px;
+            position: relative;
+            z-index: 1;
         }
 
         .pulse-dot {
             width: 8px;
             height: 8px;
-            background: #2ecc71;
+            background: #2DD4BF;
             border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.4);
             animation: pulse 2.5s ease-in-out infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.3; }
+            0%   { opacity: 1; box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.35); }
+            50%  { opacity: 0.55; box-shadow: 0 0 0 6px rgba(45, 212, 191, 0); }
+            100% { opacity: 1; box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); }
+        }
+
+        .panel-body {
+            position: relative;
+            z-index: 1;
         }
 
         .panel-body h1 {
-            font-size: 22px;
-            font-weight: 700;
+            font-size: 24px;
+            font-weight: 800;
             color: #fff;
-            line-height: 1.3;
-            margin-bottom: 12px;
+            line-height: 1.25;
+            margin-bottom: 14px;
+            letter-spacing: -0.5px;
         }
 
         .panel-body p {
             font-size: 13px;
-            color: rgba(255,255,255,0.45);
-            line-height: 1.7;
+            color: rgba(255,255,255,0.42);
+            line-height: 1.75;
         }
 
         .panel-chips {
             display: flex;
             flex-direction: column;
             gap: 10px;
+            position: relative;
+            z-index: 1;
         }
 
         .chip {
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            padding: 10px 14px;
+            gap: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            padding: 11px 14px;
+            transition: background 0.15s;
         }
 
         .chip-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            background: rgba(126,184,247,0.15);
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: rgba(45, 212, 191, 0.12);
+            border: 1px solid rgba(45, 212, 191, 0.15);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -107,118 +144,114 @@
         .chip-icon svg {
             width: 14px;
             height: 14px;
-            stroke: #7eb8f7;
+            stroke: #5EEAD4;
         }
 
         .chip-text {
             font-size: 12px;
-            color: rgba(255,255,255,0.6);
+            color: rgba(255,255,255,0.55);
             font-weight: 500;
         }
 
-        /* Panel derecho — formulario */
+        /* ── Panel derecho — formulario ───────────────── */
         .login-form-panel {
             flex: 1;
             background: #fff;
-            padding: 48px 44px;
+            padding: 52px 48px;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
 
         .form-heading {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1a1a2e;
-            margin-bottom: 6px;
+            font-size: 22px;
+            font-weight: 800;
+            color: #082F3E;
+            margin-bottom: 5px;
+            letter-spacing: -0.4px;
         }
 
         .form-subheading {
             font-size: 13px;
-            color: #8892a4;
-            margin-bottom: 32px;
+            color: #94A3B8;
+            margin-bottom: 34px;
         }
 
-        /* Flash de error dentro del login */
         .flash-error {
             display: flex;
             align-items: center;
-            gap: 8px;
-            background: #fcebeb;
-            color: #a32d2d;
-            border-left: 3px solid #a32d2d;
-            border-radius: 8px;
-            padding: 10px 14px;
+            gap: 9px;
+            background: #FFF1F2;
+            color: #9F1239;
+            border-left: 3px solid #E11D48;
+            border-radius: 9px;
+            padding: 11px 14px;
             font-size: 13px;
             font-weight: 500;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
 
-        .form-group {
-            margin-bottom: 18px;
-        }
+        .form-group { margin-bottom: 18px; }
 
         .form-label {
             display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: #4a5568;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #475569;
             margin-bottom: 6px;
-            letter-spacing: .3px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
         }
 
         .form-control {
             width: 100%;
-            padding: 10px 13px;
-            border: 1px solid #d0d7e3;
-            border-radius: 8px;
-            font-size: 13px;
+            padding: 11px 14px;
+            border: 1.5px solid #CBD5E1;
+            border-radius: 9px;
+            font-size: 14px;
             font-family: inherit;
-            color: #1a1a2e;
+            color: #0F172A;
             background: #fff;
-            transition: border-color 0.15s, box-shadow 0.15s;
+            transition: border-color 0.12s, box-shadow 0.12s;
             outline: none;
         }
 
-        .form-control:focus {
-            border-color: #185fa5;
-            box-shadow: 0 0 0 3px rgba(24,95,165,0.1);
-        }
+        .form-control:hover:not(:focus) { border-color: #94A3B8; }
 
-        .form-control:hover {
-            border-color: #a0aec0;
+        .form-control:focus {
+            border-color: #0E7490;
+            box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.12);
         }
 
         .btn-login {
             width: 100%;
-            padding: 11px;
-            background: #0f2944;
+            padding: 12px;
+            background: #0E7490;
             color: #fff;
             border: none;
-            border-radius: 8px;
+            border-radius: 9px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             font-family: inherit;
             cursor: pointer;
             margin-top: 8px;
-            transition: background 0.15s;
-            letter-spacing: .3px;
+            transition: background 0.12s, box-shadow 0.12s;
+            letter-spacing: 0.2px;
         }
 
         .btn-login:hover {
-            background: #1a3d5e;
+            background: #0C6278;
+            box-shadow: 0 4px 14px rgba(14, 116, 144, 0.30);
         }
 
-        .btn-login:active {
-            transform: scale(0.99);
-        }
+        .btn-login:active { transform: scale(0.99); }
 
         .form-footer {
-            margin-top: 28px;
+            margin-top: 30px;
             font-size: 11px;
-            color: #a0aec0;
+            color: #CBD5E1;
             text-align: center;
-            line-height: 1.6;
+            line-height: 1.7;
         }
     </style>
 </head>
@@ -320,7 +353,7 @@
 
         <div class="form-footer">
             Sistema de Monitoreo Alzheimer &mdash; Bases de Datos Avanzadas<br>
-            Google Cloud Platform · PostgreSQL · Flask
+            Google Cloud Platform &middot; PostgreSQL &middot; Flask
         </div>
     </div>
 

@@ -10,9 +10,10 @@
 
         body {
             font-family: 'Inter', system-ui, sans-serif;
-            background: #f8fafc;
-            color: #1e293b;
+            background: #F1F5F9;
+            color: #0F172A;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
 
         a { text-decoration: none; color: inherit; }
@@ -20,48 +21,55 @@
         /* ── Navbar ──────────────────────────────────────── */
         .cl-navbar {
             background: #fff;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid #E2E8F0;
             padding: 0 48px;
-            height: 60px;
+            height: 62px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky;
             top: 0;
             z-index: 50;
+            box-shadow: 0 1px 3px rgba(15,23,42,.04);
         }
         .cl-brand {
-            font-size: 18px;
-            font-weight: 700;
-            color: #0f2944;
+            font-size: 15px;
+            font-weight: 800;
+            color: #082F3E;
             display: flex;
             align-items: center;
             gap: 10px;
+            letter-spacing: -0.2px;
         }
         .cl-pulse {
             width: 9px; height: 9px;
-            background: #185fa5;
+            background: #2DD4BF;
             border-radius: 50%;
             display: inline-block;
+            box-shadow: 0 0 0 0 rgba(45,212,191,.4);
             animation: pulse 2.5s ease-in-out infinite;
         }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+        @keyframes pulse {
+            0%   { opacity:1; box-shadow:0 0 0 0 rgba(45,212,191,.35); }
+            50%  { opacity:.55; box-shadow:0 0 0 5px rgba(45,212,191,0); }
+            100% { opacity:1; box-shadow:0 0 0 0 rgba(45,212,191,0); }
+        }
         .cl-user {
             display: flex;
             align-items: center;
             gap: 20px;
         }
-        .cl-user-name { font-size: 13px; font-weight: 600; color: #475569; }
-        .cl-user-role { font-size: 11px; color: #94a3b8; }
+        .cl-user-name { font-size: 13px; font-weight: 600; color: #334155; }
+        .cl-user-role { font-size: 11px; color: #94A3B8; }
         .cl-logout {
             font-size: 13px;
             font-weight: 500;
-            color: #ef4444;
+            color: #E11D48;
             padding: 7px 16px;
-            border-radius: 7px;
-            transition: background .15s;
+            border-radius: 8px;
+            transition: background .12s;
         }
-        .cl-logout:hover { background: #fef2f2; }
+        .cl-logout:hover { background: #FFF1F2; }
 
         /* ── Page ────────────────────────────────────────── */
         .page {
@@ -71,37 +79,40 @@
         }
 
         .page-title {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 800;
-            color: #0f172a;
+            color: #0F172A;
             margin-bottom: 6px;
+            letter-spacing: -0.4px;
         }
         .page-sub {
             font-size: 14px;
-            color: #64748b;
+            color: #64748B;
             margin-bottom: 36px;
         }
 
         /* ── Sede cards ──────────────────────────────────── */
         .sedes-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 20px;
         }
 
         .sede-card {
             background: #fff;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #E2E8F0;
             border-radius: 16px;
-            padding: 28px 32px;
+            padding: 28px 30px;
             display: flex;
             flex-direction: column;
             gap: 20px;
-            transition: box-shadow .2s, border-color .2s;
+            transition: box-shadow .15s, border-color .15s, transform .15s;
+            box-shadow: 0 1px 3px rgba(15,23,42,.04);
         }
         .sede-card:hover {
-            box-shadow: 0 4px 20px rgba(0,0,0,.07);
-            border-color: #cbd5e1;
+            box-shadow: 0 8px 28px rgba(8,47,62,.10);
+            border-color: #BAE6FD;
+            transform: translateY(-2px);
         }
 
         .sede-header {
@@ -113,22 +124,24 @@
         .sede-icon {
             width: 48px;
             height: 48px;
-            background: #dbeafe;
-            color: #1d4ed8;
+            background: #CFFAFE;
+            color: #0E4F60;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            border: 1px solid #A5F3FC;
         }
         .sede-name {
             font-size: 18px;
             font-weight: 700;
-            color: #0f172a;
+            color: #0F172A;
+            letter-spacing: -0.2px;
         }
         .sede-zona {
             font-size: 12px;
-            color: #64748b;
+            color: #64748B;
             margin-top: 3px;
         }
 
@@ -145,32 +158,31 @@
             font-size: 13px;
             color: #475569;
         }
-        .sede-info-row svg { flex-shrink: 0; color: #94a3b8; }
+        .sede-info-row svg { flex-shrink: 0; color: #94A3B8; }
 
         /* ── Stats row ───────────────────────────────────── */
-        .sede-stats {
-            display: flex;
-            gap: 16px;
-        }
+        .sede-stats { display: flex; gap: 12px; }
         .sede-stat {
             flex: 1;
-            background: #f8fafc;
+            background: #F8FAFC;
             border-radius: 10px;
             padding: 12px 16px;
+            border: 1px solid #F1F5F9;
         }
         .sede-stat-label {
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 700;
-            color: #94a3b8;
+            color: #94A3B8;
             text-transform: uppercase;
-            letter-spacing: .7px;
+            letter-spacing: .8px;
             margin-bottom: 6px;
         }
         .sede-stat-value {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 800;
-            color: #185fa5;
+            color: #0E7490;
             line-height: 1;
+            font-variant-numeric: tabular-nums;
         }
 
         /* ── CTA ─────────────────────────────────────────── */
@@ -178,16 +190,19 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: #185fa5;
+            background: #0E7490;
             color: #fff;
             font-size: 13px;
             font-weight: 600;
             padding: 10px 20px;
             border-radius: 8px;
-            transition: background .15s;
+            transition: background .12s, box-shadow .12s;
             align-self: flex-start;
         }
-        .sede-cta:hover { background: #1251890; background: #1a6fbf; }
+        .sede-cta:hover {
+            background: #0C6278;
+            box-shadow: 0 3px 10px rgba(14,116,144,.25);
+        }
     </style>
 </head>
 <body>
