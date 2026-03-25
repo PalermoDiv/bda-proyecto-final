@@ -9,7 +9,7 @@ def init_routes(app):
         if session.get("admin"):
             return redirect(url_for("dashboard"))
         if session.get("medico"):
-            return redirect(url_for("dashboard_clinica"))
+            return redirect(url_for("clinica_sedes"))
         return render_template("public.html")
 
     @app.route("/login", methods=["GET", "POST"])
@@ -27,7 +27,7 @@ def init_routes(app):
             elif usuario == "medico" and password == "medico123":
                 session["medico"] = True
                 session["rol"] = "medico"
-                return redirect(url_for("dashboard_clinica"))
+                return redirect(url_for("clinica_sedes"))
 
             flash("Usuario o contraseña incorrectos", "error")
 

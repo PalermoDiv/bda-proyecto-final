@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selección de sede — AlzMonitor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* ── Navbar ──────────────────────────────────────── */
+        .cl-navbar {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 48px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .cl-brand {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f2944;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .cl-pulse {
+            width: 9px; height: 9px;
+            background: #185fa5;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+        .cl-user {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .cl-user-name { font-size: 13px; font-weight: 600; color: #475569; }
+        .cl-user-role { font-size: 11px; color: #94a3b8; }
+        .cl-logout {
+            font-size: 13px;
+            font-weight: 500;
+            color: #ef4444;
+            padding: 7px 16px;
+            border-radius: 7px;
+            transition: background .15s;
+        }
+        .cl-logout:hover { background: #fef2f2; }
+
+        /* ── Page ────────────────────────────────────────── */
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 48px 48px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+        .page-sub {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 36px;
+        }
+
+        /* ── Sede cards ──────────────────────────────────── */
+        .sedes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 24px;
+        }
+
+        .sede-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 28px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: box-shadow .2s, border-color .2s;
+        }
+        .sede-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,.07);
+            border-color: #cbd5e1;
+        }
+
+        .sede-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .sede-icon {
+            width: 48px;
+            height: 48px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .sede-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .sede-zona {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        /* ── Info rows ───────────────────────────────────── */
+        .sede-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .sede-info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #475569;
+        }
+        .sede-info-row svg { flex-shrink: 0; color: #94a3b8; }
+
+        /* ── Stats row ───────────────────────────────────── */
+        .sede-stats {
+            display: flex;
+            gap: 16px;
+        }
+        .sede-stat {
+            flex: 1;
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 12px 16px;
+        }
+        .sede-stat-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            margin-bottom: 6px;
+        }
+        .sede-stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: #185fa5;
+            line-height: 1;
+        }
+
+        /* ── CTA ─────────────────────────────────────────── */
+        .sede-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #185fa5;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background .15s;
+            align-self: flex-start;
+        }
+        .sede-cta:hover { background: #1251890; background: #1a6fbf; }
+    </style>
+</head>
+<body>
+
+    <nav class="cl-navbar">
+        <div class="cl-brand">
+            <span class="cl-pulse"></span>
+            Módulo Clínico
+        </div>
+        <div class="cl-user">
+            <div>
+                <div class="cl-user-name">Dr. Médico en Turno</div>
+                <div class="cl-user-role">Portal clínico · Solo lectura operativa</div>
+            </div>
+            <a href="{{ url_for('logout') }}" class="cl-logout">Cerrar sesión</a>
+        </div>
+    </nav>
+
+    <div class="page">
+        <div class="page-title">Selección de sede</div>
+        <div class="page-sub">Selecciona el centro de atención para ver su dashboard clínico.</div>
+
+        <div class="sedes-grid">
+            {% for item in sedes %}
+            {% set s = item.sucursal %}
+            <div class="sede-card">
+
+                <div class="sede-header">
+                    <div style="display:flex; align-items:center; gap:14px;">
+                        <div class="sede-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="sede-name">{{ s.nombre }}</div>
+                            <div class="sede-zona">{{ s.zona }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sede-info">
+                    <div class="sede-info-row">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        {{ s.direccion }}
+                    </div>
+                    <div class="sede-info-row">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.6 3.36 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.85a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 16z"/>
+                        </svg>
+                        {{ s.telefono }}
+                    </div>
+                    <div class="sede-info-row">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Director: {{ s.director }}
+                    </div>
+                </div>
+
+                <div class="sede-stats">
+                    <div class="sede-stat">
+                        <div class="sede-stat-label">Pacientes</div>
+                        <div class="sede-stat-value">{{ item.total_pacientes }}</div>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('dashboard_clinica', id_sucursal=s.id_sucursal) }}" class="sede-cta">
+                    Ver dashboard
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</body>
+</html>

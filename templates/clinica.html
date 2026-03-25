@@ -478,8 +478,15 @@
         <div class="cl-brand">
             <span class="cl-pulse"></span>
             Módulo Clínico
+            {% if sucursal %}
+            <span style="font-size:13px; font-weight:500; color:#64748b; margin-left:6px;">— {{ sucursal.nombre }}</span>
+            {% endif %}
         </div>
         <div class="cl-user">
+            <a href="{{ url_for('clinica_sedes') }}" style="font-size:13px; font-weight:500; color:#185fa5; display:flex; align-items:center; gap:6px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Sedes
+            </a>
             <div>
                 <div class="cl-user-name">Dr. Médico en Turno</div>
                 <div class="cl-user-role">Portal clínico · Solo lectura operativa</div>
@@ -518,7 +525,7 @@
         <div class="cl-panel active" id="tab-resumen">
 
             <div class="cl-section-title">Resumen del día</div>
-            <div class="cl-section-sub">Estado operativo actual del centro — {{ "24 de marzo, 2026" }}</div>
+            <div class="cl-section-sub">{% if sucursal %}{{ sucursal.nombre }} · {% endif %}Estado operativo actual del centro — {{ "24 de marzo, 2026" }}</div>
 
             <!-- Stat cards -->
             <div class="cl-stats">
