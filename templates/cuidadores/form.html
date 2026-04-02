@@ -81,9 +81,19 @@
                                name="telefono_cuid"
                                class="form-control"
                                placeholder="Ej. 555-1234"
-                               value="{{ cuidador.telefono_cuid if cuidador else '' }}"
-                               required>
+                               value="{{ cuidador.telefono_cuid if cuidador else '' }}">
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="curp_pasaporte">CURP / Pasaporte</label>
+                    <input type="text"
+                           id="curp_pasaporte"
+                           name="curp_pasaporte"
+                           class="form-control"
+                           placeholder="Ej. MARL800101HNLRRS09"
+                           value="{{ cuidador.curp_pasaporte if cuidador else '' }}"
+                           required>
                 </div>
 
                 <!-- Acciones -->

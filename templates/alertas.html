@@ -1,45 +1,91 @@
 {% extends "base.html" %}
 
 {% block title %}Reporte de Alertas{% endblock %}
+{% block page_title %}Alertas{% endblock %}
 {% block breadcrumb %}Inicio / Reporte de Alertas{% endblock %}
 
 {% block content %}
 <div class="section-header">
     <div>
-        <div class="section-title">Reporte de Alertas Recientes</div>
-        <div class="section-sub">Historial de incidentes detectados por los dispositivos en las últimas 48 horas.</div>
+        <div class="section-title">Reporte de Alertas</div>
+        <div class="section-sub">Historial de incidentes detectados por los dispositivos.</div>
     </div>
+    <a href="{{ url_for('alertas_nueva') }}" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Registrar alerta
+    </a>
 </div>
 
-<div class="stats-grid" style="margin-bottom: 20px;">
-    <div class="card" style="border-left: 4px solid #E11D48; padding: 20px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <span class="badge badge-alert">CRÍTICA — Botón SOS</span>
-            <span style="color: #94A3B8; font-size: 12px; font-variant-numeric:tabular-nums;">Hoy, 14:32 hrs</span>
-        </div>
-        <h3 style="margin-bottom: 6px; color: #0F172A; font-size:14px;">Paciente: Roberto Gómez</h3>
-        <p style="color: #475569; font-size: 13px; margin-bottom: 16px; line-height:1.6;">El paciente presionó el botón de pánico del Beacon B-102. Ubicación registrada: Habitación principal.</p>
-        <button class="btn btn-secondary btn-sm">Ver detalles completos</button>
-    </div>
-
-    <div class="card" style="border-left: 4px solid #D97706; padding: 20px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <span class="badge badge-hospital">ADVERTENCIA — Salida de Zona</span>
-            <span style="color: #94A3B8; font-size: 12px; font-variant-numeric:tabular-nums;">Hoy, 10:15 hrs</span>
-        </div>
-        <h3 style="margin-bottom: 6px; color: #0F172A; font-size:14px;">Paciente: María Elena Salinas</h3>
-        <p style="color: #475569; font-size: 13px; margin-bottom: 16px; line-height:1.6;">El dispositivo GPS-405 salió de la "Zona Segura: Jardín". Última ubicación: Calle de los Pinos #42.</p>
-        <button class="btn btn-secondary btn-sm">Ver en mapa</button>
-    </div>
-
-    <div class="card" style="border-left: 4px solid #0E7490; padding: 20px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <span class="badge badge-gps">INFO — Batería Baja</span>
-            <span style="color: #94A3B8; font-size: 12px; font-variant-numeric:tabular-nums;">Ayer, 18:45 hrs</span>
-        </div>
-        <h3 style="margin-bottom: 6px; color: #0F172A; font-size:14px;">Paciente: Carlos Ruíz</h3>
-        <p style="color: #475569; font-size: 13px; margin-bottom: 16px; line-height:1.6;">El nivel de batería del GPS-112 bajó al 15%. Se notificó al cuidador asignado.</p>
-        <button class="btn btn-secondary btn-sm">Contactar cuidador</button>
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tipo</th>
+                    <th>Paciente</th>
+                    <th>Sede</th>
+                    <th>Fecha / Hora</th>
+                    <th>Estatus</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if alertas %}
+                    {% for a in alertas %}
+                    <tr>
+                        <td style="color:#8892a4; font-weight:600;">{{ a.id_alerta }}</td>
+                        <td style="font-weight:500;">{{ a.tipo_alerta }}</td>
+                        <td>{{ a.paciente }}</td>
+                        <td>
+                            {% if a.nombre_sucursal %}
+                            <span class="badge" style="background:#e6f1fb; color:#0c447c;">
+                                {{ a.nombre_sucursal }}
+                            </span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td style="color:#8892a4; font-variant-numeric:tabular-nums;">
+                            {{ a.fecha_hora.strftime('%d/%m/%Y %H:%M') if a.fecha_hora else '—' }}
+                        </td>
+                        <td>
+                            {% if a.estatus == 'Activa' %}
+                                <span class="badge badge-alert">Activa</span>
+                            {% elif a.estatus == 'Atendida' %}
+                                <span class="badge badge-active">Atendida</span>
+                            {% else %}
+                                <span class="badge badge-hospital">{{ a.estatus }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display:flex; gap:6px;">
+                                {% if a.estatus == 'Activa' %}
+                                <form method="POST" action="{{ url_for('alertas_resolver', id=a.id_alerta) }}">
+                                    <button type="submit" class="btn btn-secondary" style="padding:4px 10px; font-size:11px;">
+                                        Atender
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('alertas_eliminar', id=a.id_alerta) }}"
+                                      onsubmit="return confirm('¿Eliminar esta alerta?')">
+                                    <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:11px;">
+                                        Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align:center; color:#8892a4; padding:36px;">
+                            No hay alertas registradas.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

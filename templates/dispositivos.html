@@ -13,7 +13,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        Vincular nuevo dispositivo
+        Registrar dispositivo
     </a>
 </div>
 
@@ -24,43 +24,66 @@
                 <tr>
                     <th>Código</th>
                     <th>Tipo</th>
+                    <th>Modelo</th>
                     <th>Paciente Asignado</th>
                     <th>Sede</th>
                     <th>Batería</th>
                     <th>Estatus</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for d in dispositivos %}
                 <tr>
                     <td style="font-weight:600;">{{ d.codigo }}</td>
-                    <td>{{ d.tipo }}</td>
+                    <td><span class="badge badge-hospital">{{ d.tipo }}</span></td>
+                    <td style="font-size:12px; color:#64748b;">{{ d.modelo }}</td>
                     <td>{{ d.paciente }}</td>
                     <td>
-                        <span class="badge" style="background:{% if d.id_sucursal == 1 %}#CFFAFE; color:#0E4F60{% else %}#ECFDF5; color:#065F46{% endif %}; border:1px solid {% if d.id_sucursal == 1 %}#A5F3FC{% else %}#A7F3D0{% endif %};">
+                        {% if d.nombre_sucursal != '—' %}
+                        <span class="badge" style="background:#e6f1fb; color:#0c447c;">
                             {{ d.nombre_sucursal }}
                         </span>
+                        {% else %}—{% endif %}
                     </td>
                     <td>
-                        {% if d.bateria <= 20 %}
-                            <span style="color:#E11D48; font-weight:700; font-variant-numeric:tabular-nums;">{{ d.bateria }}%</span>
+                        {% if d.bateria is none %}
+                            <span style="color:#94a3b8;">—</span>
+                        {% elif d.bateria <= 20 %}
+                            <span style="color:#E11D48; font-weight:700;">{{ d.bateria }}%</span>
                         {% elif d.bateria >= 80 %}
-                            <span style="color:#059669; font-weight:700; font-variant-numeric:tabular-nums;">{{ d.bateria }}%</span>
+                            <span style="color:#059669; font-weight:700;">{{ d.bateria }}%</span>
                         {% else %}
-                            <span style="color:#D97706; font-weight:700; font-variant-numeric:tabular-nums;">{{ d.bateria }}%</span>
+                            <span style="color:#D97706; font-weight:700;">{{ d.bateria }}%</span>
                         {% endif %}
                     </td>
                     <td>
-                        {% if 'crítica' in d.estatus %}
-                            <span class="badge badge-alert">{{ d.estatus }}</span>
+                        {% if d.estatus == 'Activo' %}
+                            <span class="badge badge-active">Activo</span>
+                        {% elif d.estatus == 'Inactivo' %}
+                            <span class="badge badge-hospital">Inactivo</span>
                         {% else %}
-                            <span class="badge badge-active">{{ d.estatus }}</span>
+                            <span class="badge badge-alert">{{ d.estatus }}</span>
                         {% endif %}
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:6px;">
+                            <a href="{{ url_for('dispositivos_editar', id=d.id_dispositivo) }}"
+                               class="btn btn-secondary" style="padding:4px 10px; font-size:11px;">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('dispositivos_eliminar', id=d.id_dispositivo) }}"
+                                  onsubmit="return confirm('¿Eliminar este dispositivo?')">
+                                <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:11px;">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5" style="text-align:center; color:#8892a4; padding:32px;">
+                    <td colspan="8" style="text-align:center; color:#8892a4; padding:32px;">
                         No hay dispositivos registrados.
                     </td>
                 </tr>

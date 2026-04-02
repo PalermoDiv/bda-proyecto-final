@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Vincular nuevo dispositivo{% endblock %}
-{% block page_title %}Vincular nuevo dispositivo{% endblock %}
+{% block title %}{{ 'Editar' if disp else 'Registrar' }} dispositivo{% endblock %}
+{% block page_title %}{{ 'Editar' if disp else 'Registrar' }} dispositivo{% endblock %}
 {% block breadcrumb %}
     Inicio /
     <a href="{{ url_for('dispositivos') }}" style="color:#185fa5;">Dispositivos</a> /
-    Nuevo
+    {{ 'Editar' if disp else 'Nuevo' }}
 {% endblock %}
 
 {% block content %}
@@ -13,67 +13,57 @@
 <div style="max-width:680px;">
     <div class="card">
         <div class="card-header">
-            <div class="card-title">Registrar dispositivo</div>
+            <div class="card-title">
+                {{ 'Editando: ' + disp.id_serial if disp else 'Registrar nuevo dispositivo' }}
+            </div>
         </div>
 
         <div class="card-body">
-            <form method="POST" action="{{ url_for('dispositivos_nuevo') }}">
+            <form method="POST" action="{{ url_for('dispositivos_editar', id=disp.id_dispositivo) if disp else url_for('dispositivos_nuevo') }}">
+
+                {% if not disp %}
+                <div class="form-group">
+                    <label class="form-label" for="id_dispositivo">ID del dispositivo</label>
+                    <input type="number" id="id_dispositivo" name="id_dispositivo"
+                           class="form-control" placeholder="Ej. 10" required>
+                </div>
+                {% endif %}
 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label class="form-label" for="codigo">Código del dispositivo</label>
-                        <input type="text"
-                               id="codigo"
-                               name="codigo"
-                               class="form-control"
-                               placeholder="Ej. GPS-406"
-                               required>
+                        <label class="form-label" for="id_serial">Código / Serial</label>
+                        <input type="text" id="id_serial" name="id_serial"
+                               class="form-control" placeholder="Ej. GPS-406"
+                               value="{{ disp.id_serial if disp else '' }}" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="tipo">Tipo</label>
                         <select id="tipo" name="tipo" class="form-control" required>
-                            <option value="" disabled selected>Seleccionar tipo...</option>
-                            <option value="Pulsera GPS Tracker">Pulsera GPS Tracker</option>
-                            <option value="Collar GPS">Collar GPS</option>
-                            <option value="Beacon Habitación">Beacon Habitación</option>
-                            <option value="Sensor NFC Medicación">Sensor NFC Medicación</option>
+                            <option value="" disabled {% if not disp %}selected{% endif %}>Seleccionar...</option>
+                            {% for t in ['GPS', 'BEACON', 'NFC'] %}
+                            <option value="{{ t }}" {% if disp and disp.tipo == t %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
                         </select>
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="id_paciente">Paciente asignado</label>
-                    <select id="id_paciente" name="id_paciente" class="form-control" required>
-                        <option value="" disabled selected>Seleccionar paciente...</option>
-                        {% for p in pacientes %}
-                        <option value="{{ p.id_paciente }}">
-                            {{ p.nombre_paciente }} {{ p.apellido_p_pac }} {{ p.apellido_m_pac }}
-                        </option>
-                        {% endfor %}
-                    </select>
                 </div>
 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label class="form-label" for="bateria">Batería inicial (%)</label>
-                        <input type="number"
-                               id="bateria"
-                               name="bateria"
-                               class="form-control"
-                               min="0" max="100"
-                               placeholder="Ej. 100"
-                               required>
+                        <label class="form-label" for="modelo">Modelo</label>
+                        <input type="text" id="modelo" name="modelo"
+                               class="form-control" placeholder="Ej. GT06N"
+                               value="{{ disp.modelo if disp else '' }}" required>
                     </div>
+                    {% if disp %}
                     <div class="form-group">
-                        <label class="form-label" for="estatus">Estatus</label>
-                        <select id="estatus" name="estatus" class="form-control" required>
-                            <option value="" disabled selected>Seleccionar estatus...</option>
-                            <option value="Activo / Transmitiendo">Activo / Transmitiendo</option>
-                            <option value="Cargando">Cargando</option>
-                            <option value="Batería crítica">Batería crítica</option>
-                            <option value="Inactivo">Inactivo</option>
+                        <label class="form-label" for="estado">Estado</label>
+                        <select id="estado" name="estado" class="form-control" required>
+                            {% for e in ['Activo', 'Inactivo', 'Mantenimiento'] %}
+                            <option value="{{ e }}" {% if disp.estado == e %}selected{% endif %}>{{ e }}</option>
+                            {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
                 </div>
 
                 <div class="form-actions">
@@ -81,7 +71,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="20 6 9 17 4 12"/>
                         </svg>
-                        Vincular dispositivo
+                        {{ 'Guardar cambios' if disp else 'Registrar dispositivo' }}
                     </button>
                     <a href="{{ url_for('dispositivos') }}" class="btn btn-secondary">Cancelar</a>
                 </div>

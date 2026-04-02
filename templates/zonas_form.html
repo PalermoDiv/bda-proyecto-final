@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Agregar zona segura{% endblock %}
-{% block page_title %}Agregar zona segura{% endblock %}
+{% block title %}{{ 'Editar' if zona else 'Nueva' }} zona segura{% endblock %}
+{% block page_title %}{{ 'Editar' if zona else 'Nueva' }} zona segura{% endblock %}
 {% block breadcrumb %}
     Inicio /
     <a href="{{ url_for('zonas') }}" style="color:#185fa5;">Zonas Seguras</a> /
-    Nueva
+    {{ 'Editar' if zona else 'Nueva' }}
 {% endblock %}
 
 {% block content %}
@@ -13,54 +13,59 @@
 <div style="max-width:680px;">
     <div class="card">
         <div class="card-header">
-            <div class="card-title">Configurar nueva zona segura</div>
+            <div class="card-title">
+                {{ 'Editando: ' + zona.nombre_zona if zona else 'Configurar nueva zona segura' }}
+            </div>
         </div>
 
         <div class="card-body">
-            <form method="POST" action="{{ url_for('zonas_nueva') }}">
+            <form method="POST" action="{{ url_for('zonas_editar', id=zona.id_zona) if zona else url_for('zonas_nueva') }}">
+
+                {% if not zona %}
+                <div class="form-group">
+                    <label class="form-label" for="id_zona">ID de zona</label>
+                    <input type="number" id="id_zona" name="id_zona"
+                           class="form-control" placeholder="Ej. 5" required>
+                </div>
+                {% endif %}
 
                 <div class="form-group">
                     <label class="form-label" for="nombre_zona">Nombre de la zona</label>
-                    <input type="text"
-                           id="nombre_zona"
-                           name="nombre_zona"
-                           class="form-control"
-                           placeholder="Ej. Jardín trasero"
-                           required>
+                    <input type="text" id="nombre_zona" name="nombre_zona"
+                           class="form-control" placeholder="Ej. Jardín trasero"
+                           value="{{ zona.nombre_zona if zona else '' }}" required>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="id_paciente">Paciente</label>
-                    <select id="id_paciente" name="id_paciente" class="form-control" required>
-                        <option value="" disabled selected>Seleccionar paciente...</option>
-                        <option value="0">Todos los pacientes</option>
-                        {% for p in pacientes %}
-                        <option value="{{ p.id_paciente }}">
-                            {{ p.nombre_paciente }} {{ p.apellido_p_pac }} {{ p.apellido_m_pac }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="latitud_centro">Latitud centro</label>
+                        <input type="number" step="0.000001" id="latitud_centro" name="latitud_centro"
+                               class="form-control" placeholder="Ej. 25.686614"
+                               value="{{ zona.latitud_centro if zona else '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="longitud_centro">Longitud centro</label>
+                        <input type="number" step="0.000001" id="longitud_centro" name="longitud_centro"
+                               class="form-control" placeholder="Ej. -100.316116"
+                               value="{{ zona.longitud_centro if zona else '' }}" required>
+                    </div>
                 </div>
 
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label" for="radio_metros">Radio permitido (metros)</label>
-                        <input type="number"
-                               id="radio_metros"
-                               name="radio_metros"
-                               class="form-control"
-                               min="1"
-                               placeholder="Ej. 30"
-                               required>
+                        <input type="number" step="0.01" min="1" id="radio_metros" name="radio_metros"
+                               class="form-control" placeholder="Ej. 50"
+                               value="{{ zona.radio_metros if zona else '' }}" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="notificar_a">Notificar a</label>
-                        <input type="text"
-                               id="notificar_a"
-                               name="notificar_a"
-                               class="form-control"
-                               placeholder="Ej. Cuidador primario"
-                               required>
+                        <label class="form-label" for="id_sede">Sede</label>
+                        <select id="id_sede" name="id_sede" class="form-control">
+                            <option value="">Sin sede asignada</option>
+                            {% for s in sedes %}
+                            <option value="{{ s.id_sede }}">{{ s.nombre_sede }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
 
@@ -69,7 +74,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="20 6 9 17 4 12"/>
                         </svg>
-                        Guardar zona
+                        {{ 'Guardar cambios' if zona else 'Guardar zona' }}
                     </button>
                     <a href="{{ url_for('zonas') }}" class="btn btn-secondary">Cancelar</a>
                 </div>

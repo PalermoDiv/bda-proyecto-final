@@ -28,8 +28,14 @@
 <div class="section-header" style="margin-bottom:14px;">
     <div>
         <div class="section-title">Visitas de hoy</div>
-        <div class="section-sub">Registro de entradas y salidas del día — 24 de marzo, 2026</div>
+        <div class="section-sub">Registro de entradas y salidas del día — {{ fecha_hoy.strftime('%d/%m/%Y') }}</div>
     </div>
+    <a href="{{ url_for('visitas_nueva') }}" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Registrar visita
+    </a>
 </div>
 
 <div class="card" style="margin-bottom:24px;">

@@ -23,28 +23,45 @@
             <thead>
                 <tr>
                     <th>Nombre de la Zona</th>
-                    <th>Paciente</th>
                     <th>Sede</th>
                     <th>Radio Permitido</th>
-                    <th>Notificar a</th>
+                    <th>Coordenadas</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for z in zonas %}
                 <tr>
                     <td style="font-weight:600;">{{ z.nombre_zona }}</td>
-                    <td>{{ z.paciente }}</td>
                     <td>
-                        <span class="badge" style="background:{% if z.id_sucursal == 1 %}#CFFAFE; color:#0E4F60{% else %}#ECFDF5; color:#065F46{% endif %}; border:1px solid {% if z.id_sucursal == 1 %}#A5F3FC{% else %}#A7F3D0{% endif %};">
+                        {% if z.nombre_sucursal != '—' %}
+                        <span class="badge" style="background:#e6f1fb; color:#0c447c;">
                             {{ z.nombre_sucursal }}
                         </span>
+                        {% else %}—{% endif %}
                     </td>
-                    <td>{{ z.radio_metros }} metros</td>
-                    <td>{{ z.notificar_a }}</td>
+                    <td>{{ z.radio_metros }} m</td>
+                    <td style="font-size:11px; color:#94a3b8; font-variant-numeric:tabular-nums;">
+                        {{ z.latitud_centro }}, {{ z.longitud_centro }}
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:6px;">
+                            <a href="{{ url_for('zonas_editar', id=z.id_zona) }}"
+                               class="btn btn-secondary" style="padding:4px 10px; font-size:11px;">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('zonas_eliminar', id=z.id_zona) }}"
+                                  onsubmit="return confirm('¿Eliminar esta zona?')">
+                                <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:11px;">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="4" style="text-align:center; color:#8892a4; padding:32px;">
+                    <td colspan="5" style="text-align:center; color:#8892a4; padding:32px;">
                         No hay zonas seguras configuradas.
                     </td>
                 </tr>

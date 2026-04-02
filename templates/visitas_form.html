@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar visita{% endblock %}
+{% block page_title %}Registrar visita{% endblock %}
+{% block breadcrumb %}
+    Inicio /
+    <a href="{{ url_for('visitas') }}" style="color:#185fa5;">Visitas</a> /
+    Nueva
+{% endblock %}
+
+{% block content %}
+
+<div style="max-width:680px;">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Registrar nueva visita</div>
+        </div>
+
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('visitas_nueva') }}">
+
+                <div class="form-group">
+                    <label class="form-label" for="id_visita">ID de visita</label>
+                    <input type="number" id="id_visita" name="id_visita"
+                           class="form-control" placeholder="Ej. 10" required>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="id_paciente">Paciente</label>
+                        <select id="id_paciente" name="id_paciente" class="form-control" required>
+                            <option value="" disabled selected>Seleccionar paciente...</option>
+                            {% for p in pacientes %}
+                            <option value="{{ p.id_paciente }}">{{ p.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_visitante">Visitante</label>
+                        <select id="id_visitante" name="id_visitante" class="form-control" required>
+                            <option value="" disabled selected>Seleccionar visitante...</option>
+                            {% for v in visitantes %}
+                            <option value="{{ v.id_visitante }}">{{ v.nombre }} — {{ v.relacion }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="id_sede">Sede</label>
+                        <select id="id_sede" name="id_sede" class="form-control" required>
+                            <option value="" disabled selected>Seleccionar sede...</option>
+                            {% for s in sedes %}
+                            <option value="{{ s.id_sede }}">{{ s.nombre_sede }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="fecha_entrada">Fecha</label>
+                        <input type="date" id="fecha_entrada" name="fecha_entrada"
+                               class="form-control" value="{{ fecha_hoy }}" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="hora_entrada">Hora de entrada</label>
+                    <input type="time" id="hora_entrada" name="hora_entrada"
+                           class="form-control" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Registrar visita
+                    </button>
+                    <a href="{{ url_for('visitas') }}" class="btn btn-secondary">Cancelar</a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
