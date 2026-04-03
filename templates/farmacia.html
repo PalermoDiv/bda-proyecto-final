@@ -80,6 +80,18 @@
                             <span class="badge" style="background:#ECFDF5; color:#065F46; border:1px solid #A7F3D0; font-size:10px; padding:3px 9px; border-radius:100px; font-weight:700;">OK</span>
                         {% endif %}
                     </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('farmacia_ajustar_stock') }}"
+                              style="display:flex; gap:4px; align-items:center;">
+                            <input type="hidden" name="GTIN" value="{{ m.GTIN }}">
+                            <input type="hidden" name="id_sede" value="{{ m.id_sede }}">
+                            <input type="number" name="stock_actual" value="{{ m.stock_actual }}"
+                                   min="0" style="width:64px; padding:3px 6px; border:1px solid #e2e8f0;
+                                   border-radius:6px; font-size:12px;">
+                            <button type="submit" class="btn btn-secondary"
+                                    style="padding:3px 8px; font-size:11px;">OK</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -101,38 +113,40 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Medicamento</th>
-                        <th>Cant.</th>
+                        <th>ID</th>
+                        <th>Medicamentos</th>
+                        <th>Sede</th>
                         <th>Proveedor</th>
-                        <th>Fecha</th>
+                        <th>Fecha entrega</th>
                         <th>Estado</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for s in suministros %}
                     <tr>
-                        <td style="font-weight:600; font-size:13px;">{{ s.medicamentos }}</td>
+                        <td style="color:#8892a4; font-weight:600;">{{ s.id_suministro }}</td>
+                        <td style="font-size:13px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                            title="{{ s.medicamentos }}">{{ s.medicamentos }}</td>
                         <td style="font-size:12px; color:#64748B;">{{ s.nombre_sede }}</td>
                         <td style="font-size:12px; color:#64748B;">{{ s.farmacia }}</td>
-                        <td style="font-size:11px; color:#94A3B8;">{{ s.fecha_entrega[8:10] }}/{{ s.fecha_entrega[5:7] }}/{{ s.fecha_entrega[0:4] }}</td>
+                        <td style="font-size:11px; color:#94A3B8; font-variant-numeric:tabular-nums;">
+                            {{ s.fecha_entrega[8:10] }}/{{ s.fecha_entrega[5:7] }}/{{ s.fecha_entrega[0:4] }}
+                        </td>
                         <td>
                             {% if s.estado == 'Pendiente' %}
                                 <span class="badge" style="background:#FFFBEB; color:#92400E; border:1px solid #FDE68A; font-size:10px; padding:3px 9px; border-radius:100px; font-weight:700;">Pendiente</span>
+                            {% elif s.estado == 'Entregado' %}
+                                <span class="badge" style="background:#ECFDF5; color:#065F46; border:1px solid #A7F3D0; font-size:10px; padding:3px 9px; border-radius:100px; font-weight:700;">Entregado</span>
                             {% else %}
-                                <span class="badge" style="background:#ECFDF5; color:#065F46; border:1px solid #A7F3D0; font-size:10px; padding:3px 9px; border-radius:100px; font-weight:700;">{{ s.estado }}</span>
+                                <span class="badge badge-hospital">{{ s.estado }}</span>
                             {% endif %}
                         </td>
                         <td>
-                            <form method="POST" action="{{ url_for('farmacia_ajustar_stock') }}"
-                                  style="display:flex; gap:4px; align-items:center;">
-                                <input type="hidden" name="GTIN" value="{{ m.GTIN }}">
-                                <input type="hidden" name="id_sede" value="{{ m.id_sede }}">
-                                <input type="number" name="stock_actual" value="{{ m.stock_actual }}"
-                                       min="0" style="width:64px; padding:3px 6px; border:1px solid #e2e8f0;
-                                       border-radius:6px; font-size:12px;">
-                                <button type="submit" class="btn btn-secondary"
-                                        style="padding:3px 8px; font-size:11px;">OK</button>
-                            </form>
+                            <a href="{{ url_for('farmacia_suministro_detalle', id=s.id_suministro) }}"
+                               class="btn btn-secondary" style="padding:4px 10px; font-size:11px;">
+                                Ver detalle
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
