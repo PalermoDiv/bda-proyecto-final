@@ -142,8 +142,12 @@
             <div class="breadcrumb">{% block breadcrumb %}Inicio{% endblock %}</div>
         </div>
         <div class="topbar-right">
+            <div class="topbar-status">
+                <span class="pulse-dot" style="width:6px;height:6px;"></span>
+                Monitoreo activo
+            </div>
             <div class="topbar-date">
-                {{ now.strftime('%A %d %b, %Y') if now else '' }}
+                {{ now.strftime('%d %b %Y') if now else '' }}
             </div>
         </div>
     </header>
