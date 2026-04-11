@@ -357,13 +357,38 @@ def pacientes_historial(id):
         LIMIT 1
     """, (id,))
 
-    ingreso = db.one("""
-        SELECT TO_CHAR(sp.fecha_ingreso, 'YYYY-MM-DD') AS fecha_ingreso,
+    historial_sedes = db.query("""
+        SELECT sp.id_sede_paciente,
+               sp.id_sede,
+               s.nombre_sede,
+               TO_CHAR(sp.fecha_ingreso, 'YYYY-MM-DD') AS fecha_ingreso,
                sp.hora_ingreso,
-               s.nombre_sede
+               TO_CHAR(sp.fecha_salida,  'YYYY-MM-DD') AS fecha_salida,
+               sp.hora_salida
         FROM sede_pacientes sp
         JOIN sedes s ON sp.id_sede = s.id_sede
-        WHERE sp.id_paciente = %s AND sp.fecha_salida IS NULL
+        WHERE sp.id_paciente = %s
+        ORDER BY sp.fecha_ingreso DESC
+    """, (id,))
+
+    sede_actual_id = next(
+        (r["id_sede"] for r in historial_sedes if r["fecha_salida"] is None),
+        None
+    )
+
+    sedes_disponibles = db.query("""
+        SELECT id_sede, nombre_sede FROM sedes
+        WHERE id_sede != %s
+        ORDER BY nombre_sede
+    """, (sede_actual_id or 0,))
+
+    alertas_paciente = db.query("""
+        SELECT a.id_alerta, a.tipo_alerta, a.estatus,
+               TO_CHAR(a.fecha_hora, 'YYYY-MM-DD') AS fecha,
+               TO_CHAR(a.fecha_hora, 'HH24:MI')    AS hora
+        FROM alertas a
+        WHERE a.id_paciente = %s
+        ORDER BY a.fecha_hora DESC
     """, (id,))
 
     visitas = db.query("""
@@ -397,10 +422,63 @@ def pacientes_historial(id):
         cuidadores=cuidadores,
         contactos=contactos,
         kit=kit,
-        ingreso=ingreso,
+        historial_sedes=historial_sedes,
+        sedes_disponibles=sedes_disponibles,
+        alertas_paciente=alertas_paciente,
         visitas=visitas,
         entregas=entregas,
     )
+
+
+@app.route("/pacientes/<int:id>/transferir-sede", methods=["POST"])
+@admin_requerido
+def pacientes_transferir_sede(id):
+    try:
+        nueva_sede_id = int(request.form["nueva_sede_id"])
+
+        activos = db.query("""
+            SELECT id_sede_paciente, id_sede
+            FROM sede_pacientes
+            WHERE id_paciente = %s AND fecha_salida IS NULL
+        """, (id,))
+
+        if len(activos) > 1:
+            raise Exception(
+                f"Integridad comprometida: el paciente tiene {len(activos)} "
+                "asignaciones activas simultáneas. Corrija manualmente."
+            )
+
+        if activos and activos[0]["id_sede"] == nueva_sede_id:
+            flash("El paciente ya está asignado a esa sede.", "error")
+            return redirect(url_for("pacientes_historial", id=id))
+
+        ops = []
+        if activos:
+            ops.append(("""
+                UPDATE sede_pacientes
+                SET fecha_salida = CURRENT_DATE,
+                    hora_salida  = CURRENT_TIME
+                WHERE id_paciente = %s AND fecha_salida IS NULL
+            """, (id,)))
+
+        ops.append(("""
+            INSERT INTO sede_pacientes
+                (id_sede_paciente, id_sede, id_paciente, fecha_ingreso, hora_ingreso)
+            SELECT (SELECT COALESCE(MAX(id_sede_paciente), 0) + 1 FROM sede_pacientes),
+                   %s, %s, CURRENT_DATE, CURRENT_TIME
+        """, (nueva_sede_id, id)))
+
+        db.execute_many(ops)
+
+        sede_nombre = db.scalar(
+            "SELECT nombre_sede FROM sedes WHERE id_sede = %s", (nueva_sede_id,)
+        )
+        flash(f"Paciente transferido a {sede_nombre} correctamente.", "success")
+
+    except Exception as e:
+        flash(f"Error al transferir paciente: {e}", "error")
+
+    return redirect(url_for("pacientes_historial", id=id))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -215,34 +215,155 @@
     </div>
     {% endif %}
 
-    <!-- Registro de ingreso a la sede -->
-    {% if ingreso %}
+    <!-- Historial de sedes + transferencia -->
     <div class="section-header" style="margin-bottom:12px;">
         <div>
-            <div class="section-title">Registro de ingreso</div>
-            <div class="section-sub">Datos de admisión al centro de atención</div>
+            <div class="section-title">Historial de sedes</div>
+            <div class="section-sub">{{ historial_sedes | length }} asignación(es) · las alertas y visitas se conservan independientemente de la sede</div>
         </div>
+        {% if sedes_disponibles %}
+        <button id="btn-transferir"
+                onclick="document.getElementById('form-transferir').style.display = document.getElementById('form-transferir').style.display === 'none' ? 'block' : 'none'"
+                class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+            Transferir sede
+        </button>
+        {% endif %}
     </div>
 
-    <div class="card" style="margin-bottom:20px;">
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0;">
-            <div style="padding:16px 20px; border-right:1px solid #F1F5F9;">
-                <div style="font-size:10px; font-weight:700; color:#94A3B8; text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px;">Sede</div>
-                <div style="font-size:13px; font-weight:600; color:#0F172A;">{{ ingreso.nombre_sede }}</div>
-            </div>
-            <div style="padding:16px 20px; border-right:1px solid #F1F5F9;">
-                <div style="font-size:10px; font-weight:700; color:#94A3B8; text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px;">Fecha de ingreso</div>
-                <div style="font-size:13px; font-weight:600; color:#0F172A; font-variant-numeric:tabular-nums;">
-                    {{ ingreso.fecha_ingreso[8:10] }}/{{ ingreso.fecha_ingreso[5:7] }}/{{ ingreso.fecha_ingreso[0:4] }}
+    <!-- Transfer form (hidden by default) -->
+    {% if sedes_disponibles %}
+    <div id="form-transferir" style="display:none; margin-bottom:16px;">
+        <div class="card">
+            <div style="padding:20px;">
+                <div style="font-size:13px; font-weight:600; color:#0F172A; margin-bottom:14px;">
+                    Transferir a nueva sede
                 </div>
-            </div>
-            <div style="padding:16px 20px;">
-                <div style="font-size:10px; font-weight:700; color:#94A3B8; text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px;">Hora ingreso</div>
-                <div style="font-size:13px; font-weight:600; color:#0F172A; font-variant-numeric:tabular-nums;">{{ ingreso.hora_ingreso }}</div>
+                <form method="POST"
+                      action="{{ url_for('pacientes_transferir_sede', id=paciente.id_paciente) }}"
+                      style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <select name="nueva_sede_id" class="form-control" required
+                            style="max-width:260px;">
+                        <option value="">— Selecciona sede destino —</option>
+                        {% for s in sedes_disponibles %}
+                        <option value="{{ s.id_sede }}">{{ s.nombre_sede }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary">Confirmar transferencia</button>
+                    <button type="button" class="btn btn-secondary"
+                            onclick="document.getElementById('form-transferir').style.display='none'">
+                        Cancelar
+                    </button>
+                </form>
+                <div style="font-size:11px; color:#94A3B8; margin-top:10px;">
+                    La sede actual quedará cerrada con la fecha de hoy. Las alertas y visitas previas se conservan intactas.
+                </div>
             </div>
         </div>
     </div>
     {% endif %}
+
+    <div class="card" style="margin-bottom:20px;">
+        {% if historial_sedes %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sede</th>
+                        <th>Fecha ingreso</th>
+                        <th>Hora ingreso</th>
+                        <th>Fecha salida</th>
+                        <th>Hora salida</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in historial_sedes %}
+                    <tr>
+                        <td style="font-weight:600; color:#0F172A;">{{ r.nombre_sede }}</td>
+                        <td style="font-variant-numeric:tabular-nums; font-size:12px;">
+                            {{ r.fecha_ingreso[8:10] }}/{{ r.fecha_ingreso[5:7] }}/{{ r.fecha_ingreso[0:4] }}
+                        </td>
+                        <td style="font-size:12px; color:#64748B; font-variant-numeric:tabular-nums;">
+                            {{ r.hora_ingreso }}
+                        </td>
+                        <td style="font-variant-numeric:tabular-nums; font-size:12px; color:#64748B;">
+                            {% if r.fecha_salida %}
+                                {{ r.fecha_salida[8:10] }}/{{ r.fecha_salida[5:7] }}/{{ r.fecha_salida[0:4] }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td style="font-size:12px; color:#64748B; font-variant-numeric:tabular-nums;">
+                            {{ r.hora_salida if r.hora_salida else '—' }}
+                        </td>
+                        <td>
+                            {% if r.fecha_salida is none %}
+                                <span class="badge" style="background:#ECFDF5; color:#065F46; border:1px solid #A7F3D0; font-size:10px; padding:3px 9px; border-radius:100px; font-weight:700;">Actual</span>
+                            {% else %}
+                                <span class="badge" style="background:#F1F5F9; color:#475569; font-size:10px; padding:3px 9px; border-radius:100px; font-weight:700;">Cerrada</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div style="text-align:center; color:#8892a4; padding:32px; font-size:13px;">
+                Este paciente no tiene asignación de sede registrada.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Alertas del paciente (todas las sedes) -->
+    <div class="section-header" style="margin-bottom:12px;">
+        <div>
+            <div class="section-title">Alertas</div>
+            <div class="section-sub">{{ alertas_paciente | length }} alerta(s) en total · historial completo independiente de sede</div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+        {% if alertas_paciente %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in alertas_paciente %}
+                    <tr>
+                        <td style="font-weight:600; font-size:13px;">{{ a.tipo_alerta }}</td>
+                        <td style="font-size:12px; color:#64748B; font-variant-numeric:tabular-nums;">
+                            {{ a.fecha[8:10] }}/{{ a.fecha[5:7] }}/{{ a.fecha[0:4] }}
+                        </td>
+                        <td style="font-size:12px; color:#64748B; font-variant-numeric:tabular-nums;">{{ a.hora }}</td>
+                        <td>
+                            {% if a.estatus == 'Activa' %}
+                                <span class="badge" style="background:#FFF1F2; color:#BE123C; border:1px solid #FECDD3; font-size:10px; padding:3px 9px; border-radius:100px; font-weight:700;">Activa</span>
+                            {% else %}
+                                <span class="badge" style="background:#F1F5F9; color:#475569; font-size:10px; padding:3px 9px; border-radius:100px; font-weight:700;">Atendida</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div style="text-align:center; color:#8892a4; padding:32px; font-size:13px;">
+                No hay alertas registradas para este paciente.
+            </div>
+        {% endif %}
+    </div>
 
     <!-- Visitas recientes -->
     <div class="section-header" style="margin-bottom:12px;">
