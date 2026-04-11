@@ -1,0 +1,376 @@
+{% extends "portal_familiar/base_familiar.html" %}
+
+{% block title %}{{ paciente.nombre_paciente }} {{ paciente.apellido_p_pac }} — Portal Familiar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+    #mapa-gps { height: 260px; border-radius: 10px; z-index: 0; }
+    .pf-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .pf-row > * { flex: 1 1 140px; }
+    .pf-kv-label { font-size: 10px; font-weight: 700; color: #94A3B8;
+                   text-transform: uppercase; letter-spacing: .8px; margin-bottom: 5px; }
+    .pf-kv-value { font-size: 14px; font-weight: 600; color: #0F172A; }
+    .pf-kv-sub   { font-size: 11px; color: #64748B; margin-top: 2px; }
+    .pf-cuid-row { display: flex; align-items: center; justify-content: space-between;
+                   padding: 11px 20px; border-bottom: 1px solid #F0F9FF; }
+    .pf-cuid-row:last-child { border-bottom: none; }
+    .med-row { display: flex; align-items: center; justify-content: space-between;
+               padding: 10px 20px; border-bottom: 1px solid #F0F9FF; }
+    .med-row:last-child { border-bottom: none; }
+    .alert-banner { display: flex; align-items: center; gap: 10px; padding: 14px 20px;
+                    border-radius: 12px; margin-bottom: 16px; font-size: 13px; font-weight: 600; }
+    .alert-banner.red   { background: #FFF1F2; color: #BE123C; border: 1px solid #FECDD3; }
+    .alert-banner.green { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+    .progress-bar { height: 8px; border-radius: 100px; background: #E0F2FE; margin-top: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 100px; background: #0E7490; transition: width .4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Back -->
+<a href="{{ url_for('portal_index') }}" class="pf-back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <line x1="19" y1="12" x2="5" y2="12"/>
+        <polyline points="12 19 5 12 12 5"/>
+    </svg>
+    Mis familiares
+</a>
+
+<!-- ── a. PATIENT HEADER ──────────────────────────────────────────────────── -->
+<div class="pf-card" style="margin-bottom:16px;">
+    <div style="padding:20px;">
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:18px;">
+            <div style="width:54px; height:54px; border-radius:50%; background:#E0F2FE;
+                        display:flex; align-items:center; justify-content:center;
+                        font-size:18px; font-weight:700; color:#0C647A; flex-shrink:0;">
+                {{ paciente.nombre_paciente[0] }}{{ paciente.apellido_p_pac[0] }}
+            </div>
+            <div style="flex:1;">
+                <div style="font-size:18px; font-weight:700; color:#0F172A; letter-spacing:-0.2px;">
+                    {{ paciente.nombre_paciente }} {{ paciente.apellido_p_pac }} {{ paciente.apellido_m_pac }}
+                </div>
+                <div style="font-size:12px; color:#64748B; margin-top:3px;">
+                    {{ edad }} años &nbsp;·&nbsp; {{ paciente.nombre_sede or '—' }}
+                </div>
+            </div>
+            <span class="pf-badge {% if paciente.desc_estado == 'Activo' %}pf-badge-green
+                                   {% elif paciente.desc_estado == 'En Hospital' %}pf-badge-amber
+                                   {% else %}pf-badge-gray{% endif %}">
+                {{ paciente.desc_estado }}
+            </span>
+        </div>
+
+        {% if cuidadores %}
+        <div style="border-top: 1px solid #F0F9FF; padding-top: 14px;">
+            <div style="font-size:10px; font-weight:700; color:#94A3B8; text-transform:uppercase;
+                        letter-spacing:.8px; margin-bottom:10px;">Cuidadores asignados</div>
+            {% for c in cuidadores %}
+            <div class="pf-cuid-row" style="padding-left:0; padding-right:0;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:32px; height:32px; border-radius:50%; background:#F0F9FF;
+                                display:flex; align-items:center; justify-content:center;
+                                font-size:11px; font-weight:700; color:#0E7490;">
+                        {{ c.nombre[0] }}
+                    </div>
+                    <span style="font-size:13px; font-weight:600; color:#1E293B;">{{ c.nombre }}</span>
+                </div>
+                <a href="tel:{{ c.telefono }}"
+                   style="font-size:12px; color:#0E7490; font-weight:600;">
+                    {{ c.telefono }}
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── ACTIVE ALERTS BANNER ───────────────────────────────────────────────── -->
+{% if alertas_activas %}
+<div class="alert-banner red">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="flex-shrink:0;">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    {{ alertas_activas | length }} alerta(s) activa(s) — el personal ha sido notificado
+</div>
+{% else %}
+<div class="alert-banner green">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="flex-shrink:0;">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+    Todo en orden — sin alertas activas en este momento
+</div>
+{% endif %}
+
+<!-- ── b. LAST KNOWN LOCATION ─────────────────────────────────────────────── -->
+<div class="pf-card">
+    <div class="pf-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+        </svg>
+        Última ubicación conocida
+    </div>
+    {% if ultima_gps %}
+    <div class="pf-card-body" style="padding-bottom:0;">
+        <div class="pf-row" style="margin-bottom:16px;">
+            <div>
+                <div class="pf-kv-label">Fecha y hora</div>
+                <div class="pf-kv-value">{{ ultima_gps.fecha[8:10] }}/{{ ultima_gps.fecha[5:7] }}/{{ ultima_gps.fecha[0:4] }} {{ ultima_gps.hora }}</div>
+            </div>
+            <div>
+                <div class="pf-kv-label">Estado</div>
+                {% if dentro_zona %}
+                <span class="pf-badge pf-badge-green">Dentro de zona</span>
+                {% else %}
+                <span class="pf-badge pf-badge-red">Fuera de zona</span>
+                {% endif %}
+            </div>
+            {% if ultima_gps.nivel_bateria is not none %}
+            <div>
+                <div class="pf-kv-label">Batería GPS</div>
+                <div class="pf-kv-value">{{ ultima_gps.nivel_bateria }}%</div>
+            </div>
+            {% endif %}
+        </div>
+        <div id="mapa-gps"></div>
+    </div>
+    <div style="padding:10px 20px; font-size:11px; color:#94A3B8; border-top:1px solid #F0F9FF;">
+        Posición tomada de la última lectura GPS registrada en el sistema.
+        Actualización en tiempo real disponible próximamente.
+    </div>
+    {% else %}
+    <div class="pf-empty">Sin lecturas GPS registradas para este paciente.</div>
+    {% endif %}
+</div>
+
+<!-- ── c. ACTIVE ALERTS LIST ──────────────────────────────────────────────── -->
+<div class="pf-card">
+    <div class="pf-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Alertas activas
+    </div>
+    {% if alertas_activas %}
+    <table class="pf-table">
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in alertas_activas %}
+            <tr>
+                <td style="font-weight:600;">{{ a.tipo_alerta }}</td>
+                <td style="font-variant-numeric:tabular-nums; color:#64748B;">
+                    {{ a.fecha[8:10] }}/{{ a.fecha[5:7] }}/{{ a.fecha[0:4] }}
+                </td>
+                <td style="font-variant-numeric:tabular-nums; color:#64748B;">{{ a.hora }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="pf-empty">Sin alertas activas.</div>
+    {% endif %}
+</div>
+
+<!-- ── d. ALERT HISTORY ───────────────────────────────────────────────────── -->
+<div class="pf-card">
+    <div class="pf-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Historial de alertas (últimos 30 días)
+    </div>
+    {% if alertas_historial %}
+    <table class="pf-table">
+        <thead>
+            <tr><th>Tipo</th><th>Fecha</th><th>Hora</th></tr>
+        </thead>
+        <tbody>
+            {% for a in alertas_historial %}
+            <tr>
+                <td style="font-weight:500;">{{ a.tipo_alerta }}</td>
+                <td style="font-variant-numeric:tabular-nums; font-size:12px; color:#64748B;">
+                    {{ a.fecha[8:10] }}/{{ a.fecha[5:7] }}/{{ a.fecha[0:4] }}
+                </td>
+                <td style="font-variant-numeric:tabular-nums; font-size:12px; color:#64748B;">{{ a.hora }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="pf-empty">Sin alertas atendidas en los últimos 30 días.</div>
+    {% endif %}
+</div>
+
+<!-- ── e. MEDICATION STATUS ───────────────────────────────────────────────── -->
+<div class="pf-card">
+    <div class="pf-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+        </svg>
+        Medicamentos y adherencia hoy
+    </div>
+    {% if medicamentos %}
+    <!-- Adherence summary -->
+    <div style="padding:16px 20px; border-bottom:1px solid #F0F9FF;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <span style="font-size:13px; font-weight:600; color:#0F172A;">
+                Dosis confirmadas hoy (NFC)
+            </span>
+            <span style="font-size:16px; font-weight:800; color:#0E7490; font-variant-numeric:tabular-nums;">
+                {{ dosis_hoy }} / {{ medicamentos_total }}
+            </span>
+        </div>
+        {% set pct = ((dosis_hoy / medicamentos_total) * 100) | int if medicamentos_total > 0 else 0 %}
+        <div class="progress-bar">
+            <div class="progress-fill" style="width:{{ pct }}%;
+                 background:{% if pct == 100 %}#059669{% elif pct >= 50 %}#0E7490{% else %}#D97706{% endif %};"></div>
+        </div>
+        <div style="font-size:11px; color:#94A3B8; margin-top:5px;">
+            Lecturas NFC exitosas hoy vs. medicamentos en prescripción
+        </div>
+    </div>
+    <!-- Medicine list -->
+    {% for m in medicamentos %}
+    <div class="med-row">
+        <div>
+            <div style="font-size:13px; font-weight:600; color:#1E293B;">{{ m.nombre_medicamento }}</div>
+            <div style="font-size:11px; color:#64748B; margin-top:2px;">{{ m.dosis }}</div>
+        </div>
+        <span class="pf-badge pf-badge-blue">
+            Cada {{ m.frecuencia_horas }}h
+        </span>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="pf-empty">Sin prescripciones registradas.</div>
+    {% endif %}
+</div>
+
+<!-- ── f. RECENT VISITS ───────────────────────────────────────────────────── -->
+<div class="pf-card">
+    <div class="pf-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Visitas recientes
+    </div>
+    {% if visitas %}
+    <table class="pf-table">
+        <thead>
+            <tr>
+                <th>Visitante</th>
+                <th>Parentesco</th>
+                <th>Fecha</th>
+                <th>Entrada</th>
+                <th>Salida</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in visitas %}
+            <tr>
+                <td style="font-weight:500;">{{ v.visitante }}</td>
+                <td style="font-size:12px; color:#64748B;">{{ v.relacion }}</td>
+                <td style="font-size:12px; font-variant-numeric:tabular-nums; color:#64748B;">
+                    {{ v.fecha[8:10] }}/{{ v.fecha[5:7] }}/{{ v.fecha[0:4] }}
+                </td>
+                <td style="font-size:12px; font-variant-numeric:tabular-nums; color:#0E7490; font-weight:600;">
+                    {{ v.hora_entrada }}
+                </td>
+                <td style="font-size:12px; font-variant-numeric:tabular-nums; color:#64748B;">
+                    {{ v.hora_salida if v.hora_salida else '—' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="pf-empty">Sin visitas registradas.</div>
+    {% endif %}
+</div>
+
+<!-- ── g. CAREGIVER ROUND STATUS ─────────────────────────────────────────── -->
+<div class="pf-card">
+    <div class="pf-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Rondas del cuidador
+    </div>
+    <div class="pf-card-body">
+        {% if ultima_ronda %}
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:36px; height:36px; border-radius:50%; background:#E0F2FE;
+                        display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#0E7490" stroke-width="2" width="16" height="16">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-size:13px; font-weight:600; color:#0F172A;">Última ronda registrada</div>
+                <div style="font-size:12px; color:#64748B; margin-top:2px; font-variant-numeric:tabular-nums;">
+                    {{ ultima_ronda.strftime('%d/%m/%Y %H:%M') if ultima_ronda else '—' }}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="pf-empty" style="padding:14px 0;">Sin rondas beacon registradas para esta sede.</div>
+        {% endif %}
+        <!-- NOTE: will pull from MongoDB ble_events when beacon ingest is complete -->
+        <div style="font-size:11px; color:#CBD5E1; margin-top:12px; border-top:1px solid #F0F9FF; padding-top:10px;">
+            Los registros de ronda se basan en detecciones BLE de beacons del edificio.
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% if ultima_gps %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var lat = {{ ultima_gps.latitud }};
+    var lng = {{ ultima_gps.longitud }};
+    var map = L.map('mapa-gps').setView([lat, lng], 17);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        maxZoom: 19
+    }).addTo(map);
+
+    /* Safe zones as green circles */
+    {% for z in zonas_seguras %}
+    L.circle([{{ z.latitud_centro }}, {{ z.longitud_centro }}], {
+        radius: {{ z.radio_metros }},
+        color: '#059669', weight: 2,
+        fillColor: '#ECFDF5', fillOpacity: 0.35
+    }).addTo(map).bindPopup('{{ z.nombre_zona }}');
+    {% endfor %}
+
+    /* Last patient position */
+    var markerColor = {{ 'true' if dentro_zona else 'false' }} ? '#059669' : '#E11D48';
+    var icon = L.divIcon({
+        html: '<div style="width:14px;height:14px;border-radius:50%;background:' + markerColor +
+              ';border:3px solid #fff;box-shadow:0 0 0 2px ' + markerColor + ';"></div>',
+        iconSize: [14, 14], iconAnchor: [7, 7], className: ''
+    });
+    L.marker([lat, lng], {icon: icon}).addTo(map)
+        .bindPopup('Última posición — {{ ultima_gps.fecha[8:10] }}/{{ ultima_gps.fecha[5:7] }}/{{ ultima_gps.fecha[0:4] }} {{ ultima_gps.hora }}');
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "portal_familiar/base_familiar.html" %}
+
+{% block title %}Mis pacientes — Portal Familiar{% endblock %}
+
+{% block content %}
+
+<div class="pf-section-title">Tus familiares</div>
+<div class="pf-section-sub">
+    {{ pacientes | length }} paciente(s) vinculado(s) a tu cuenta
+</div>
+
+{% if pacientes %}
+    {% for p in pacientes %}
+    <a href="{{ url_for('portal_paciente', id=p.id_paciente) }}"
+       style="display:block; margin-bottom:12px; text-decoration:none;">
+        <div class="pf-card" style="transition:box-shadow .15s;"
+             onmouseenter="this.style.boxShadow='0 4px 16px rgba(14,116,144,.12)'"
+             onmouseleave="this.style.boxShadow=''">
+            <div style="padding:18px 20px; display:flex; align-items:center; gap:16px;">
+
+                <!-- Avatar -->
+                <div style="width:48px; height:48px; border-radius:50%; background:#E0F2FE;
+                            display:flex; align-items:center; justify-content:center;
+                            font-size:16px; font-weight:700; color:#0C647A; flex-shrink:0;">
+                    {{ p.nombre_paciente[0] }}{{ p.apellido_p_pac[0] }}
+                </div>
+
+                <!-- Info -->
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:15px; font-weight:700; color:#0F172A;">
+                        {{ p.nombre_paciente }} {{ p.apellido_p_pac }} {{ p.apellido_m_pac }}
+                    </div>
+                    <div style="font-size:12px; color:#64748B; margin-top:3px;">
+                        {{ p.nombre_sede or 'Sede no asignada' }}
+                    </div>
+                </div>
+
+                <!-- Estado + arrow -->
+                <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                    <span class="pf-badge {% if p.desc_estado == 'Activo' %}pf-badge-green
+                                           {% elif p.desc_estado == 'En Hospital' %}pf-badge-amber
+                                           {% else %}pf-badge-gray{% endif %}">
+                        {{ p.desc_estado }}
+                    </span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"
+                         width="16" height="16">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </div>
+
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+
+{% else %}
+    <div class="pf-card">
+        <div class="pf-empty">
+            No hay pacientes activos vinculados a tu cuenta.<br>
+            Contacta a la administración de la residencia.
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Portal Familiar — AlzMonitor{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #F0F9FF;
+            color: #0F172A;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* ── Header ─────────────────────────────────────────────── */
+        .pf-header {
+            background: #fff;
+            border-bottom: 1px solid #E0F2FE;
+            padding: 0 20px;
+            height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 1px 4px rgba(14,116,144,.08);
+        }
+        .pf-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .pf-brand-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #0E7490;
+            flex-shrink: 0;
+        }
+        .pf-brand-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #082F3E;
+            letter-spacing: -0.2px;
+        }
+        .pf-brand-sub {
+            font-size: 11px;
+            color: #64748B;
+            margin-top: 1px;
+        }
+        .pf-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .pf-user-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            display: none;
+        }
+        @media (min-width: 480px) {
+            .pf-user-name { display: block; }
+        }
+        .pf-logout {
+            font-size: 12px;
+            font-weight: 600;
+            color: #0E7490;
+            background: #E0F2FE;
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .pf-logout:hover { background: #BAE6FD; }
+
+        /* ── Content wrapper ─────────────────────────────────────── */
+        .pf-content {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 24px 16px 48px;
+        }
+        @media (min-width: 768px) {
+            .pf-header { padding: 0 40px; }
+            .pf-content { padding: 32px 24px 64px; }
+        }
+
+        /* ── Flash messages ──────────────────────────────────────── */
+        .pf-flash {
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pf-flash-error   { background: #FFF1F2; color: #BE123C; border: 1px solid #FECDD3; }
+        .pf-flash-success { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+
+        /* ── Cards ───────────────────────────────────────────────── */
+        .pf-card {
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #E0F2FE;
+            box-shadow: 0 1px 4px rgba(14,116,144,.06);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .pf-card-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid #F0F9FF;
+            font-size: 12px;
+            font-weight: 700;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pf-card-body { padding: 20px; }
+
+        /* ── Section title ───────────────────────────────────────── */
+        .pf-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0F172A;
+            margin-bottom: 4px;
+            letter-spacing: -0.1px;
+        }
+        .pf-section-sub {
+            font-size: 12px;
+            color: #64748B;
+            margin-bottom: 14px;
+        }
+
+        /* ── Badges ──────────────────────────────────────────────── */
+        .pf-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 100px;
+        }
+        .pf-badge-green  { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+        .pf-badge-red    { background: #FFF1F2; color: #BE123C; border: 1px solid #FECDD3; }
+        .pf-badge-amber  { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+        .pf-badge-blue   { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+        .pf-badge-gray   { background: #F8FAFC; color: #475569; border: 1px solid #E2E8F0; }
+
+        /* ── Table ───────────────────────────────────────────────── */
+        .pf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .pf-table th {
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            color: #94A3B8;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #F1F5F9;
+        }
+        .pf-table td {
+            padding: 11px 12px;
+            border-bottom: 1px solid #F8FAFC;
+            color: #334155;
+        }
+        .pf-table tr:last-child td { border-bottom: none; }
+
+        /* ── Empty state ─────────────────────────────────────────── */
+        .pf-empty {
+            text-align: center;
+            color: #94A3B8;
+            padding: 28px 20px;
+            font-size: 13px;
+        }
+
+        /* ── Back link ───────────────────────────────────────────── */
+        .pf-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0E7490;
+            margin-bottom: 20px;
+        }
+        .pf-back:hover { color: #0C647A; }
+    </style>
+</head>
+<body>
+
+<header class="pf-header">
+    <div class="pf-brand">
+        <div class="pf-brand-dot"></div>
+        <div>
+            <div class="pf-brand-name">AlzMonitor</div>
+            <div class="pf-brand-sub">Portal Familiar</div>
+        </div>
+    </div>
+    {% if session.contacto_nombre %}
+    <div class="pf-user">
+        <span class="pf-user-name">{{ session.contacto_nombre }}</span>
+        <a href="{{ url_for('portal_logout') }}" class="pf-logout">Cerrar sesión</a>
+    </div>
+    {% endif %}
+</header>
+
+<div class="pf-content">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="pf-flash pf-flash-{{ category }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+</div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

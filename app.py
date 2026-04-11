@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from functools import wraps
 from dotenv import load_dotenv
 from datetime import date
+import math
 import os
 import db
 import data  # clinica-specific in-memory structures not yet in DB
@@ -30,6 +31,25 @@ def medico_requerido(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorado
+
+
+def contacto_requerido(f):
+    @wraps(f)
+    def decorado(*args, **kwargs):
+        if not session.get("contacto_id"):
+            return redirect(url_for("portal_login"))
+        return f(*args, **kwargs)
+    return decorado
+
+
+def _haversine_m(lat1, lon1, lat2, lon2):
+    """Distance in metres between two WGS-84 points."""
+    R = 6_371_000
+    p1, p2 = math.radians(float(lat1)), math.radians(float(lat2))
+    dp = math.radians(float(lat2) - float(lat1))
+    dl = math.radians(float(lon2) - float(lon1))
+    a = math.sin(dp/2)**2 + math.cos(p1)*math.cos(p2)*math.sin(dl/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1436,6 +1456,233 @@ def dashboard_clinica(id_sucursal):
         comedor_hoy=comedor_hoy,
         visitas_hoy=visitas_hoy,
         entregas_pendientes=entregas_pend,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PORTAL FAMILIAR  (rol: contacto de emergencia)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/portal-familiar/login", methods=["GET", "POST"])
+def portal_login():
+    if session.get("contacto_id"):
+        return redirect(url_for("portal_index"))
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        pin   = request.form.get("pin", "").strip()
+
+        contacto = db.one("""
+            SELECT id_contacto, nombre, apellido_p
+            FROM contactos_emergencia
+            WHERE LOWER(email) = %s AND pin_acceso = %s
+        """, (email, pin))
+
+        if contacto:
+            session["contacto_id"]     = contacto["id_contacto"]
+            session["contacto_nombre"] = contacto["nombre"] + " " + contacto["apellido_p"]
+            return redirect(url_for("portal_index"))
+
+        flash("Correo o PIN incorrectos.", "error")
+
+    return render_template("portal_familiar/login.html")
+
+
+@app.route("/portal-familiar/logout")
+def portal_logout():
+    session.pop("contacto_id", None)
+    session.pop("contacto_nombre", None)
+    return redirect(url_for("portal_login"))
+
+
+@app.route("/portal-familiar")
+@contacto_requerido
+def portal_index():
+    contacto_id = session["contacto_id"]
+
+    pacientes = db.query("""
+        SELECT p.id_paciente,
+               p.nombre        AS nombre_paciente,
+               p.apellido_p    AS apellido_p_pac,
+               p.apellido_m    AS apellido_m_pac,
+               ep.desc_estado,
+               s.nombre_sede,
+               pc.prioridad
+        FROM pacientes p
+        JOIN paciente_contactos pc ON p.id_paciente  = pc.id_paciente
+        JOIN estados_paciente   ep ON p.id_estado    = ep.id_estado
+        LEFT JOIN sede_pacientes sp ON p.id_paciente = sp.id_paciente
+                                   AND sp.fecha_salida IS NULL
+        LEFT JOIN sedes s           ON sp.id_sede    = s.id_sede
+        WHERE pc.id_contacto = %s AND p.id_estado != 3
+        ORDER BY pc.prioridad, p.nombre
+    """, (contacto_id,))
+
+    return render_template("portal_familiar/index.html", pacientes=pacientes)
+
+
+@app.route("/portal-familiar/paciente/<int:id>")
+@contacto_requerido
+def portal_paciente(id):
+    contacto_id = session["contacto_id"]
+
+    # ── Security: verify contact-patient link ────────────────────────────────
+    if not db.one("""
+        SELECT 1 FROM paciente_contactos
+        WHERE id_paciente = %s AND id_contacto = %s
+    """, (id, contacto_id)):
+        abort(403)
+
+    # ── Patient header ───────────────────────────────────────────────────────
+    paciente = db.one("""
+        SELECT p.id_paciente,
+               p.nombre        AS nombre_paciente,
+               p.apellido_p    AS apellido_p_pac,
+               p.apellido_m    AS apellido_m_pac,
+               p.fecha_nacimiento,
+               ep.desc_estado,
+               s.nombre_sede
+        FROM pacientes p
+        JOIN estados_paciente ep ON p.id_estado    = ep.id_estado
+        LEFT JOIN sede_pacientes sp ON p.id_paciente = sp.id_paciente
+                                   AND sp.fecha_salida IS NULL
+        LEFT JOIN sedes s           ON sp.id_sede    = s.id_sede
+        WHERE p.id_paciente = %s
+    """, (id,))
+
+    if not paciente:
+        abort(404)
+
+    hoy = date.today()
+    dob = paciente["fecha_nacimiento"]
+    edad = hoy.year - dob.year - ((hoy.month, hoy.day) < (dob.month, dob.day))
+
+    # ── Active cuidadores ────────────────────────────────────────────────────
+    cuidadores = db.query("""
+        SELECT e.nombre || ' ' || e.apellido_p AS nombre,
+               e.telefono
+        FROM asignacion_cuidador ac
+        JOIN cuidadores c ON ac.id_cuidador = c.id_empleado
+        JOIN empleados  e ON c.id_empleado  = e.id_empleado
+        WHERE ac.id_paciente = %s AND ac.fecha_fin IS NULL
+    """, (id,))
+
+    # ── Last GPS reading (PostgreSQL lecturas_gps) ───────────────────────────
+    # NOTE: will be replaced by MongoDB gps_events query when GPS ingest is live
+    ultima_gps = db.one("""
+        SELECT lg.latitud, lg.longitud, lg.nivel_bateria,
+               TO_CHAR(lg.fecha_hora, 'YYYY-MM-DD') AS fecha,
+               TO_CHAR(lg.fecha_hora, 'HH24:MI')    AS hora
+        FROM lecturas_gps lg
+        JOIN asignacion_kit ak ON lg.id_dispositivo = ak.id_dispositivo_gps
+        WHERE ak.id_paciente = %s
+        ORDER BY lg.fecha_hora DESC
+        LIMIT 1
+    """, (id,))
+
+    # ── Safe zones for patient's current sede ────────────────────────────────
+    zonas_seguras = db.query("""
+        SELECT z.id_zona, z.nombre_zona,
+               z.latitud_centro, z.longitud_centro, z.radio_metros
+        FROM zonas z
+        JOIN sede_zonas sz   ON z.id_zona    = sz.id_zona
+        JOIN sede_pacientes sp ON sz.id_sede = sp.id_sede
+        WHERE sp.id_paciente = %s AND sp.fecha_salida IS NULL
+    """, (id,))
+
+    # Inside-zone check via Haversine (no PostGIS required for display)
+    dentro_zona = False
+    if ultima_gps and zonas_seguras:
+        for z in zonas_seguras:
+            if _haversine_m(
+                ultima_gps["latitud"],  ultima_gps["longitud"],
+                z["latitud_centro"],    z["longitud_centro"]
+            ) <= float(z["radio_metros"]):
+                dentro_zona = True
+                break
+
+    # ── Alerts ───────────────────────────────────────────────────────────────
+    alertas_activas = db.query("""
+        SELECT a.tipo_alerta,
+               TO_CHAR(a.fecha_hora, 'YYYY-MM-DD') AS fecha,
+               TO_CHAR(a.fecha_hora, 'HH24:MI')    AS hora
+        FROM alertas a
+        WHERE a.id_paciente = %s AND a.estatus = 'Activa'
+        ORDER BY a.fecha_hora DESC
+    """, (id,))
+
+    alertas_historial = db.query("""
+        SELECT a.tipo_alerta,
+               TO_CHAR(a.fecha_hora, 'YYYY-MM-DD') AS fecha,
+               TO_CHAR(a.fecha_hora, 'HH24:MI')    AS hora
+        FROM alertas a
+        WHERE a.id_paciente = %s
+          AND a.estatus = 'Atendida'
+          AND a.fecha_hora >= NOW() - INTERVAL '30 days'
+        ORDER BY a.fecha_hora DESC
+    """, (id,))
+
+    # ── Medications (all active recetas — recetas has no estado column) ──────
+    medicamentos = db.query("""
+        SELECT m.nombre_medicamento, rm.dosis, rm.frecuencia_horas,
+               TO_CHAR(r.fecha, 'YYYY-MM-DD') AS fecha_receta
+        FROM recetas r
+        JOIN receta_medicamentos rm ON r.id_receta = rm.id_receta
+        JOIN medicamentos m         ON rm.GTIN     = m.GTIN
+        WHERE r.id_paciente = %s
+        ORDER BY r.fecha DESC
+    """, (id,))
+
+    # NFC adherence today
+    dosis_hoy = db.scalar("""
+        SELECT COUNT(*)
+        FROM lecturas_nfc ln
+        WHERE ln.id_receta IN (
+            SELECT id_receta FROM recetas WHERE id_paciente = %s
+        )
+          AND ln.fecha_hora::DATE = CURRENT_DATE
+          AND ln.resultado = 'Exitosa'
+    """, (id,)) or 0
+
+    # ── Recent visits ────────────────────────────────────────────────────────
+    visitas = db.query("""
+        SELECT TO_CHAR(v.fecha_entrada, 'YYYY-MM-DD') AS fecha,
+               v.hora_entrada, v.hora_salida,
+               vt.nombre || ' ' || vt.apellido_p AS visitante,
+               vt.relacion
+        FROM visitas v
+        JOIN visitantes vt ON v.id_visitante = vt.id_visitante
+        WHERE v.id_paciente = %s
+        ORDER BY v.fecha_entrada DESC, v.hora_entrada DESC
+        LIMIT 10
+    """, (id,))
+
+    # ── Last caregiver round (beacon detections near patient's building) ──────
+    # NOTE: will migrate to MongoDB ble_events when beacon ingest is complete
+    ultima_ronda = db.scalar("""
+        SELECT MAX(db2.fecha_hora)
+        FROM detecciones_beacon db2
+        JOIN beacon_zona bz   ON db2.id_dispositivo = bz.id_dispositivo
+        JOIN sede_zonas sz    ON bz.id_zona          = sz.id_zona
+        JOIN sede_pacientes sp ON sz.id_sede         = sp.id_sede
+        WHERE sp.id_paciente = %s AND sp.fecha_salida IS NULL
+    """, (id,))
+
+    return render_template(
+        "portal_familiar/paciente.html",
+        paciente=paciente,
+        edad=edad,
+        cuidadores=cuidadores,
+        ultima_gps=ultima_gps,
+        zonas_seguras=zonas_seguras,
+        dentro_zona=dentro_zona,
+        alertas_activas=alertas_activas,
+        alertas_historial=alertas_historial,
+        medicamentos=medicamentos,
+        dosis_hoy=int(dosis_hoy),
+        medicamentos_total=len(medicamentos),
+        visitas=visitas,
+        ultima_ronda=ultima_ronda,
     )
 
 

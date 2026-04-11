@@ -168,7 +168,10 @@ CREATE TABLE contactos_emergencia (
     telefono       VARCHAR(20)  NOT NULL,
     fecha_nac      DATE,
     CURP_pasaporte VARCHAR(20),
-    relacion       VARCHAR(50)  NOT NULL
+    relacion       VARCHAR(50)  NOT NULL,
+    email          VARCHAR(100),          -- acceso al portal familiar
+    pin_acceso     VARCHAR(20),           -- PIN en texto plano (demo)
+    CONSTRAINT uq_contacto_email UNIQUE (email)
 );
 
 CREATE TABLE paciente_contactos (
@@ -885,12 +888,18 @@ INSERT INTO tiene_enfermedad (id_paciente, id_enfermedad, fecha_diag) VALUES
 -- ── Contactos de emergencia ───────────────────────────────────────────────────
 
 INSERT INTO contactos_emergencia
-    (id_contacto, nombre, apellido_p, apellido_m, telefono, fecha_nac, CURP_pasaporte, relacion) VALUES
-    (1, 'Lucía',   'García',    'Sánchez', '8112345678', '1975-05-12', 'GASL750512MNLRCL09', 'hija'),
-    (2, 'Roberto', 'Campos',    'Luna',    '8187654321', '1980-11-20', 'CALR801120HNLMNS03', 'hijo'),
-    (3, 'Carmen',  'Vega',      'Torres',  '8113334444', '1978-03-08', 'VETC780308MNLGRR02', 'hija'),
-    (4, 'Miguel',  'Villanueva','Ríos',    '8119876543', '1970-12-01', 'VIRM701201HNLLGS08', 'hijo'),
-    (5, 'Sandra',  'Cruz',      'Paredes', '8115556666', '1965-06-20', 'CUPS650620MNLRND07', 'hija');
+    (id_contacto, nombre, apellido_p, apellido_m, telefono, fecha_nac, CURP_pasaporte, relacion,
+     email, pin_acceso) VALUES
+    (1, 'Lucía',   'García',    'Sánchez', '8112345678', '1975-05-12', 'GASL750512MNLRCL09', 'hija',
+     'lucia.garcia@demo.com',   '1234'),
+    (2, 'Roberto', 'Campos',    'Luna',    '8187654321', '1980-11-20', 'CALR801120HNLMNS03', 'hijo',
+     'roberto.campos@demo.com', '1234'),
+    (3, 'Carmen',  'Vega',      'Torres',  '8113334444', '1978-03-08', 'VETC780308MNLGRR02', 'hija',
+     'carmen.vega@demo.com',    '1234'),
+    (4, 'Miguel',  'Villanueva','Ríos',    '8119876543', '1970-12-01', 'VIRM701201HNLLGS08', 'hijo',
+     'miguel.villa@demo.com',   '1234'),
+    (5, 'Sandra',  'Cruz',      'Paredes', '8115556666', '1965-06-20', 'CUPS650620MNLRND07', 'hija',
+     'sandra.cruz@demo.com',    '1234');
 
 INSERT INTO paciente_contactos (id_paciente, id_contacto, prioridad) VALUES
     (1, 1, 1),
