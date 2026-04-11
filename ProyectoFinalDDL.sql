@@ -251,43 +251,22 @@ CREATE TABLE zonas (
     CONSTRAINT uq_nombre_zona UNIQUE (nombre_zona)
 );
 
-CREATE TABLE gateways (
-    id_gateway  INTEGER      PRIMARY KEY,
-    modelo      VARCHAR(50)  NOT NULL,
-    id_zona     INTEGER      NOT NULL,
-    CONSTRAINT fk_gw_zona
-        FOREIGN KEY (id_zona) REFERENCES zonas (id_zona)
-);
-
-CREATE TABLE zona_beacons (
-    id_zona               INTEGER      NOT NULL,
-    id_dispositivo        INTEGER      NOT NULL,
-    descripcion_ubicacion VARCHAR(100),
-    CONSTRAINT pk_zona_beacons PRIMARY KEY (id_zona, id_dispositivo),
-    CONSTRAINT fk_zb_zona
-        FOREIGN KEY (id_zona)        REFERENCES zonas       (id_zona),
-    CONSTRAINT fk_zb_dispositivo
-        FOREIGN KEY (id_dispositivo) REFERENCES dispositivos (id_dispositivo)
-);
+-- gateways y zona_beacons eliminados: la arquitectura BLE ya no usa gateways fijos.
+-- Los beacons están fijos en el edificio; el teléfono del cuidador (Chrome/Web Bluetooth)
+-- actúa como receptor móvil durante las rondas. No hay asignación per-paciente.
 
 CREATE TABLE asignacion_kit (
-    id_monitoreo          INTEGER  PRIMARY KEY,
-    id_paciente           INTEGER  NOT NULL,
-    id_dispositivo_gps    INTEGER  NOT NULL,
-    id_dispositivo_beacon INTEGER  NOT NULL,
-    fecha_entrega         DATE,
+    id_monitoreo       INTEGER  PRIMARY KEY,
+    id_paciente        INTEGER  NOT NULL,
+    id_dispositivo_gps INTEGER  NOT NULL,
+    fecha_entrega      DATE,
     CONSTRAINT fk_ak_paciente
-        FOREIGN KEY (id_paciente)           REFERENCES pacientes    (id_paciente)
+        FOREIGN KEY (id_paciente)        REFERENCES pacientes    (id_paciente)
         ON DELETE RESTRICT,
     CONSTRAINT fk_ak_gps
-        FOREIGN KEY (id_dispositivo_gps)    REFERENCES dispositivos (id_dispositivo)
+        FOREIGN KEY (id_dispositivo_gps) REFERENCES dispositivos (id_dispositivo)
         ON DELETE RESTRICT,
-    CONSTRAINT fk_ak_beacon
-        FOREIGN KEY (id_dispositivo_beacon) REFERENCES dispositivos (id_dispositivo)
-        ON DELETE RESTRICT,
-    CONSTRAINT uq_ak_gps    UNIQUE (id_dispositivo_gps),
-    CONSTRAINT uq_ak_beacon UNIQUE (id_dispositivo_beacon),
-    CONSTRAINT chk_ak_disp_distintos CHECK (id_dispositivo_gps <> id_dispositivo_beacon)
+    CONSTRAINT uq_ak_gps UNIQUE (id_dispositivo_gps)
 );
 
 
@@ -311,19 +290,17 @@ CREATE TABLE lecturas_gps (
     CONSTRAINT uq_lgps_instante UNIQUE (id_dispositivo, fecha_hora)
 );
 
+-- detecciones_beacon: registra qué beacons detectó el teléfono del cuidador durante rondas.
+-- Ya no referencia gateways (eliminados). El caregiver_id viene del endpoint Web Bluetooth.
 CREATE TABLE detecciones_beacon (
     id_deteccion   INTEGER    PRIMARY KEY,
     id_dispositivo INTEGER    NOT NULL,
-    id_gateway     INTEGER    NOT NULL,
     fecha_hora     TIMESTAMP  NOT NULL,
     rssi           INTEGER    NOT NULL,
     CONSTRAINT fk_db_dispositivo
         FOREIGN KEY (id_dispositivo) REFERENCES dispositivos (id_dispositivo)
         ON DELETE RESTRICT,
-    CONSTRAINT fk_db_gateway
-        FOREIGN KEY (id_gateway)     REFERENCES gateways     (id_gateway)
-        ON DELETE RESTRICT,
-    CONSTRAINT uq_db_instante UNIQUE (id_dispositivo, id_gateway, fecha_hora)
+    CONSTRAINT uq_db_instante UNIQUE (id_dispositivo, fecha_hora)
 );
 
 -- NUEVO: lecturas de chips NFC para adherencia terapéutica
@@ -365,24 +342,22 @@ CREATE TABLE alertas (
 );
 
 -- NUEVO: vincula cada alerta con el evento IoT que la originó
+-- BEACON eliminado como tipo_evento: las detecciones BLE no generan alertas de seguridad.
+-- Alertas vienen de GPS (salida de zona, batería baja, caída) o SOS (botón físico) o NFC.
 CREATE TABLE alerta_evento_origen (
     id_origen       INTEGER      PRIMARY KEY,
     id_alerta       INTEGER      NOT NULL,
-    tipo_evento     VARCHAR(10)  NOT NULL,   -- 'GPS', 'BEACON', 'NFC', 'SOS'
+    tipo_evento     VARCHAR(10)  NOT NULL,   -- 'GPS', 'NFC', 'SOS'
     id_lectura_gps  INTEGER,                 -- FK si origen es GPS
-    id_deteccion    INTEGER,                 -- FK si origen es Beacon
     regla_disparada VARCHAR(200),            -- descripción de la regla
     CONSTRAINT fk_aeo_alerta
-        FOREIGN KEY (id_alerta)      REFERENCES alertas              (id_alerta)
+        FOREIGN KEY (id_alerta)      REFERENCES alertas      (id_alerta)
         ON DELETE CASCADE,
     CONSTRAINT fk_aeo_gps
-        FOREIGN KEY (id_lectura_gps) REFERENCES lecturas_gps         (id_lectura)
-        ON DELETE RESTRICT,
-    CONSTRAINT fk_aeo_beacon
-        FOREIGN KEY (id_deteccion)   REFERENCES detecciones_beacon   (id_deteccion)
+        FOREIGN KEY (id_lectura_gps) REFERENCES lecturas_gps (id_lectura)
         ON DELETE RESTRICT,
     CONSTRAINT uq_aeo_alerta UNIQUE (id_alerta),
-    CONSTRAINT chk_aeo_tipo CHECK (tipo_evento IN ('GPS', 'BEACON', 'NFC', 'SOS'))
+    CONSTRAINT chk_aeo_tipo CHECK (tipo_evento IN ('GPS', 'NFC', 'SOS'))
 );
 
 
@@ -655,11 +630,8 @@ CREATE INDEX idx_pac_contactos_paciente   ON paciente_contactos    (id_paciente)
 CREATE INDEX idx_asig_cuid_cuidador       ON asignacion_cuidador   (id_cuidador);
 CREATE INDEX idx_asig_cuid_paciente       ON asignacion_cuidador   (id_paciente);
 CREATE INDEX idx_asig_kit_paciente        ON asignacion_kit        (id_paciente);
-CREATE INDEX idx_zona_beacons_zona        ON zona_beacons          (id_zona);
-CREATE INDEX idx_zona_beacons_disp        ON zona_beacons          (id_dispositivo);
 CREATE INDEX idx_lgps_dispositivo_fecha   ON lecturas_gps          (id_dispositivo, fecha_hora DESC);
 CREATE INDEX idx_db_dispositivo_fecha     ON detecciones_beacon    (id_dispositivo, fecha_hora DESC);
-CREATE INDEX idx_db_gateway               ON detecciones_beacon    (id_gateway);
 CREATE INDEX idx_lnfc_dispositivo_fecha   ON lecturas_nfc          (id_dispositivo, fecha_hora DESC);
 CREATE INDEX idx_lnfc_receta              ON lecturas_nfc          (id_receta);
 CREATE INDEX idx_alertas_paciente         ON alertas               (id_paciente);
@@ -856,29 +828,18 @@ INSERT INTO zonas (id_zona, nombre_zona, latitud_centro, longitud_centro, radio_
     (4, 'Sala de Terapia',  25.685500, -100.315500, 30),
     (5, 'Comedor Central',  25.685800, -100.316500, 35);
 
-INSERT INTO gateways (id_gateway, modelo, id_zona) VALUES
-    (601, 'GW-Model-X', 1),
-    (602, 'GW-Model-Y', 2),
-    (603, 'GW-Model-Z', 3),
-    (604, 'GW-Model-X', 4),
-    (605, 'GW-Model-Y', 5);
-
-INSERT INTO zona_beacons (id_zona, id_dispositivo, descripcion_ubicacion) VALUES
-    (1, 401, 'Entrada principal del jardín'),
-    (2, 402, 'Corredor oriente piso 1'),
-    (3, 403, 'Puerta trasera patio'),
-    (4, 404, 'Sala de terapia física'),
-    (5, 405, 'Comedor — zona central');
+-- gateways y zona_beacons eliminados — no se insertan datos semilla.
 
 -- ── Kits de monitoreo ─────────────────────────────────────────────────────────
+-- Cada kit ahora solo incluye el dispositivo GPS; los beacons son fixtures del edificio.
 
 INSERT INTO asignacion_kit
-    (id_monitoreo, id_paciente, id_dispositivo_gps, id_dispositivo_beacon, fecha_entrega) VALUES
-    (1, 1, 301, 401, '2024-01-10'),
-    (2, 2, 302, 402, '2024-01-15'),
-    (3, 3, 303, 403, '2024-02-20'),
-    (4, 4, 304, 404, '2024-03-01'),
-    (5, 5, 305, 405, '2024-05-20');
+    (id_monitoreo, id_paciente, id_dispositivo_gps, fecha_entrega) VALUES
+    (1, 1, 301, '2024-01-10'),
+    (2, 2, 302, '2024-01-15'),
+    (3, 3, 303, '2024-02-20'),
+    (4, 4, 304, '2024-03-01'),
+    (5, 5, 305, '2024-05-20');
 
 -- ── Lecturas GPS ──────────────────────────────────────────────────────────────
 -- Escenario 1: María (pac 1) sale de Jardín Norte — excede radio de 50 m
@@ -896,15 +857,16 @@ INSERT INTO lecturas_gps
     (8,  305, '2026-03-29 11:00:00', 25.685900, -100.316600, NULL, 8);
 
 -- ── Detecciones beacon ────────────────────────────────────────────────────────
+-- Registradas por el teléfono del cuidador vía Web Bluetooth (sin gateway).
 
 INSERT INTO detecciones_beacon
-    (id_deteccion, id_dispositivo, id_gateway, fecha_hora, rssi) VALUES
-    (1, 401, 601, '2026-03-30 08:00:00', -72),
-    (2, 401, 601, '2026-03-30 08:15:00', -68),
-    (3, 402, 602, '2026-03-30 07:10:00', -80),
-    (4, 402, 602, '2026-03-30 07:30:00', -78),
-    (5, 403, 603, '2026-03-30 14:00:00', -55),
-    (6, 404, 604, '2026-03-29 09:00:00', -65);
+    (id_deteccion, id_dispositivo, fecha_hora, rssi) VALUES
+    (1, 401, '2026-03-30 08:00:00', -72),
+    (2, 401, '2026-03-30 08:15:00', -68),
+    (3, 402, '2026-03-30 07:10:00', -80),
+    (4, 402, '2026-03-30 07:30:00', -78),
+    (5, 403, '2026-03-30 14:00:00', -55),
+    (6, 404, '2026-03-29 09:00:00', -65);
 
 -- ── Alertas ───────────────────────────────────────────────────────────────────
 -- Escenario 1 — Salida de zona (María, pac 1)
@@ -921,13 +883,15 @@ INSERT INTO alertas (id_alerta, id_paciente, tipo_alerta, fecha_hora, estatus) V
 -- ── Trazabilidad de alertas (NUEVO) ──────────────────────────────────────────
 -- Cada alerta vinculada al evento IoT que la originó
 
+-- Fila 4 eliminada: era tipo BEACON (referenciaba id_deteccion=5 y un gateway).
+-- La alerta de Botón SOS (id_alerta=4) ahora es de tipo 'SOS' originada por GPS.
 INSERT INTO alerta_evento_origen
-    (id_origen, id_alerta, tipo_evento, id_lectura_gps, id_deteccion, regla_disparada) VALUES
-    (1, 1, 'GPS',    3,    NULL, 'Distancia al centro de zona > radio_metros (50 m)'),
-    (2, 2, 'GPS',    5,    NULL, 'nivel_bateria <= 15 en dispositivo GPS-SN-002'),
-    (3, 3, 'GPS',    8,    NULL, 'nivel_bateria <= 15 en dispositivo GPS-SN-005'),
-    (4, 4, 'BEACON', NULL, 5,   'Señal de pánico recibida por gateway GW-Model-Z'),
-    (5, 5, 'GPS',    7,    NULL, 'Aceleración brusca detectada — posible caída');
+    (id_origen, id_alerta, tipo_evento, id_lectura_gps, regla_disparada) VALUES
+    (1, 1, 'GPS', 3, 'Distancia al centro de zona > radio_metros (50 m)'),
+    (2, 2, 'GPS', 5, 'nivel_bateria <= 15 en dispositivo GPS-SN-002'),
+    (3, 3, 'GPS', 8, 'nivel_bateria <= 15 en dispositivo GPS-SN-005'),
+    (4, 4, 'SOS', NULL, 'Botón SOS activado en dispositivo GPS-SN-003'),
+    (5, 5, 'GPS', 7, 'Aceleración brusca detectada — posible caída');
 
 -- ── Recetas y medicación ──────────────────────────────────────────────────────
 -- NOTA: id_paciente en recetas es la fuente única de verdad (sin paciente_recetas)

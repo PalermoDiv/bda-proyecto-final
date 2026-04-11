@@ -350,11 +350,9 @@ def pacientes_historial(id):
     kit = db.one("""
         SELECT ak.id_monitoreo,
                gps.id_serial  AS codigo_gps,
-               bcn.id_serial  AS codigo_beacon,
                TO_CHAR(ak.fecha_entrega, 'YYYY-MM-DD') AS fecha_entrega
         FROM asignacion_kit ak
-        JOIN dispositivos gps ON ak.id_dispositivo_gps    = gps.id_dispositivo
-        JOIN dispositivos bcn ON ak.id_dispositivo_beacon = bcn.id_dispositivo
+        JOIN dispositivos gps ON ak.id_dispositivo_gps = gps.id_dispositivo
         WHERE ak.id_paciente = %s
         LIMIT 1
     """, (id,))
@@ -617,8 +615,7 @@ def dispositivos():
                COALESCE(s.nombre_sede, '—') AS nombre_sucursal
         FROM dispositivos d
         LEFT JOIN asignacion_kit ak
-               ON (d.id_dispositivo = ak.id_dispositivo_gps
-                OR d.id_dispositivo = ak.id_dispositivo_beacon)
+               ON d.id_dispositivo = ak.id_dispositivo_gps
         LEFT JOIN pacientes p ON ak.id_paciente = p.id_paciente
         LEFT JOIN sede_pacientes sp ON p.id_paciente = sp.id_paciente
                                    AND sp.fecha_salida IS NULL
