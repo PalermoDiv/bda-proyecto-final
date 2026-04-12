@@ -70,6 +70,13 @@ DROP TABLE IF EXISTS cat_turno_comedor      CASCADE;
 
 
 -- =============================================================================
+-- EXTENSIONES
+-- =============================================================================
+
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+
+-- =============================================================================
 -- BLOQUE 1: CATÁLOGOS
 -- Reemplazan los CHECK con literales; permiten agregar valores sin ALTER TABLE
 -- =============================================================================
@@ -259,6 +266,7 @@ CREATE TABLE zonas (
     latitud_centro  NUMERIC(10,6) NOT NULL,
     longitud_centro NUMERIC(10,6) NOT NULL,
     radio_metros    NUMERIC(8,2)  NOT NULL CHECK (radio_metros > 0),
+    geom            GEOGRAPHY(Point, 4326),          -- columna PostGIS para ST_DWithin
     CONSTRAINT uq_nombre_zona UNIQUE (nombre_zona)
 );
 
@@ -307,18 +315,67 @@ CREATE TABLE asignacion_kit (
     id_paciente        INTEGER  NOT NULL,
     id_dispositivo_gps INTEGER  NOT NULL,
     fecha_entrega      DATE,
+    fecha_fin          DATE,
     CONSTRAINT fk_ak_paciente
         FOREIGN KEY (id_paciente)        REFERENCES pacientes    (id_paciente)
         ON DELETE RESTRICT,
     CONSTRAINT fk_ak_gps
         FOREIGN KEY (id_dispositivo_gps) REFERENCES dispositivos (id_dispositivo)
         ON DELETE RESTRICT,
-    CONSTRAINT uq_ak_gps UNIQUE (id_dispositivo_gps)
+    CONSTRAINT chk_ak_fechas CHECK (fecha_fin IS NULL OR fecha_fin >= fecha_entrega)
 );
 
 
 -- =============================================================================
--- BLOQUE 5: EVENTOS Y ALERTAS
+-- BLOQUE 5: RECETAS Y MEDICACIÓN
+-- CAMBIO: se elimina PACIENTE_RECETAS — el id_paciente en RECETAS es suficiente
+--         para indicar a quién pertenece la prescripción (relación 1:1).
+-- =============================================================================
+
+CREATE TABLE recetas (
+    id_receta   INTEGER      PRIMARY KEY,
+    fecha       DATE         NOT NULL,
+    id_paciente INTEGER      NOT NULL,
+    estado      VARCHAR(20)  NOT NULL DEFAULT 'Activa',  -- 'Activa', 'Cerrada'
+    CONSTRAINT fk_receta_paciente
+        FOREIGN KEY (id_paciente) REFERENCES pacientes (id_paciente)
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE receta_medicamentos (
+    id_detalle       INTEGER      PRIMARY KEY,
+    id_receta        INTEGER      NOT NULL,
+    GTIN             VARCHAR(20)  NOT NULL,
+    dosis            VARCHAR(50)  NOT NULL,
+    frecuencia_horas INTEGER      NOT NULL CHECK (frecuencia_horas > 0),
+    CONSTRAINT fk_rm_receta
+        FOREIGN KEY (id_receta) REFERENCES recetas      (id_receta)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_rm_medicamento
+        FOREIGN KEY (GTIN)      REFERENCES medicamentos (GTIN)
+        ON DELETE RESTRICT
+);
+
+-- Asigna un dispositivo NFC para gestionar la lectura de una receta
+CREATE TABLE receta_nfc (
+    id_receta            INTEGER  NOT NULL,
+    id_dispositivo       INTEGER  NOT NULL,
+    fecha_inicio_gestion DATE     NOT NULL,
+    fecha_fin_gestion    DATE,
+    CONSTRAINT pk_receta_nfc PRIMARY KEY (id_receta, id_dispositivo),
+    CONSTRAINT fk_rn_receta
+        FOREIGN KEY (id_receta)       REFERENCES recetas      (id_receta)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_rn_dispositivo
+        FOREIGN KEY (id_dispositivo)  REFERENCES dispositivos (id_dispositivo)
+        ON DELETE RESTRICT,
+    CONSTRAINT chk_rn_fechas
+        CHECK (fecha_fin_gestion IS NULL OR fecha_fin_gestion >= fecha_inicio_gestion)
+);
+
+
+-- =============================================================================
+-- BLOQUE 6: EVENTOS Y ALERTAS
 -- NUEVO: lecturas_nfc  — separado de detecciones_beacon (corrección semántica)
 -- NUEVO: alerta_evento_origen — trazabilidad del evento que disparó la alerta
 -- =============================================================================
@@ -331,6 +388,7 @@ CREATE TABLE lecturas_gps (
     longitud       NUMERIC(10,6)  NOT NULL,
     altura         NUMERIC(8,2),
     nivel_bateria  INTEGER        CHECK (nivel_bateria BETWEEN 0 AND 100),
+    geom           GEOGRAPHY(Point, 4326),          -- columna PostGIS para cálculos de distancia
     CONSTRAINT fk_lgps_dispositivo
         FOREIGN KEY (id_dispositivo) REFERENCES dispositivos (id_dispositivo)
         ON DELETE RESTRICT,
@@ -412,53 +470,6 @@ CREATE TABLE alerta_evento_origen (
         ON DELETE RESTRICT,
     CONSTRAINT uq_aeo_alerta UNIQUE (id_alerta),
     CONSTRAINT chk_aeo_tipo CHECK (tipo_evento IN ('GPS', 'NFC', 'SOS'))
-);
-
-
--- =============================================================================
--- BLOQUE 6: RECETAS Y MEDICACIÓN
--- CAMBIO: se elimina PACIENTE_RECETAS — el id_paciente en RECETAS es suficiente
---         para indicar a quién pertenece la prescripción (relación 1:1).
--- =============================================================================
-
-CREATE TABLE recetas (
-    id_receta   INTEGER  PRIMARY KEY,
-    fecha       DATE     NOT NULL,
-    id_paciente INTEGER  NOT NULL,
-    CONSTRAINT fk_receta_paciente
-        FOREIGN KEY (id_paciente) REFERENCES pacientes (id_paciente)
-        ON DELETE RESTRICT
-);
-
-CREATE TABLE receta_medicamentos (
-    id_detalle       INTEGER      PRIMARY KEY,
-    id_receta        INTEGER      NOT NULL,
-    GTIN             VARCHAR(20)  NOT NULL,
-    dosis            VARCHAR(50)  NOT NULL,
-    frecuencia_horas INTEGER      NOT NULL CHECK (frecuencia_horas > 0),
-    CONSTRAINT fk_rm_receta
-        FOREIGN KEY (id_receta) REFERENCES recetas      (id_receta)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_rm_medicamento
-        FOREIGN KEY (GTIN)      REFERENCES medicamentos (GTIN)
-        ON DELETE RESTRICT
-);
-
--- Asigna un dispositivo NFC para gestionar la lectura de una receta
-CREATE TABLE receta_nfc (
-    id_receta            INTEGER  NOT NULL,
-    id_dispositivo       INTEGER  NOT NULL,
-    fecha_inicio_gestion DATE     NOT NULL,
-    fecha_fin_gestion    DATE,
-    CONSTRAINT pk_receta_nfc PRIMARY KEY (id_receta, id_dispositivo),
-    CONSTRAINT fk_rn_receta
-        FOREIGN KEY (id_receta)       REFERENCES recetas      (id_receta)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_rn_dispositivo
-        FOREIGN KEY (id_dispositivo)  REFERENCES dispositivos (id_dispositivo)
-        ON DELETE RESTRICT,
-    CONSTRAINT chk_rn_fechas
-        CHECK (fecha_fin_gestion IS NULL OR fecha_fin_gestion >= fecha_inicio_gestion)
 );
 
 
@@ -711,6 +722,8 @@ CREATE INDEX idx_entregas_paciente        ON entregas_externas     (id_paciente)
 CREATE INDEX idx_inventario_sede          ON inventario_medicinas  (id_sede);
 CREATE INDEX idx_suministros_sede         ON suministros           (id_sede);
 CREATE INDEX idx_bitacora_sede_fecha      ON bitacora_comedor      (id_sede, fecha DESC);
+CREATE INDEX idx_zonas_geom               ON zonas                 USING GIST (geom);
+CREATE INDEX idx_lgps_geom                ON lecturas_gps          USING GIST (geom);
 
 
 -- =============================================================================
@@ -741,7 +754,13 @@ CREATE UNIQUE INDEX uq_nfc_activo_por_receta
 
 -- Un paciente solo puede tener un kit asignado simultáneamente
 CREATE UNIQUE INDEX uq_kit_activo_por_paciente
-    ON asignacion_kit (id_paciente);
+    ON asignacion_kit (id_paciente)
+    WHERE fecha_fin IS NULL;
+
+-- Un dispositivo GPS solo puede estar en un kit activo a la vez
+CREATE UNIQUE INDEX uq_gps_activo
+    ON asignacion_kit (id_dispositivo_gps)
+    WHERE fecha_fin IS NULL;
 
 
 -- =============================================================================
@@ -964,6 +983,8 @@ INSERT INTO zonas (id_zona, nombre_zona, latitud_centro, longitud_centro, radio_
     (4, 'Sala de Terapia',  25.685500, -100.315500, 30),
     (5, 'Comedor Central',  25.685800, -100.316500, 35);
 
+UPDATE zonas SET geom = ST_SetSRID(ST_MakePoint(longitud_centro, latitud_centro), 4326)::geography;
+
 -- gateways y zona_beacons eliminados — no se insertan datos semilla.
 
 -- ── Beacons por zona ──────────────────────────────────────────────────────────
@@ -1012,6 +1033,8 @@ INSERT INTO lecturas_gps
     (7,  304, '2026-03-29 09:00:00', 25.685550, -100.315510, NULL, 90),
     -- Escenario 4: GPS-SN-005 reporta batería crítica
     (8,  305, '2026-03-29 11:00:00', 25.685900, -100.316600, NULL, 8);
+
+UPDATE lecturas_gps SET geom = ST_SetSRID(ST_MakePoint(longitud, latitud), 4326)::geography;
 
 -- ── Detecciones beacon ────────────────────────────────────────────────────────
 -- Registradas por el teléfono del cuidador vía Web Bluetooth (sin gateway).

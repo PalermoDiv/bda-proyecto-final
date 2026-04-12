@@ -10,7 +10,7 @@
 
         body {
             font-family: 'Inter', system-ui, sans-serif;
-            background: #F1F5F9;
+            background: #EBF4F8;
             color: #0F172A;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -20,26 +20,31 @@
 
         /* ── Navbar ─────────────────────────────────────────── */
         .cl-navbar {
-            background: #fff;
-            border-bottom: 1px solid #E2E8F0;
+            background: linear-gradient(135deg, #071C27 0%, #0A4F66 60%, #0E7490 100%);
             padding: 0 48px;
-            height: 62px;
+            height: 64px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky;
             top: 0;
             z-index: 50;
-            box-shadow: 0 1px 3px rgba(15,23,42,.04);
+            box-shadow: 0 2px 14px rgba(7,28,39,.28);
         }
         .cl-brand {
             font-size: 15px;
             font-weight: 800;
-            color: #082F3E;
+            color: #fff;
             display: flex;
             align-items: center;
             gap: 10px;
             letter-spacing: -0.2px;
+        }
+        .cl-brand-sede {
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255,255,255,.55);
+            margin-left: 4px;
         }
         .cl-pulse {
             width: 9px; height: 9px;
@@ -62,32 +67,51 @@
         .cl-user-name {
             font-size: 13px;
             font-weight: 600;
-            color: #334155;
+            color: rgba(255,255,255,.85);
         }
         .cl-user-role {
             font-size: 11px;
-            color: #94A3B8;
+            color: rgba(255,255,255,.45);
         }
+        .cl-sedes-link {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,.75);
+            background: rgba(255,255,255,.10);
+            border: 1px solid rgba(255,255,255,.15);
+            padding: 6px 14px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background .12s;
+        }
+        .cl-sedes-link:hover { background: rgba(255,255,255,.18); color: #fff; }
         .cl-logout {
-            font-size: 13px;
-            font-weight: 500;
-            color: #E11D48;
-            padding: 7px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,.75);
+            background: rgba(229,57,53,.15);
+            border: 1px solid rgba(229,57,53,.25);
+            padding: 6px 14px;
             border-radius: 8px;
             transition: background .12s;
         }
-        .cl-logout:hover { background: #FFF1F2; }
+        .cl-logout:hover { background: rgba(229,57,53,.28); color: #fff; }
 
         /* ── Tab bar ────────────────────────────────────────── */
         .cl-tabbar {
             background: #fff;
             border-bottom: 1px solid #E2E8F0;
-            padding: 0 48px;
+            padding: 0 40px;
             display: flex;
             gap: 2px;
+            overflow-x: auto;
         }
+        .cl-tabbar::-webkit-scrollbar { display: none; }
         .cl-tab {
-            padding: 14px 20px;
+            padding: 0 6px;
+            height: 54px;
             font-size: 13px;
             font-weight: 600;
             color: #64748B;
@@ -98,6 +122,8 @@
             display: flex;
             align-items: center;
             gap: 7px;
+            flex-shrink: 0;
+            margin: 0 6px;
         }
         .cl-tab:hover { color: #0E7490; }
         .cl-tab.active {
@@ -145,40 +171,57 @@
         .cl-stat {
             background: #fff;
             border: 1px solid #E2E8F0;
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 20px 22px;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(15,23,42,.04);
+            box-shadow: 0 1px 3px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.03);
+            transition: transform .15s, box-shadow .15s;
         }
-        .cl-stat::before {
+        .cl-stat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(15,23,42,.08);
+        }
+        .cl-stat::after {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            border-radius: 12px 12px 0 0;
+            bottom: -20px; right: -20px;
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            opacity: .06;
         }
-        .cl-stat.blue::before  { background: #0E7490; }
-        .cl-stat.green::before { background: #059669; }
-        .cl-stat.amber::before { background: #D97706; }
-        .cl-stat.red::before   { background: #E11D48; }
+        .cl-stat.blue::after  { background: #0E7490; }
+        .cl-stat.green::after { background: #059669; }
+        .cl-stat.amber::after { background: #D97706; }
+        .cl-stat.red::after   { background: #E11D48; }
+        .cl-stat-icon {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 14px;
+            flex-shrink: 0;
+        }
+        .cl-stat.blue  .cl-stat-icon { background: #CFFAFE; color: #0E4F60; }
+        .cl-stat.green .cl-stat-icon { background: #DCFCE7; color: #166534; }
+        .cl-stat.amber .cl-stat-icon { background: #FEF9C3; color: #854D0E; }
+        .cl-stat.red   .cl-stat-icon { background: #FFF1F2; color: #9F1239; }
         .cl-stat-label {
             font-size: 10px;
             font-weight: 700;
             color: #94A3B8;
             letter-spacing: 1px;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         .cl-stat-value {
-            font-size: 32px;
+            font-size: 34px;
             font-weight: 800;
             line-height: 1;
             font-variant-numeric: tabular-nums;
             letter-spacing: -0.5px;
         }
         .cl-stat-sub {
-            font-size: 12px;
+            font-size: 11px;
             color: #94A3B8;
             margin-top: 5px;
         }
@@ -198,13 +241,14 @@
         .cl-card {
             background: #fff;
             border: 1px solid #E2E8F0;
-            border-radius: 12px;
+            border-radius: 14px;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(15,23,42,.04);
+            box-shadow: 0 1px 3px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.03);
         }
         .cl-card-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid #F1F5F9;
+            padding: 14px 20px;
+            background: #FAFCFE;
+            border-bottom: 1px solid #EEF2F7;
             font-size: 13px;
             font-weight: 700;
             color: #0F172A;
@@ -517,17 +561,19 @@
             <span class="cl-pulse"></span>
             Módulo Clínico
             {% if sucursal %}
-            <span style="font-size:13px; font-weight:500; color:#64748b; margin-left:6px;">— {{ sucursal.nombre }}</span>
+            <span class="cl-brand-sede">— {{ sucursal.nombre }}</span>
             {% endif %}
         </div>
         <div class="cl-user">
-            <a href="{{ url_for('clinica_sedes') }}" style="font-size:13px; font-weight:500; color:#185fa5; display:flex; align-items:center; gap:6px;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <a href="{{ url_for('clinica_sedes') }}" class="cl-sedes-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
                 Sedes
             </a>
             <div>
                 <div class="cl-user-name">Dr. Médico en Turno</div>
-                <div class="cl-user-role">Portal clínico · Solo lectura operativa</div>
+                <div class="cl-user-role">Portal clínico · Solo lectura</div>
             </div>
             <a href="{{ url_for('logout') }}" class="cl-logout">Cerrar sesión</a>
         </div>
@@ -579,21 +625,48 @@
             <!-- Stat cards -->
             <div class="cl-stats">
                 <div class="cl-stat blue">
+                    <div class="cl-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
                     <div class="cl-stat-label">Personal en turno</div>
                     <div class="cl-stat-value">{{ staff_en_turno }}</div>
                     <div class="cl-stat-sub">cuidadores activos ahora</div>
                 </div>
                 <div class="cl-stat green">
+                    <div class="cl-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
                     <div class="cl-stat-label">Pacientes en censo</div>
                     <div class="cl-stat-value">{{ total_pacientes }}</div>
                     <div class="cl-stat-sub">activos en el centro</div>
                 </div>
                 <div class="cl-stat amber">
+                    <div class="cl-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
                     <div class="cl-stat-label">Tareas pendientes</div>
                     <div class="cl-stat-value">{{ tareas_pendientes }}</div>
                     <div class="cl-stat-sub">rondas o sesiones por completar</div>
                 </div>
                 <div class="cl-stat red">
+                    <div class="cl-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
                     <div class="cl-stat-label">Alertas activas</div>
                     <div class="cl-stat-value">{{ alertas_activas }}</div>
                     <div class="cl-stat-sub">requieren seguimiento médico</div>

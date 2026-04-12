@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Portal Familiar — AlzMonitor{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     {% block extra_css %}{% endblock %}
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Inter', system-ui, sans-serif;
-            background: #F0F9FF;
+            background: #EBF4F8;
             color: #0F172A;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -20,40 +20,41 @@
 
         a { text-decoration: none; color: inherit; }
 
-        /* ── Header ─────────────────────────────────────────────── */
+        /* ── Header ──────────────────────────────────────────────── */
         .pf-header {
-            background: #fff;
-            border-bottom: 1px solid #E0F2FE;
+            background: linear-gradient(135deg, #071C27 0%, #0A4F66 60%, #0E7490 100%);
             padding: 0 20px;
-            height: 58px;
+            height: 66px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky;
             top: 0;
             z-index: 50;
-            box-shadow: 0 1px 4px rgba(14,116,144,.08);
+            box-shadow: 0 2px 16px rgba(7,28,39,.30);
         }
         .pf-brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
-        .pf-brand-dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
-            background: #0E7490;
+        .pf-brand-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.18);
+            display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
         .pf-brand-name {
             font-size: 15px;
-            font-weight: 700;
-            color: #082F3E;
+            font-weight: 800;
+            color: #fff;
             letter-spacing: -0.2px;
         }
         .pf-brand-sub {
             font-size: 11px;
-            color: #64748B;
+            color: rgba(255,255,255,.55);
             margin-top: 1px;
         }
         .pf-user {
@@ -64,7 +65,7 @@
         .pf-user-name {
             font-size: 13px;
             font-weight: 600;
-            color: #334155;
+            color: rgba(255,255,255,.80);
             display: none;
         }
         @media (min-width: 480px) {
@@ -73,25 +74,26 @@
         .pf-logout {
             font-size: 12px;
             font-weight: 600;
-            color: #0E7490;
-            background: #E0F2FE;
+            color: #fff;
+            background: rgba(255,255,255,.12);
             padding: 6px 14px;
             border-radius: 8px;
-            border: none;
+            border: 1px solid rgba(255,255,255,.18);
             cursor: pointer;
             white-space: nowrap;
+            transition: background .12s;
         }
-        .pf-logout:hover { background: #BAE6FD; }
+        .pf-logout:hover { background: rgba(255,255,255,.22); }
 
         /* ── Content wrapper ─────────────────────────────────────── */
         .pf-content {
-            max-width: 720px;
+            max-width: 740px;
             margin: 0 auto;
-            padding: 24px 16px 48px;
+            padding: 28px 16px 56px;
         }
         @media (min-width: 768px) {
             .pf-header { padding: 0 40px; }
-            .pf-content { padding: 32px 24px 64px; }
+            .pf-content { padding: 36px 24px 72px; }
         }
 
         /* ── Flash messages ──────────────────────────────────────── */
@@ -111,38 +113,42 @@
         /* ── Cards ───────────────────────────────────────────────── */
         .pf-card {
             background: #fff;
-            border-radius: 14px;
-            border: 1px solid #E0F2FE;
-            box-shadow: 0 1px 4px rgba(14,116,144,.06);
+            border-radius: 16px;
+            border: 1px solid #D4E9F5;
+            box-shadow: 0 1px 3px rgba(14,116,144,.06), 0 4px 20px rgba(14,116,144,.05);
             margin-bottom: 16px;
             overflow: hidden;
         }
         .pf-card-header {
-            padding: 14px 20px;
-            border-bottom: 1px solid #F0F9FF;
-            font-size: 12px;
+            padding: 13px 20px;
+            background: #F7FCFF;
+            border-bottom: 1px solid #E0F2FE;
+            font-size: 11px;
             font-weight: 700;
-            color: #64748B;
+            color: #0E7490;
             text-transform: uppercase;
-            letter-spacing: .8px;
+            letter-spacing: .9px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
+        .pf-card-header svg { opacity: .7; }
         .pf-card-body { padding: 20px; }
 
-        /* ── Section title ───────────────────────────────────────── */
+        /* ── Section title / page header ─────────────────────────── */
+        .pf-page-header {
+            margin-bottom: 20px;
+        }
         .pf-section-title {
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 17px;
+            font-weight: 800;
             color: #0F172A;
-            margin-bottom: 4px;
-            letter-spacing: -0.1px;
+            letter-spacing: -0.3px;
         }
         .pf-section-sub {
             font-size: 12px;
             color: #64748B;
-            margin-bottom: 14px;
+            margin-top: 4px;
         }
 
         /* ── Badges ──────────────────────────────────────────────── */
@@ -159,6 +165,7 @@
         .pf-badge-red    { background: #FFF1F2; color: #BE123C; border: 1px solid #FECDD3; }
         .pf-badge-amber  { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
         .pf-badge-blue   { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+        .pf-badge-teal   { background: #CFFAFE; color: #0E4F60; border: 1px solid #A5F3FC; }
         .pf-badge-gray   { background: #F8FAFC; color: #475569; border: 1px solid #E2E8F0; }
 
         /* ── Table ───────────────────────────────────────────────── */
@@ -170,22 +177,25 @@
             color: #94A3B8;
             text-transform: uppercase;
             letter-spacing: .8px;
-            padding: 8px 12px;
-            border-bottom: 1px solid #F1F5F9;
+            padding: 9px 14px;
+            background: #F7FCFF;
+            border-bottom: 1px solid #E0F2FE;
         }
         .pf-table td {
-            padding: 11px 12px;
-            border-bottom: 1px solid #F8FAFC;
+            padding: 11px 14px;
+            border-bottom: 1px solid #F0F9FF;
             color: #334155;
         }
         .pf-table tr:last-child td { border-bottom: none; }
+        .pf-table tbody tr:hover td { background: #F7FCFF; }
 
         /* ── Empty state ─────────────────────────────────────────── */
         .pf-empty {
             text-align: center;
             color: #94A3B8;
-            padding: 28px 20px;
+            padding: 32px 20px;
             font-size: 13px;
+            line-height: 1.6;
         }
 
         /* ── Back link ───────────────────────────────────────────── */
@@ -197,15 +207,80 @@
             font-weight: 600;
             color: #0E7490;
             margin-bottom: 20px;
+            padding: 6px 12px 6px 8px;
+            border-radius: 8px;
+            transition: background .12s;
         }
-        .pf-back:hover { color: #0C647A; }
+        .pf-back:hover { background: #E0F2FE; color: #0C607A; }
+
+        /* ── KV label/value ──────────────────────────────────────── */
+        .pf-kv-label {
+            font-size: 10px; font-weight: 700; color: #94A3B8;
+            text-transform: uppercase; letter-spacing: .8px; margin-bottom: 5px;
+        }
+        .pf-kv-value { font-size: 14px; font-weight: 600; color: #0F172A; }
+        .pf-kv-sub   { font-size: 11px; color: #64748B; margin-top: 2px; }
+
+        /* ── Alert banners ───────────────────────────────────────── */
+        .pf-alert-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid;
+        }
+        .pf-alert-banner .pf-alert-icon {
+            width: 34px; height: 34px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .pf-alert-banner.red {
+            background: #FFF1F2; color: #BE123C; border-color: #FECDD3;
+        }
+        .pf-alert-banner.red .pf-alert-icon { background: #FECDD3; }
+        .pf-alert-banner.green {
+            background: #ECFDF5; color: #065F46; border-color: #A7F3D0;
+        }
+        .pf-alert-banner.green .pf-alert-icon { background: #A7F3D0; }
+
+        /* ── Cuidador row ────────────────────────────────────────── */
+        .pf-cuid-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 11px 20px; border-bottom: 1px solid #F0F9FF;
+        }
+        .pf-cuid-row:last-child { border-bottom: none; }
+
+        /* ── Med row ─────────────────────────────────────────────── */
+        .pf-med-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 20px; border-bottom: 1px solid #F0F9FF;
+        }
+        .pf-med-row:last-child { border-bottom: none; }
+
+        /* ── Progress bar ────────────────────────────────────────── */
+        .pf-progress-bar {
+            height: 8px; border-radius: 100px;
+            background: #E0F2FE; margin-top: 8px; overflow: hidden;
+        }
+        .pf-progress-fill {
+            height: 100%; border-radius: 100px; transition: width .4s;
+        }
     </style>
 </head>
 <body>
 
 <header class="pf-header">
     <div class="pf-brand">
-        <div class="pf-brand-dot"></div>
+        <div class="pf-brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" width="18" height="18">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+        </div>
         <div>
             <div class="pf-brand-name">AlzMonitor</div>
             <div class="pf-brand-sub">Portal Familiar</div>

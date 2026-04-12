@@ -10,7 +10,7 @@
 
         body {
             font-family: 'Inter', system-ui, sans-serif;
-            background: #F1F5F9;
+            background: #EBF4F8;
             color: #0F172A;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -20,22 +20,21 @@
 
         /* ── Navbar ──────────────────────────────────────── */
         .cl-navbar {
-            background: #fff;
-            border-bottom: 1px solid #E2E8F0;
+            background: linear-gradient(135deg, #071C27 0%, #0A4F66 60%, #0E7490 100%);
             padding: 0 48px;
-            height: 62px;
+            height: 64px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky;
             top: 0;
             z-index: 50;
-            box-shadow: 0 1px 3px rgba(15,23,42,.04);
+            box-shadow: 0 2px 14px rgba(7,28,39,.28);
         }
         .cl-brand {
             font-size: 15px;
             font-weight: 800;
-            color: #082F3E;
+            color: #fff;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -59,17 +58,19 @@
             align-items: center;
             gap: 20px;
         }
-        .cl-user-name { font-size: 13px; font-weight: 600; color: #334155; }
-        .cl-user-role { font-size: 11px; color: #94A3B8; }
+        .cl-user-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.85); }
+        .cl-user-role { font-size: 11px; color: rgba(255,255,255,.45); }
         .cl-logout {
-            font-size: 13px;
-            font-weight: 500;
-            color: #E11D48;
-            padding: 7px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,.75);
+            background: rgba(229,57,53,.15);
+            border: 1px solid rgba(229,57,53,.25);
+            padding: 6px 14px;
             border-radius: 8px;
             transition: background .12s;
         }
-        .cl-logout:hover { background: #FFF1F2; }
+        .cl-logout:hover { background: rgba(229,57,53,.28); color: #fff; }
 
         /* ── Page ────────────────────────────────────────── */
         .page {

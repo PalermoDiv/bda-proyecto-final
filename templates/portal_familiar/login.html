@@ -4,61 +4,70 @@
 
 {% block content %}
 
-<div style="max-width:380px; margin:40px auto 0;">
+<div style="max-width:380px; margin:48px auto 0;">
 
-    <div style="text-align:center; margin-bottom:28px;">
-        <div style="width:52px; height:52px; border-radius:14px; background:#E0F2FE;
-                    display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#0E7490" stroke-width="2" width="24" height="24">
+    <div style="text-align:center; margin-bottom:32px;">
+        <div style="width:60px; height:60px; border-radius:16px;
+                    background: linear-gradient(135deg, #0A4F66, #0E7490);
+                    display:flex; align-items:center; justify-content:center;
+                    margin:0 auto 16px; box-shadow:0 4px 16px rgba(14,116,144,.30);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="26" height="26">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                 <circle cx="12" cy="7" r="4"/>
             </svg>
         </div>
-        <div style="font-size:20px; font-weight:700; color:#0F172A; letter-spacing:-0.3px;">
+        <div style="font-size:22px; font-weight:800; color:#0F172A; letter-spacing:-0.4px;">
             Portal Familiar
         </div>
-        <div style="font-size:13px; color:#64748B; margin-top:4px;">
+        <div style="font-size:13px; color:#64748B; margin-top:6px;">
             Accede para ver el estado de tu familiar
         </div>
     </div>
 
     <div class="pf-card">
-        <div class="pf-card-body">
+        <div class="pf-card-body" style="padding:28px;">
             <form method="POST" action="{{ url_for('portal_login') }}">
 
-                <div style="margin-bottom:16px;">
-                    <label style="display:block; font-size:12px; font-weight:600;
-                                  color:#475569; margin-bottom:6px;">
+                <div style="margin-bottom:18px;">
+                    <label style="display:block; font-size:12px; font-weight:700;
+                                  color:#334155; margin-bottom:7px; letter-spacing:.2px;">
                         Correo electrónico
                     </label>
                     <input type="email" name="email" required
                            placeholder="tu@correo.com"
-                           style="width:100%; padding:10px 14px; border:1px solid #CBD5E1;
-                                  border-radius:8px; font-size:14px; font-family:inherit;
-                                  color:#0F172A; outline:none;"
-                           onfocus="this.style.borderColor='#0E7490'"
-                           onblur="this.style.borderColor='#CBD5E1'">
+                           style="width:100%; padding:11px 14px; border:1.5px solid #D4E9F5;
+                                  border-radius:10px; font-size:14px; font-family:inherit;
+                                  color:#0F172A; outline:none; background:#FAFEFF;
+                                  transition:border-color .15s, box-shadow .15s;"
+                           onfocus="this.style.borderColor='#0E7490'; this.style.boxShadow='0 0 0 3px rgba(14,116,144,.12)'"
+                           onblur="this.style.borderColor='#D4E9F5'; this.style.boxShadow='none'">
                 </div>
 
-                <div style="margin-bottom:22px;">
-                    <label style="display:block; font-size:12px; font-weight:600;
-                                  color:#475569; margin-bottom:6px;">
+                <div style="margin-bottom:24px;">
+                    <label style="display:block; font-size:12px; font-weight:700;
+                                  color:#334155; margin-bottom:7px; letter-spacing:.2px;">
                         PIN de acceso
                     </label>
                     <input type="password" name="pin" required
                            placeholder="••••"
                            maxlength="20"
-                           style="width:100%; padding:10px 14px; border:1px solid #CBD5E1;
-                                  border-radius:8px; font-size:14px; font-family:inherit;
-                                  color:#0F172A; outline:none;"
-                           onfocus="this.style.borderColor='#0E7490'"
-                           onblur="this.style.borderColor='#CBD5E1'">
+                           style="width:100%; padding:11px 14px; border:1.5px solid #D4E9F5;
+                                  border-radius:10px; font-size:14px; font-family:inherit;
+                                  color:#0F172A; outline:none; background:#FAFEFF;
+                                  transition:border-color .15s, box-shadow .15s;"
+                           onfocus="this.style.borderColor='#0E7490'; this.style.boxShadow='0 0 0 3px rgba(14,116,144,.12)'"
+                           onblur="this.style.borderColor='#D4E9F5'; this.style.boxShadow='none'">
                 </div>
 
                 <button type="submit"
-                        style="width:100%; padding:11px; background:#0E7490; color:#fff;
-                               font-size:14px; font-weight:600; font-family:inherit;
-                               border:none; border-radius:8px; cursor:pointer;">
+                        style="width:100%; padding:12px; font-size:14px; font-weight:700;
+                               font-family:inherit; border:none; border-radius:10px; cursor:pointer;
+                               background: linear-gradient(135deg, #0A4F66, #0E7490);
+                               color:#fff; letter-spacing:.1px;
+                               box-shadow:0 3px 12px rgba(14,116,144,.28);
+                               transition:opacity .12s, box-shadow .12s;"
+                        onmouseenter="this.style.opacity='.92'; this.style.boxShadow='0 5px 18px rgba(14,116,144,.35)'"
+                        onmouseleave="this.style.opacity='1'; this.style.boxShadow='0 3px 12px rgba(14,116,144,.28)'">
                     Entrar
                 </button>
 
@@ -66,7 +75,7 @@
         </div>
     </div>
 
-    <div style="text-align:center; font-size:11px; color:#94A3B8; margin-top:16px;">
+    <div style="text-align:center; font-size:11px; color:#94A3B8; margin-top:18px; line-height:1.6;">
         ¿Problemas para acceder? Contacta a la administración de la residencia.
     </div>
 

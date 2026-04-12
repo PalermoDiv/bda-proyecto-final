@@ -1,48 +1,73 @@
 {% extends "portal_familiar/base_familiar.html" %}
 
-{% block title %}Mis pacientes — Portal Familiar{% endblock %}
+{% block title %}Mis familiares — Portal Familiar{% endblock %}
 
 {% block content %}
 
-<div class="pf-section-title">Tus familiares</div>
-<div class="pf-section-sub">
-    {{ pacientes | length }} paciente(s) vinculado(s) a tu cuenta
+<!-- Page header -->
+<div class="pf-page-header">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div>
+            <div class="pf-section-title">
+                Hola, {{ session.contacto_nombre.split()[0] if session.contacto_nombre else 'bienvenido/a' }}
+            </div>
+            <div class="pf-section-sub">
+                {{ pacientes | length }} familiar(es) vinculado(s) a tu cuenta
+            </div>
+        </div>
+        <div style="width:48px; height:48px; border-radius:14px;
+                    background: linear-gradient(135deg, #0A4F66, #0E7490);
+                    display:flex; align-items:center; justify-content:center;
+                    box-shadow:0 3px 10px rgba(14,116,144,.25); flex-shrink:0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="22" height="22">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+        </div>
+    </div>
 </div>
 
 {% if pacientes %}
     {% for p in pacientes %}
     <a href="{{ url_for('portal_paciente', id=p.id_paciente) }}"
        style="display:block; margin-bottom:12px; text-decoration:none;">
-        <div class="pf-card" style="transition:box-shadow .15s;"
-             onmouseenter="this.style.boxShadow='0 4px 16px rgba(14,116,144,.12)'"
-             onmouseleave="this.style.boxShadow=''">
+        <div class="pf-card" style="margin-bottom:0; transition:transform .15s, box-shadow .15s;"
+             onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 24px rgba(14,116,144,.14)'"
+             onmouseleave="this.style.transform=''; this.style.boxShadow=''">
             <div style="padding:18px 20px; display:flex; align-items:center; gap:16px;">
 
                 <!-- Avatar -->
-                <div style="width:48px; height:48px; border-radius:50%; background:#E0F2FE;
+                <div style="width:50px; height:50px; border-radius:14px;
+                            background: linear-gradient(135deg, #0A4F66, #0E7490);
                             display:flex; align-items:center; justify-content:center;
-                            font-size:16px; font-weight:700; color:#0C647A; flex-shrink:0;">
+                            font-size:16px; font-weight:800; color:#fff; flex-shrink:0;
+                            box-shadow:0 2px 8px rgba(14,116,144,.25); letter-spacing:-.5px;">
                     {{ p.nombre_paciente[0] }}{{ p.apellido_p_pac[0] }}
                 </div>
 
                 <!-- Info -->
                 <div style="flex:1; min-width:0;">
-                    <div style="font-size:15px; font-weight:700; color:#0F172A;">
+                    <div style="font-size:15px; font-weight:700; color:#0F172A; letter-spacing:-.2px;">
                         {{ p.nombre_paciente }} {{ p.apellido_p_pac }} {{ p.apellido_m_pac }}
                     </div>
-                    <div style="font-size:12px; color:#64748B; margin-top:3px;">
+                    <div style="font-size:12px; color:#64748B; margin-top:4px; display:flex; align-items:center; gap:6px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" width="11" height="11">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        </svg>
                         {{ p.nombre_sede or 'Sede no asignada' }}
                     </div>
                 </div>
 
-                <!-- Estado + arrow -->
+                <!-- Estado + chevron -->
                 <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
                     <span class="pf-badge {% if p.desc_estado == 'Activo' %}pf-badge-green
                                            {% elif p.desc_estado == 'En Hospital' %}pf-badge-amber
                                            {% else %}pf-badge-gray{% endif %}">
                         {{ p.desc_estado }}
                     </span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.5"
                          width="16" height="16">
                         <polyline points="9 18 15 12 9 6"/>
                     </svg>

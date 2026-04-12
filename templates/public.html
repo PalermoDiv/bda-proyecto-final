@@ -3,273 +3,607 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlzMonitor — Monitoreo Activo para Centros de Cuidado Alzheimer</title>
+    <title>AlzMonitor — Monitoreo activo para centros Alzheimer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 </head>
 <body class="public-body">
 
-    <!-- ── Navbar ────────────────────────────────────────────────── -->
-    <nav class="public-navbar">
-        <div class="public-brand">
+<!-- ── Navbar ────────────────────────────────────────────── -->
+<nav class="lp-nav">
+    <a href="#inicio" class="lp-nav-brand">
+        <span class="pulse-dot"></span>AlzMonitor
+    </a>
+    <div class="lp-nav-links">
+        <a href="#seguridad">Seguridad GPS</a>
+        <a href="#farmacia">Farmacia</a>
+        <a href="#beacons">Rondas</a>
+        <a href="#nfc">NFC</a>
+    </div>
+    <a href="{{ url_for('login') }}" class="lp-btn-enter">Iniciar Sesión</a>
+</nav>
+
+
+<!-- ── Hero ──────────────────────────────────────────────── -->
+<section class="lp-hero" id="inicio">
+    <div class="lp-hero-inner">
+
+        <div class="lp-hero-eyebrow">
+            <span class="lp-live-dot"></span>
+            Monitoreo activo 24 / 7
+        </div>
+
+        <h1 class="lp-hero-title">
+            Seguridad real para<br>
+            <span class="accent">pacientes con Alzheimer.</span>
+        </h1>
+
+        <p class="lp-hero-sub">
+            AlzMonitor combina rastreo GPS continuo, geofencing automático, control
+            farmacéutico multi-sede, rondas de cuidadores con beacons BLE y verificación
+            de medicación por NFC — en una sola plataforma.
+        </p>
+
+        <div class="lp-hero-actions">
+            <a href="{{ url_for('login') }}" class="lp-btn-primary">
+                Acceder al portal
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14">
+                    <path d="M3 8h10M9 4l4 4-4 4"/>
+                </svg>
+            </a>
+            <a href="#seguridad" class="lp-btn-ghost">Ver funcionalidades</a>
+        </div>
+
+        <!-- Live status cards -->
+        <div class="lp-hero-cards">
+
+            <div class="lp-hero-card">
+                <div class="lp-hcard-top">
+                    <div class="lp-hcard-icon hci-teal">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" stroke-dasharray="4 2"/>
+                        </svg>
+                    </div>
+                    <span class="lp-hcard-label">GPS</span>
+                    <span class="lp-live-dot lp-hcard-live"></span>
+                </div>
+                <div class="lp-hcard-value">PG12</div>
+                <div class="lp-hcard-sub">Polling cada 30 s · MongoDB + PostGIS</div>
+            </div>
+
+            <div class="lp-hero-card">
+                <div class="lp-hcard-top">
+                    <div class="lp-hcard-icon hci-violet">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M7 7l10 10M17 7l-4.5 4.5L17 17M7 17l4.5-4.5"/>
+                        </svg>
+                    </div>
+                    <span class="lp-hcard-label">Beacons BLE</span>
+                    <span class="lp-live-dot lp-hcard-live"></span>
+                </div>
+                <div class="lp-hcard-value">BLE 5.1</div>
+                <div class="lp-hcard-sub">Rondas de cuidadores · Web Bluetooth</div>
+            </div>
+
+            <div class="lp-hero-card">
+                <div class="lp-hcard-top">
+                    <div class="lp-hcard-icon hci-amber">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-4"/>
+                            <path d="M20 6h-8M20 10h-6M20 14h-4"/>
+                        </svg>
+                    </div>
+                    <span class="lp-hcard-label">NFC</span>
+                    <span class="lp-live-dot lp-hcard-live"></span>
+                </div>
+                <div class="lp-hcard-value">DESFire</div>
+                <div class="lp-hcard-sub">Adherencia terapéutica · PostgreSQL</div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+<!-- ── Stats bar ──────────────────────────────────────────── -->
+<div class="lp-stats">
+    <div class="lp-stats-inner">
+        <div class="lp-stat-item">
+            <span class="lp-stat-num">&lt; 60 s</span>
+            <span class="lp-stat-desc">Polling GPS automático</span>
+        </div>
+        <div class="lp-stat-item">
+            <span class="lp-stat-num">PostGIS</span>
+            <span class="lp-stat-desc">Evaluación de geocercas</span>
+        </div>
+        <div class="lp-stat-item">
+            <span class="lp-stat-num">Multi-sede</span>
+            <span class="lp-stat-desc">Gestión por sucursal</span>
+        </div>
+        <div class="lp-stat-item">
+            <span class="lp-stat-num">100%</span>
+            <span class="lp-stat-desc">Trazabilidad clínica</span>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     1. SEGURIDAD GPS
+═══════════════════════════════════════════════════════ -->
+<section class="lp-split-section lp-section-light" id="seguridad">
+    <div class="lp-split">
+
+        <div>
+            <div class="lp-eyebrow lp-eyebrow-red">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Seguridad del Paciente
+            </div>
+            <h2 class="lp-split-title">Detección inmediata de escape de zona</h2>
+            <p class="lp-split-body">
+                El GPS PG12 se lleva oculto en la ropa del paciente. Flask consulta
+                la API cloud del dispositivo cada 30–60 segundos y evalúa con PostGIS si
+                la ubicación sigue dentro de alguna zona segura. Si no — la alerta se
+                dispara de inmediato, con trazabilidad completa hasta el evento GPS.
+            </p>
+            <ul class="lp-feature-list">
+                <li>
+                    <div class="lp-check lp-check-teal">
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2 6 5 9 10 3"/></svg>
+                    </div>
+                    GPS PG12 oculto en ropa — el paciente no interactúa con él
+                </li>
+                <li>
+                    <div class="lp-check lp-check-teal">
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2 6 5 9 10 3"/></svg>
+                    </div>
+                    Lecturas almacenadas en MongoDB por alto volumen de escritura
+                </li>
+                <li>
+                    <div class="lp-check lp-check-red">
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2v5M6 9v1"/></svg>
+                    </div>
+                    Alerta instantánea en PostgreSQL si sale de todas las zonas seguras
+                </li>
+                <li>
+                    <div class="lp-check lp-check-amber">
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="6" cy="6" r="4"/><path d="M6 4v2l1.5 1.5"/></svg>
+                    </div>
+                    Escalación a contacto de emergencia si no se atiende en 5 min
+                </li>
+                <li>
+                    <div class="lp-check lp-check-teal">
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2 6 5 9 10 3"/></svg>
+                    </div>
+                    Trayectoria y última posición visibles en el dashboard de alertas
+                </li>
+            </ul>
+        </div>
+
+        <!-- Geofence visual -->
+        <div>
+            <div class="lp-geo-wrap">
+                <svg class="lp-geo-svg" viewBox="0 0 480 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Grid pattern -->
+                    <defs>
+                        <pattern id="mapgrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M40 0L0 0 0 40" stroke="rgba(14,116,144,0.07)" stroke-width="1" fill="none"/>
+                        </pattern>
+                    </defs>
+                    <rect width="480" height="400" fill="url(#mapgrid)"/>
+
+                    <!-- Outer safe zone -->
+                    <circle cx="220" cy="210" r="140" fill="rgba(14,116,144,0.05)" stroke="rgba(14,116,144,0.22)" stroke-width="1.5"/>
+                    <!-- Inner zone (dashed) -->
+                    <circle cx="220" cy="210" r="75" fill="rgba(14,116,144,0.08)" stroke="rgba(14,116,144,0.38)" stroke-width="1.5" stroke-dasharray="7 4"/>
+                    <!-- Building center -->
+                    <circle cx="220" cy="210" r="6" fill="#0E7490"/>
+                    <circle cx="220" cy="210" r="14" fill="none" stroke="rgba(14,116,144,0.20)" stroke-width="1"/>
+
+                    <!-- Patient trail (inside → outside) -->
+                    <path d="M 255 185 Q 320 140 390 82" stroke="rgba(225,29,72,0.45)" stroke-width="1.5" stroke-dasharray="6 4" fill="none"/>
+
+                    <!-- Safe patient (inside zone, green) -->
+                    <circle cx="195" cy="230" r="7" fill="#059669" stroke="white" stroke-width="2"/>
+                    <circle cx="195" cy="230" r="14" fill="none" stroke="rgba(5,150,105,0.25)" stroke-width="1"/>
+
+                    <!-- Escaped patient (outside zone, red) -->
+                    <circle cx="390" cy="82" r="9" fill="#E11D48" stroke="white" stroke-width="2.5"/>
+                    <!-- Pulse rings -->
+                    <circle cx="390" cy="82" r="18" fill="none" stroke="rgba(225,29,72,0.28)" stroke-width="1.5"/>
+                    <circle cx="390" cy="82" r="30" fill="none" stroke="rgba(225,29,72,0.12)" stroke-width="1"/>
+
+                    <!-- Coordinates label -->
+                    <rect x="316" y="105" width="120" height="32" rx="6" fill="rgba(8,47,62,0.80)"/>
+                    <text x="326" y="120" font-family="monospace" font-size="9" fill="rgba(165,243,252,0.7)" letter-spacing="0.5">LAT  19.432608</text>
+                    <text x="326" y="131" font-family="monospace" font-size="9" fill="rgba(165,243,252,0.7)" letter-spacing="0.5">LNG -99.133209</text>
+                </svg>
+
+                <!-- Overlay tags -->
+                <div class="lp-geo-alert">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3L14 13H2L8 3z"/><path d="M8 7v3M8 11.5v.5"/></svg>
+                    Salida de zona detectada
+                </div>
+
+                <div class="lp-geo-safe">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 8 6 11 13 4"/></svg>
+                    Dentro de zona segura
+                </div>
+
+                <!-- Tech spec band -->
+                <div class="lp-geo-spec">
+                    <div class="geo-kv">
+                        <span class="geo-k">Polling</span>
+                        <span class="geo-v">30–60 s</span>
+                    </div>
+                    <div class="geo-kv">
+                        <span class="geo-k">Zona check</span>
+                        <span class="geo-v">PostGIS</span>
+                    </div>
+                    <div class="geo-kv">
+                        <span class="geo-k">Lecturas</span>
+                        <span class="geo-v">MongoDB</span>
+                    </div>
+                    <div class="geo-kv">
+                        <span class="geo-k">Alertas</span>
+                        <span class="geo-v">PostgreSQL</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     2. FARMACIA / MEDICAMENTOS
+═══════════════════════════════════════════════════════ -->
+<section class="lp-pharma-section" id="farmacia">
+
+    <div class="lp-center-header">
+        <div class="lp-eyebrow lp-eyebrow-teal" style="justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            </svg>
+            Control Farmacéutico
+        </div>
+        <h2>Medicación segura,<br>stock siempre bajo control.</h2>
+        <p>
+            Inventario en tiempo real por sede, órdenes de suministro a farmacias proveedoras y
+            verificación de administración de medicamentos mediante la pulsera NFC del paciente.
+        </p>
+    </div>
+
+    <div class="lp-pharma-grid">
+
+        <div class="lp-pharma-card ph-emerald">
+            <div class="lp-pharma-icon pi-emerald">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20v-6M8 20v-2M16 20v-4"/><rect x="2" y="3" width="20" height="14" rx="2"/>
+                </svg>
+            </div>
+            <h3>Inventario multi-sede</h3>
+            <p>
+                Visualización del stock actual frente al stock mínimo para cada medicamento en cada sede.
+                Resaltado automático de medicamentos en nivel crítico.
+            </p>
+            <div class="lp-pharma-note">
+                Stock crítico resaltado en rojo cuando cae por debajo del mínimo definido por sede.
+            </div>
+        </div>
+
+        <div class="lp-pharma-card ph-blue">
+            <div class="lp-pharma-icon pi-blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.4 5h12.8M10 20a1 1 0 100-2 1 1 0 000 2zM17 20a1 1 0 100-2 1 1 0 000 2z"/>
+                </svg>
+            </div>
+            <h3>Órdenes de suministro</h3>
+            <p>
+                Generación de órdenes de reabastecimiento vinculadas a una farmacia proveedora y sede específica.
+                Trazabilidad completa de entregas externas.
+            </p>
+            <div class="lp-pharma-note">
+                Cada orden registra farmacia proveedora, fecha, estado y los medicamentos solicitados con cantidad.
+            </div>
+        </div>
+
+        <div class="lp-pharma-card ph-violet">
+            <div class="lp-pharma-icon pi-violet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V9l-6-6z"/>
+                    <polyline points="9 3 9 9 15 9"/>
+                    <line x1="9" y1="14" x2="15" y2="14"/>
+                    <line x1="9" y1="17" x2="12" y2="17"/>
+                </svg>
+            </div>
+            <h3>Adherencia terapéutica NFC</h3>
+            <p>
+                Cada administración de medicamento se confirma con un toque NFC de la pulsera del paciente.
+                Los registros quedan en PostgreSQL con FK a la receta y al dispositivo.
+            </p>
+            <div class="lp-pharma-note">
+                Indicador de cumplimiento por paciente calculado desde <code>lecturas_nfc</code> vs dosis programadas.
+            </div>
+        </div>
+
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     3. RONDAS CON BEACONS BLE
+═══════════════════════════════════════════════════════ -->
+<section class="lp-beacon-section" id="beacons">
+    <div class="lp-beacon-inner">
+
+        <div class="lp-beacon-header">
+            <div>
+                <div class="lp-eyebrow lp-eyebrow-mint">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                        <path d="M8.56 2.9A7 7 0 1118.1 15.44"/>
+                        <path d="M12 12l4-4M16 12l-4-4"/>
+                    </svg>
+                    Rondas de Cuidadores
+                </div>
+                <h2>Trazabilidad de presencia<br>en cada zona del centro.</h2>
+                <p>
+                    Los beacons FeasyBeacon están fijos en puntos estratégicos del edificio — puertas, salidas,
+                    sala común, comedor. El teléfono Android del cuidador los detecta al pasar mediante
+                    Web Bluetooth y registra automáticamente la ronda.
+                </p>
+            </div>
+            <div>
+                <p style="font-size:14px; color:rgba(255,255,255,0.38); line-height:1.7;">
+                    No se requieren gateways BLE adicionales. El teléfono del cuidador es el receptor.
+                    Cada detección queda almacenada en MongoDB con RSSI, zona, cuidador y timestamp.
+                    <br><br>
+                    Los beacons <strong style="color:rgba(255,255,255,0.65);">no se asignan a pacientes</strong> —
+                    son puntos de referencia fijos del edificio que permiten saber qué zonas fueron
+                    visitadas y cuándo.
+                </p>
+            </div>
+        </div>
+
+        <!-- Zone checkpoint cards (mock data) -->
+        <div class="lp-zone-grid">
+
+            <div class="lp-zone-card">
+                <div class="lp-zone-top">
+                    <span class="lp-zone-name">Puerta Principal</span>
+                    <span class="lp-zone-live"><span class="lp-live-dot"></span>Activo</span>
+                </div>
+                <div class="lp-zone-last-label">Última ronda</div>
+                <div class="lp-zone-time">hace 4 min</div>
+                <div class="lp-zone-carer">
+                    <div class="lp-zone-av">ML</div>
+                    <span class="lp-zone-carer-name">María López</span>
+                </div>
+            </div>
+
+            <div class="lp-zone-card">
+                <div class="lp-zone-top">
+                    <span class="lp-zone-name">Salida de Emergencia</span>
+                    <span class="lp-zone-live"><span class="lp-live-dot"></span>Activo</span>
+                </div>
+                <div class="lp-zone-last-label">Última ronda</div>
+                <div class="lp-zone-time">hace 11 min</div>
+                <div class="lp-zone-carer">
+                    <div class="lp-zone-av">JR</div>
+                    <span class="lp-zone-carer-name">Juan Ramírez</span>
+                </div>
+            </div>
+
+            <div class="lp-zone-card">
+                <div class="lp-zone-top">
+                    <span class="lp-zone-name">Jardín / Acceso Exterior</span>
+                    <span class="lp-zone-live"><span class="lp-live-dot"></span>Activo</span>
+                </div>
+                <div class="lp-zone-last-label">Última ronda</div>
+                <div class="lp-zone-time">hace 18 min</div>
+                <div class="lp-zone-carer">
+                    <div class="lp-zone-av">SM</div>
+                    <span class="lp-zone-carer-name">Sofía Mendoza</span>
+                </div>
+            </div>
+
+            <div class="lp-zone-card">
+                <div class="lp-zone-top">
+                    <span class="lp-zone-name">Sala Común</span>
+                    <span class="lp-zone-live"><span class="lp-live-dot"></span>Activo</span>
+                </div>
+                <div class="lp-zone-last-label">Última ronda</div>
+                <div class="lp-zone-time">hace 2 min</div>
+                <div class="lp-zone-carer">
+                    <div class="lp-zone-av">ML</div>
+                    <span class="lp-zone-carer-name">María López</span>
+                </div>
+            </div>
+
+            <div class="lp-zone-card">
+                <div class="lp-zone-top">
+                    <span class="lp-zone-name">Comedor</span>
+                    <span class="lp-zone-live"><span class="lp-live-dot"></span>Activo</span>
+                </div>
+                <div class="lp-zone-last-label">Última ronda</div>
+                <div class="lp-zone-time">hace 26 min</div>
+                <div class="lp-zone-carer">
+                    <div class="lp-zone-av">AH</div>
+                    <span class="lp-zone-carer-name">Ana Hernández</span>
+                </div>
+            </div>
+
+            <div class="lp-zone-card">
+                <div class="lp-zone-top">
+                    <span class="lp-zone-name">Escaleras / Pasillo Norte</span>
+                    <span class="lp-zone-live"><span class="lp-live-dot"></span>Activo</span>
+                </div>
+                <div class="lp-zone-last-label">Última ronda</div>
+                <div class="lp-zone-time">hace 7 min</div>
+                <div class="lp-zone-carer">
+                    <div class="lp-zone-av">JR</div>
+                    <span class="lp-zone-carer-name">Juan Ramírez</span>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="lp-beacon-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Los beacons FeasyBeacon FSC-BP104D están instalados físicamente en las paredes o techos del edificio.
+            Detectados por el teléfono del cuidador (Chrome Android) vía <strong style="color:rgba(255,255,255,0.65);">Web Bluetooth API</strong>.
+            Requiere HTTPS. Eventos almacenados en MongoDB <code style="color:#5EEAD4;">ble_events</code>.
+        </div>
+
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     4. CÓMO FUNCIONA LA PULSERA NFC
+═══════════════════════════════════════════════════════ -->
+<section class="lp-nfc-section" id="nfc">
+    <div class="lp-nfc-inner">
+
+        <div>
+            <div class="lp-eyebrow lp-eyebrow-amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                </svg>
+                Pulsera NFC
+            </div>
+            <h2 class="lp-split-title">Verificación de medicación<br>con un solo toque.</h2>
+            <p class="lp-split-body">
+                El paciente lleva una pulsera NFC pasiva (sin batería, como una pulsera hospitalaria).
+                El cuidador acerca su teléfono Android para confirmar identidad y registrar la
+                administración del medicamento.
+            </p>
+
+            <div class="lp-nfc-steps">
+
+                <div class="lp-nfc-step">
+                    <div class="lp-nfc-num">1</div>
+                    <div>
+                        <h4>Paciente porta la pulsera NFC</h4>
+                        <p>
+                            Tag NFC DESFire pasivo — sin batería, sin interacción del paciente.
+                            Contiene el ID de receta grabado en memoria NDEF. Se porta como
+                            pulsera de identificación hospitalaria.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="lp-nfc-step">
+                    <div class="lp-nfc-num">2</div>
+                    <div>
+                        <h4>Cuidador acerca su teléfono</h4>
+                        <p>
+                            Chrome Android lee el tag vía <strong>Web NFC API</strong> (requiere HTTPS).
+                            La webapp confirma el ID de receta, el paciente y el medicamento
+                            antes de registrar la administración.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="lp-nfc-step">
+                    <div class="lp-nfc-num">3</div>
+                    <div>
+                        <h4>Evento registrado en PostgreSQL</h4>
+                        <p>
+                            Se inserta en <code>lecturas_nfc</code> con FK a <code>recetas</code> y
+                            <code>dispositivos</code>. Alimenta el indicador de adherencia
+                            terapéutica del paciente. Bajo volumen, alta integridad clínica.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- NFC visual -->
+        <div class="lp-nfc-visual">
+
+            <div class="lp-nfc-device-card">
+                <div class="lp-nfc-device-label">Pulsera NFC · Dispositivo activo</div>
+                <div class="lp-nfc-device-id">NFC-004 · DESF-A3B2</div>
+                <div class="lp-nfc-device-patient">Paciente: Eduardo Vargas Ruiz</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <div class="lp-nfc-chip-tag">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                            <rect x="3" y="3" width="10" height="10" rx="2"/>
+                            <circle cx="8" cy="8" r="2"/>
+                        </svg>
+                        DESFire · 13.56 MHz
+                    </div>
+                    <div class="lp-nfc-chip-tag">Pasivo · sin batería</div>
+                </div>
+            </div>
+
+            <div class="lp-nfc-confirm-card">
+                <div class="lp-nfc-confirm-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="lp-nfc-confirm-title">Administración confirmada</div>
+                    <div class="lp-nfc-confirm-detail">
+                        Receta #12 · Donepezilo 5 mg · Hoy 08:14 h<br>
+                        Registrado por: María López · Sede Norte
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+
+<!-- ── CTA final ──────────────────────────────────────────── -->
+<section class="lp-cta-section">
+    <div class="lp-cta-inner">
+        <div class="lp-eyebrow lp-eyebrow-mint" style="justify-content:center; margin-bottom:20px;">
+            <span class="lp-live-dot"></span>
+            Sistema operativo
+        </div>
+        <h2>Una plataforma diseñada<br>para escalar.</h2>
+        <p>
+            Arquitectura multi-sede desde el primer día. Cada sucursal opera en su propio
+            contexto, comparte la misma base de datos centralizada y mantiene historial
+            completo ante transferencias de pacientes, cambios de tratamiento o reemplazos de hardware.
+        </p>
+        <a href="{{ url_for('login') }}" class="lp-btn-primary" style="font-size:16px; padding:16px 36px;">
+            Ingresar al sistema
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15">
+                <path d="M3 8h10M9 4l4 4-4 4"/>
+            </svg>
+        </a>
+    </div>
+</section>
+
+
+<!-- ── Footer ─────────────────────────────────────────────── -->
+<footer class="lp-footer">
+    <div class="lp-footer-inner">
+        <div class="lp-footer-brand">
             <span class="pulse-dot"></span>AlzMonitor
         </div>
-        <div class="public-links">
-            <a href="#inicio">Inicio</a>
-            <a href="#objetivos">Objetivos</a>
-            <a href="#modulos">Módulos</a>
-            <a href="#como-funciona">¿Cómo funciona?</a>
+        <div class="lp-footer-tagline">
+            Sistema integral de monitoreo para centros de atención especializada en Alzheimer.
         </div>
-        <div class="public-actions">
-            <a href="{{ url_for('login') }}" class="btn-ingresar">Iniciar Sesión</a>
+        <div class="lp-footer-copy">
+            &copy; 2026 AlzMonitor — Proyecto académico · Bases de Datos Avanzadas
         </div>
-    </nav>
-
-
-    <section class="hero-section" id="inicio">
-        <div class="hero-content">
-            <span class="lp-chip">
-                <span class="pulse-dot"></span>
-                Monitoreo activo 24 / 7
-            </span>
-            <h1 class="hero-title">
-                Tranquilidad para ti,<br>
-                <span style="color:#185fa5;">seguridad para ellos.</span>
-            </h1>
-            <p class="hero-subtitle">
-                AlzMonitor centraliza el seguimiento de pacientes con Alzheimer o deterioro cognitivo en un único sistema.
-                Combina rastreo GPS, sensores NFC, geocercas y expedientes clínicos para que cada centro de cuidado opere
-                con precisión y respuesta inmediata.
-            </p>
-            <div class="hero-buttons">
-                <a href="{{ url_for('login') }}" class="btn-ingresar" style="padding:14px 36px; font-size:16px;">
-                    Acceder al Portal
-                </a>
-                <a href="#modulos" class="btn-lp-outline">
-                    Ver módulos
-                </a>
-            </div>
-        </div>
-    </section>
-
-
-    <section class="lp-stats-bar">
-        <div class="lp-stats-inner">
-            <div class="lp-stat">
-                <span class="lp-stat-value">100%</span>
-                <span class="lp-stat-label">Trazabilidad de pacientes</span>
-            </div>
-            <div class="lp-stat-divider"></div>
-            <div class="lp-stat">
-                <span class="lp-stat-value">&lt; 30 s</span>
-                <span class="lp-stat-label">Tiempo de respuesta a alertas</span>
-            </div>
-            <div class="lp-stat-divider"></div>
-            <div class="lp-stat">
-                <span class="lp-stat-value">Multi-sede</span>
-                <span class="lp-stat-label">Gestión de sucursales por zona</span>
-            </div>
-            <div class="lp-stat-divider"></div>
-            <div class="lp-stat">
-                <span class="lp-stat-value">GPS · NFC · BLE</span>
-                <span class="lp-stat-label">Tecnologías de localización integradas</span>
-            </div>
-        </div>
-    </section>
-
-    <!-- ── Objetivos centrales ───────────────────────────────────── -->
-    <section class="lp-section lp-section-light" id="objetivos">
-        <div class="lp-section-header">
-            <span class="lp-label">Propósito del sistema</span>
-            <h2>Tres objetivos, un solo sistema.</h2>
-            <p>AlzMonitor fue diseñado para resolver los desafíos operativos y clínicos más críticos de los centros de cuidado especializado.</p>
-        </div>
-
-        <div class="lp-objectives-grid">
-            <div class="lp-obj-card">
-                <div class="lp-obj-icon lp-icon-blue">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    </svg>
-                </div>
-                <h3>Seguridad del paciente</h3>
-                <p>
-                    Prevención de deambulación y respuesta inmediata a emergencias mediante rastreo de ubicación
-                    en tiempo real. Cada salida de zona genera una alerta instantánea al personal responsable.
-                </p>
-            </div>
-
-            <div class="lp-obj-card">
-                <div class="lp-obj-icon lp-icon-green">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                    </svg>
-                </div>
-                <h3>Eficiencia operativa</h3>
-                <p>
-                    Centralización de pacientes, cuidadores y personal médico en una sola plataforma con base de datos
-                    unificada. Elimina duplicidades, reduce errores administrativos y acelera la asignación de turnos.
-                </p>
-            </div>
-
-            <div class="lp-obj-card">
-                <div class="lp-obj-icon lp-icon-amber">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                    </svg>
-                </div>
-                <h3>Enfoque clínico</h3>
-                <p>
-                    Interfaz minimalista para médicos y terapeutas que permite revisar expedientes, sesiones terapéuticas
-                    y asignaciones sin distracciones operativas. Cada rol accede solo a lo que necesita.
-                </p>
-            </div>
-        </div>
-    </section>
-
-    <!-- ── Módulos y características ────────────────────────────── -->
-    <section class="lp-section lp-section-dark" id="modulos">
-        <div class="lp-section-header lp-header-light">
-            <span class="lp-label lp-label-light">Arquitectura funcional</span>
-            <h2>Cuatro módulos. Una plataforma integrada.</h2>
-            <p>Cada módulo responde a un área específica de operación dentro del centro de cuidado.</p>
-        </div>
-
-        <div class="lp-modules-grid">
-
-            <div class="lp-module-card">
-                <div class="lp-module-num">01</div>
-                <h3>Hardware & Monitoreo Activo</h3>
-                <p>
-                    Registro y seguimiento de dispositivos físicos asignados a pacientes: pulseras GPS, beacons de
-                    habitación y sensores NFC para verificación de medicación. El sistema integra tecnologías
-                    BLE, GPS y NFC en un solo inventario centralizado.
-                </p>
-                <ul class="lp-module-list">
-                    <li>Rastreo GPS y Beacons en interiores</li>
-                    <li>Verificación de toma de medicamentos vía NFC</li>
-                    <li>Monitoreo de batería por dispositivo</li>
-                </ul>
-            </div>
-
-            <div class="lp-module-card">
-                <div class="lp-module-num">02</div>
-                <h3>Zonas Seguras (Geofencing)</h3>
-                <p>
-                    Los administradores definen geocercas virtuales (jardín, sala de terapia, perímetro del
-                    edificio). Si un paciente cruza el límite establecido, el sistema dispara una alerta
-                    inmediata clasificada por tipo y urgencia.
-                </p>
-                <ul class="lp-module-list">
-                    <li>Configuración de radio permitido por paciente</li>
-                    <li>Alertas por abandono de zona en tiempo real</li>
-                    <li>Notificación dirigida al responsable asignado</li>
-                </ul>
-            </div>
-
-            <div class="lp-module-card">
-                <div class="lp-module-num">03</div>
-                <h3>Dashboard Administrativo</h3>
-                <p>
-                    Panel de control centralizado con estadísticas en tiempo real: total de pacientes activos,
-                    cuidadores disponibles, dispositivos en línea y alertas pendientes. Incluye CRUD completo
-                    para gestión de expedientes y directorios.
-                </p>
-                <ul class="lp-module-list">
-                    <li>Gestión de pacientes, cuidadores e historiales</li>
-                    <li>Asignación de cuidadores por paciente y fecha</li>
-                    <li>Soporte multi-sede con gestión por zonas geográficas</li>
-                </ul>
-            </div>
-
-            <div class="lp-module-card">
-                <div class="lp-module-num">04</div>
-                <h3>Portal Clínico / Médico</h3>
-                <p>
-                    Interfaz de tema claro diseñada exclusivamente para médicos y terapeutas. Permite la
-                    consulta de expedientes sin acceso a módulos operativos, reduciendo la carga cognitiva
-                    y evitando errores de acceso.
-                </p>
-                <ul class="lp-module-list">
-                    <li>Vista limpia orientada a expedientes clínicos</li>
-                    <li>Registro de sesiones y evolución del paciente</li>
-                    <li>Separación estricta de roles por perfil de acceso</li>
-                </ul>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ── Cómo funciona ─────────────────────────────────────────── -->
-    <section class="lp-section lp-section-light" id="como-funciona">
-        <div class="lp-section-header">
-            <span class="lp-label">Flujo del sistema</span>
-            <h2>¿Cómo funciona AlzMonitor?</h2>
-            <p>Del hardware al expediente clínico, en cuatro pasos operativos.</p>
-        </div>
-
-        <div class="lp-steps">
-            <div class="lp-step">
-                <div class="lp-step-num">1</div>
-                <div class="lp-step-body">
-                    <h4>Alta del paciente y asignación de dispositivo</h4>
-                    <p>El administrador registra al paciente, carga su historial clínico y vincula un dispositivo GPS o NFC. El sistema asigna automáticamente al cuidador correspondiente según la zona.</p>
-                </div>
-            </div>
-            <div class="lp-step">
-                <div class="lp-step-num">2</div>
-                <div class="lp-step-body">
-                    <h4>Configuración de zonas seguras</h4>
-                    <p>Se definen las geocercas permitidas para cada paciente o grupo. Cada zona tiene un radio específico y un destinatario de notificación definido (familiar, cuidador, enfermería).</p>
-                </div>
-            </div>
-            <div class="lp-step">
-                <div class="lp-step-num">3</div>
-                <div class="lp-step-body">
-                    <h4>Monitoreo activo y gestión de alertas</h4>
-                    <p>Los dispositivos transmiten señal en tiempo real. Cuando se detecta una anomalía (zona abandonada, batería crítica, SOS), el sistema registra la alerta y notifica al personal.</p>
-                </div>
-            </div>
-            <div class="lp-step">
-                <div class="lp-step-num">4</div>
-                <div class="lp-step-body">
-                    <h4>Revisión clínica y seguimiento terapéutico</h4>
-                    <p>El médico o terapeuta accede al portal clínico para revisar evolución del paciente, sesiones previas y recomendaciones de tratamiento sin interferir con la operación administrativa.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ── CTA Final ─────────────────────────────────────────────── -->
-    <section class="lp-cta">
-        <div class="lp-cta-inner">
-            <h2>Un sistema pensado para escalar.</h2>
-            <p>
-                AlzMonitor fue diseñado con una arquitectura multi-sede: cada sucursal opera dentro de su zona
-                geográfica y comparte la misma base de datos centralizada. Agregar un nuevo centro de cuidado
-                es tan simple como registrar una nueva sucursal.
-            </p>
-            <a href="{{ url_for('login') }}" class="btn-ingresar" style="padding:14px 36px; font-size:16px;">
-                Ingresar al sistema
-            </a>
-        </div>
-    </section>
-
-    <!-- ── Footer ────────────────────────────────────────────────── -->
-    <footer class="public-footer">
-        <div class="lp-footer-inner">
-            <div class="lp-footer-brand">
-                <span class="pulse-dot"></span> AlzMonitor
-            </div>
-            <p style="margin-top:8px; font-size:13px;">
-                Sistema integral de monitoreo para centros de atención de Alzheimer.
-            </p>
-            <p style="margin-top:20px; font-size:12px; color:#b0bac8;">
-                &copy; 2026 AlzMonitor — Proyecto académico · Bases de Datos Avanzadas
-            </p>
-        </div>
-    </footer>
+    </div>
+</footer>
 
 </body>
 </html>
