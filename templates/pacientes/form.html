@@ -101,6 +101,19 @@
                     </select>
                 </div>
 
+                <!-- Sede inicial (solo en creación) -->
+                {% if not paciente %}
+                <div class="form-group">
+                    <label class="form-label" for="id_sede">Sede de ingreso</label>
+                    <select id="id_sede" name="id_sede" class="form-control" required>
+                        <option value="" disabled selected>Selecciona una sede...</option>
+                        {% for sede in sedes %}
+                            <option value="{{ sede.id_sede }}">{{ sede.nombre_sede }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
                 <!-- Acciones -->
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">

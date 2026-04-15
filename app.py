@@ -275,6 +275,7 @@ def pacientes_lista():
 @admin_requerido
 def pacientes_nuevo():
     estados = db.query("SELECT * FROM estados_paciente ORDER BY id_estado")
+    sedes   = db.query("SELECT id_sede, nombre_sede FROM sedes ORDER BY nombre_sede")
     if request.method == "POST":
         try:
             id_pac     = int(request.form["id_paciente"])
@@ -283,19 +284,29 @@ def pacientes_nuevo():
             apellido_m = request.form["apellido_m_pac"].strip()
             fecha_nac  = request.form["fecha_nacimiento"]
             id_estado  = int(request.form["id_estado"])
+            id_sede    = int(request.form["id_sede"])
 
-            db.execute("""
-                INSERT INTO pacientes
-                    (id_paciente, nombre, apellido_p, apellido_m, fecha_nacimiento, id_estado)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (id_pac, nombre, apellido_p, apellido_m, fecha_nac, id_estado))
+            next_sp = db.scalar(
+                "SELECT COALESCE(MAX(id_sede_paciente), 0) + 1 FROM sede_pacientes"
+            )
+
+            db.execute_many([
+                ("""INSERT INTO pacientes
+                        (id_paciente, nombre, apellido_p, apellido_m, fecha_nacimiento, id_estado)
+                    VALUES (%s, %s, %s, %s, %s, %s)""",
+                 (id_pac, nombre, apellido_p, apellido_m, fecha_nac, id_estado)),
+                ("""INSERT INTO sede_pacientes
+                        (id_sede_paciente, id_sede, id_paciente, fecha_ingreso, hora_ingreso)
+                    VALUES (%s, %s, %s, CURRENT_DATE, CURRENT_TIME)""",
+                 (next_sp, id_sede, id_pac)),
+            ])
 
             flash("Paciente registrado correctamente.", "success")
             return redirect(url_for("pacientes_lista"))
         except Exception as e:
             flash(f"Error al registrar paciente: {e}", "error")
 
-    return render_template("pacientes/form.html", paciente=None, estados=estados)
+    return render_template("pacientes/form.html", paciente=None, estados=estados, sedes=sedes)
 
 
 @app.route("/pacientes/editar/<int:id>", methods=["GET", "POST"])
@@ -339,7 +350,7 @@ def pacientes_editar(id):
         except Exception as e:
             flash(f"Error al actualizar paciente: {e}", "error")
 
-    return render_template("pacientes/form.html", paciente=paciente, estados=estados)
+    return render_template("pacientes/form.html", paciente=paciente, estados=estados, sedes=[])
 
 
 @app.route("/pacientes/eliminar/<int:id>", methods=["POST"])
@@ -489,14 +500,35 @@ def pacientes_historial(id):
         ORDER BY d.id_serial
     """)
 
+    enfermedades_disponibles = db.query("""
+        SELECT id_enfermedad, nombre_enfermedad FROM enfermedades
+        WHERE id_enfermedad NOT IN (
+            SELECT id_enfermedad FROM tiene_enfermedad WHERE id_paciente = %s
+        )
+        ORDER BY nombre_enfermedad
+    """, (id,))
+
+    gps_disponibles = db.query("""
+        SELECT d.id_dispositivo, d.id_serial, d.modelo
+        FROM dispositivos d
+        WHERE d.tipo = 'GPS' AND d.estado = 'Activo'
+          AND NOT EXISTS (
+              SELECT 1 FROM asignacion_kit ak
+              WHERE ak.id_dispositivo_gps = d.id_dispositivo AND ak.fecha_fin IS NULL
+          )
+        ORDER BY d.id_serial
+    """)
+
     return render_template(
         "pacientes/historial.html",
         paciente=paciente,
         estado=estado,
         enfermedades=enfermedades,
+        enfermedades_disponibles=enfermedades_disponibles,
         cuidadores=cuidadores,
         contactos=contactos,
         kit=kit,
+        gps_disponibles=gps_disponibles,
         nfc_asignacion=nfc_asignacion,
         nfc_disponibles=nfc_disponibles,
         historial_sedes=historial_sedes,
@@ -586,6 +618,92 @@ def pacientes_asignar_nfc(id):
         flash("Pulsera NFC asignada correctamente.", "success")
     except Exception as e:
         flash(f"Error al asignar pulsera NFC: {e}", "error")
+    return redirect(url_for("pacientes_historial", id=id))
+
+
+@app.route("/pacientes/<int:id>/agregar-enfermedad", methods=["POST"])
+@admin_requerido
+def pacientes_agregar_enfermedad(id):
+    try:
+        id_enfermedad = int(request.form["id_enfermedad"])
+        fecha_diag    = request.form["fecha_diag"]
+        db.execute("""
+            INSERT INTO tiene_enfermedad (id_paciente, id_enfermedad, fecha_diag)
+            VALUES (%s, %s, %s)
+        """, (id, id_enfermedad, fecha_diag))
+        flash("Enfermedad agregada correctamente.", "success")
+    except Exception as e:
+        flash(f"Error al agregar enfermedad: {e}", "error")
+    return redirect(url_for("pacientes_historial", id=id))
+
+
+@app.route("/pacientes/<int:id>/quitar-enfermedad", methods=["POST"])
+@admin_requerido
+def pacientes_quitar_enfermedad(id):
+    try:
+        id_enfermedad = int(request.form["id_enfermedad"])
+        db.execute("""
+            DELETE FROM tiene_enfermedad
+            WHERE id_paciente = %s AND id_enfermedad = %s
+        """, (id, id_enfermedad))
+        flash("Diagnóstico eliminado correctamente.", "success")
+    except Exception as e:
+        flash(f"Error al eliminar diagnóstico: {e}", "error")
+    return redirect(url_for("pacientes_historial", id=id))
+
+
+@app.route("/pacientes/<int:id>/agregar-contacto", methods=["POST"])
+@admin_requerido
+def pacientes_agregar_contacto(id):
+    try:
+        nombre     = request.form["nombre"].strip()
+        apellido_p = request.form["apellido_p"].strip()
+        apellido_m = request.form.get("apellido_m", "").strip() or None
+        telefono   = request.form["telefono"].strip()
+        relacion   = request.form["relacion"].strip()
+        email      = request.form.get("email", "").strip() or None
+        pin_acceso = request.form.get("pin_acceso", "").strip() or None
+
+        next_id   = db.scalar(
+            "SELECT COALESCE(MAX(id_contacto), 0) + 1 FROM contactos_emergencia"
+        )
+        next_prio = db.scalar(
+            "SELECT COALESCE(MAX(prioridad), 0) + 1 FROM paciente_contactos WHERE id_paciente = %s",
+            (id,)
+        )
+
+        db.execute_many([
+            ("""INSERT INTO contactos_emergencia
+                    (id_contacto, nombre, apellido_p, apellido_m, telefono, relacion, email, pin_acceso)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+             (next_id, nombre, apellido_p, apellido_m, telefono, relacion, email, pin_acceso)),
+            ("""INSERT INTO paciente_contactos (id_paciente, id_contacto, prioridad)
+                VALUES (%s, %s, %s)""",
+             (id, next_id, next_prio)),
+        ])
+
+        flash("Contacto de emergencia agregado correctamente.", "success")
+    except Exception as e:
+        flash(f"Error al agregar contacto: {e}", "error")
+    return redirect(url_for("pacientes_historial", id=id))
+
+
+@app.route("/pacientes/<int:id>/asignar-kit", methods=["POST"])
+@admin_requerido
+def pacientes_asignar_kit(id):
+    try:
+        id_gps  = int(request.form["id_dispositivo_gps"])
+        next_id = db.scalar(
+            "SELECT COALESCE(MAX(id_monitoreo), 0) + 1 FROM asignacion_kit"
+        )
+        db.execute("""
+            INSERT INTO asignacion_kit
+                (id_monitoreo, id_paciente, id_dispositivo_gps, fecha_entrega)
+            VALUES (%s, %s, %s, CURRENT_DATE)
+        """, (next_id, id, id_gps))
+        flash("Kit GPS asignado correctamente.", "success")
+    except Exception as e:
+        flash(f"Error al asignar kit GPS: {e}", "error")
     return redirect(url_for("pacientes_historial", id=id))
 
 

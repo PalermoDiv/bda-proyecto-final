@@ -71,7 +71,46 @@
             <div class="section-title">Enfermedades diagnosticadas</div>
             <div class="section-sub">{{ enfermedades | length }} diagnóstico(s) registrado(s)</div>
         </div>
+        {% if enfermedades_disponibles %}
+        <button onclick="document.getElementById('form-enfermedad').style.display = document.getElementById('form-enfermedad').style.display === 'none' ? 'block' : 'none'"
+                class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Agregar diagnóstico
+        </button>
+        {% endif %}
     </div>
+
+    <!-- Formulario agregar enfermedad (oculto) -->
+    {% if enfermedades_disponibles %}
+    <div id="form-enfermedad" style="display:none; margin-bottom:16px;">
+        <div class="card">
+            <div style="padding:20px;">
+                <div style="font-size:13px; font-weight:600; color:#0F172A; margin-bottom:14px;">Registrar diagnóstico</div>
+                <form method="POST" action="{{ url_for('pacientes_agregar_enfermedad', id=paciente.id_paciente) }}"
+                      style="display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <label class="form-label">Enfermedad</label>
+                        <select name="id_enfermedad" class="form-control" required style="min-width:220px;">
+                            <option value="">— Selecciona —</option>
+                            {% for ef in enfermedades_disponibles %}
+                            <option value="{{ ef.id_enfermedad }}">{{ ef.nombre_enfermedad }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Fecha de diagnóstico</label>
+                        <input type="date" name="fecha_diag" class="form-control" required style="width:170px;">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary"
+                            onclick="document.getElementById('form-enfermedad').style.display='none'">Cancelar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="card" style="margin-bottom:20px;">
         {% if enfermedades %}
@@ -96,11 +135,25 @@
                         </div>
                     </div>
                 </div>
-                <div style="text-align:right;">
-                    <div style="font-size:13px; font-weight:600; color:#2d3748;">
-                        {{ e.fecha_diag[8:10] }}/{{ e.fecha_diag[5:7] }}/{{ e.fecha_diag[0:4] }}
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <div style="text-align:right;">
+                        <div style="font-size:13px; font-weight:600; color:#2d3748;">
+                            {{ e.fecha_diag[8:10] }}/{{ e.fecha_diag[5:7] }}/{{ e.fecha_diag[0:4] }}
+                        </div>
+                        <div style="font-size:11px; color:#8892a4; margin-top:1px;">Fecha de diagnóstico</div>
                     </div>
-                    <div style="font-size:11px; color:#8892a4; margin-top:1px;">Fecha de diagnóstico</div>
+                    <form method="POST" action="{{ url_for('pacientes_quitar_enfermedad', id=paciente.id_paciente) }}"
+                          onsubmit="return confirm('¿Eliminar este diagnóstico?')">
+                        <input type="hidden" name="id_enfermedad" value="{{ e.id_enfermedad }}">
+                        <button type="submit" style="background:none; border:none; cursor:pointer; padding:4px; color:#94A3B8;"
+                                title="Eliminar diagnóstico">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                            </svg>
+                        </button>
+                    </form>
                 </div>
             </div>
             {% endfor %}
@@ -161,6 +214,66 @@
             <div class="section-title">Contactos de emergencia</div>
             <div class="section-sub">{{ contactos | length }} contacto(s) registrado(s)</div>
         </div>
+        <button onclick="document.getElementById('form-contacto').style.display = document.getElementById('form-contacto').style.display === 'none' ? 'block' : 'none'"
+                class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Agregar contacto
+        </button>
+    </div>
+
+    <!-- Formulario agregar contacto (oculto) -->
+    <div id="form-contacto" style="display:none; margin-bottom:16px;">
+        <div class="card">
+            <div style="padding:20px;">
+                <div style="font-size:13px; font-weight:600; color:#0F172A; margin-bottom:16px;">Nuevo contacto de emergencia</div>
+                <form method="POST" action="{{ url_for('pacientes_agregar_contacto', id=paciente.id_paciente) }}">
+                    <div class="form-grid" style="margin-bottom:0;">
+                        <div class="form-group">
+                            <label class="form-label">Nombre(s)</label>
+                            <input type="text" name="nombre" class="form-control" placeholder="Ej. Laura" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Apellido paterno</label>
+                            <input type="text" name="apellido_p" class="form-control" placeholder="Ej. García" required>
+                        </div>
+                    </div>
+                    <div class="form-grid" style="margin-bottom:0;">
+                        <div class="form-group">
+                            <label class="form-label">Apellido materno</label>
+                            <input type="text" name="apellido_m" class="form-control" placeholder="Opcional">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Relación</label>
+                            <input type="text" name="relacion" class="form-control" placeholder="Ej. Hija" required>
+                        </div>
+                    </div>
+                    <div class="form-grid" style="margin-bottom:0;">
+                        <div class="form-group">
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" name="telefono" class="form-control" placeholder="Ej. 55 1234 5678" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email (Portal Familiar)</label>
+                            <input type="email" name="email" class="form-control" placeholder="opcional@correo.com">
+                        </div>
+                    </div>
+                    <div class="form-group" style="max-width:240px;">
+                        <label class="form-label">PIN de acceso (Portal Familiar)</label>
+                        <input type="text" name="pin_acceso" class="form-control" placeholder="Ej. 1234" maxlength="20">
+                    </div>
+                    <div style="font-size:11px; color:#94A3B8; margin-bottom:14px;">
+                        El email y PIN permiten al contacto acceder al Portal Familiar. La prioridad se asigna automáticamente ({{ contactos | length + 1 }}).
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button type="submit" class="btn btn-primary">Guardar contacto</button>
+                        <button type="button" class="btn btn-secondary"
+                                onclick="document.getElementById('form-contacto').style.display='none'">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <div class="card" style="margin-bottom:20px;">
@@ -201,18 +314,56 @@
             <div class="section-title">Kit de dispositivos</div>
             <div class="section-sub">Equipos de localización y monitoreo</div>
         </div>
-        {% if nfc_disponibles or nfc_asignacion %}
-        <button id="btn-nfc"
-                onclick="document.getElementById('form-nfc').style.display = document.getElementById('form-nfc').style.display === 'none' ? 'block' : 'none'"
-                class="btn btn-secondary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                <path d="M12 2C8 2 4 5 4 9c0 2.5 1.5 4.5 3 6l5 7 5-7c1.5-1.5 3-3.5 3-6 0-4-4-7-8-7z"/>
-                <circle cx="12" cy="9" r="2"/>
-            </svg>
-            {{ 'Cambiar pulsera' if nfc_asignacion else 'Asignar pulsera NFC' }}
-        </button>
-        {% endif %}
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            {% if not kit and gps_disponibles %}
+            <button onclick="document.getElementById('form-gps').style.display = document.getElementById('form-gps').style.display === 'none' ? 'block' : 'none'"
+                    class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                </svg>
+                Asignar GPS
+            </button>
+            {% endif %}
+            {% if nfc_disponibles or nfc_asignacion %}
+            <button id="btn-nfc"
+                    onclick="document.getElementById('form-nfc').style.display = document.getElementById('form-nfc').style.display === 'none' ? 'block' : 'none'"
+                    class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                    <path d="M12 2C8 2 4 5 4 9c0 2.5 1.5 4.5 3 6l5 7 5-7c1.5-1.5 3-3.5 3-6 0-4-4-7-8-7z"/>
+                    <circle cx="12" cy="9" r="2"/>
+                </svg>
+                {{ 'Cambiar pulsera' if nfc_asignacion else 'Asignar pulsera NFC' }}
+            </button>
+            {% endif %}
+        </div>
     </div>
+
+    <!-- Formulario asignar GPS (oculto) -->
+    {% if not kit and gps_disponibles %}
+    <div id="form-gps" style="display:none; margin-bottom:16px;">
+        <div class="card">
+            <div style="padding:20px;">
+                <div style="font-size:13px; font-weight:600; color:#0F172A; margin-bottom:14px;">Asignar dispositivo GPS</div>
+                <form method="POST" action="{{ url_for('pacientes_asignar_kit', id=paciente.id_paciente) }}"
+                      style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <select name="id_dispositivo_gps" class="form-control" required style="max-width:280px;">
+                        <option value="">— Selecciona GPS —</option>
+                        {% for d in gps_disponibles %}
+                        <option value="{{ d.id_dispositivo }}">{{ d.id_serial }}{% if d.modelo %} · {{ d.modelo }}{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary">Confirmar</button>
+                    <button type="button" class="btn btn-secondary"
+                            onclick="document.getElementById('form-gps').style.display='none'">Cancelar</button>
+                </form>
+                <div style="font-size:11px; color:#94A3B8; margin-top:10px;">
+                    La fecha de entrega se registra como hoy. El índice parcial previene duplicados activos.
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     {% if nfc_disponibles or nfc_asignacion %}
     <div id="form-nfc" style="display:none; margin-bottom:16px;">
