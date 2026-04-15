@@ -990,7 +990,7 @@ INSERT INTO dispositivos (id_dispositivo, id_serial, modelo, tipo, estado, ultim
     (304, 'GPS-SN-004', 'GT06',       'GPS',    'Activo',      '2026-03-29 09:00:00'),
     (305, 'GPS-SN-005', 'TK103',      'GPS',    'Mantenimiento','2026-03-25 11:00:00'),
     -- Beacons
-    (401, 'BCN-SN-A',   'BC001',      'BEACON', 'Activo',      '2026-03-30 09:00:00'),
+    (401, 'FDA50693-1000-1001', 'BC001', 'BEACON', 'Activo',     '2026-03-30 09:00:00'),  -- FeasyBeacon FSC-BP104D: UUID-Major-Minor
     (402, 'BCN-SN-B',   'BC001',      'BEACON', 'Activo',      '2026-03-30 07:15:00'),
     (403, 'BCN-SN-C',   'BC002',      'BEACON', 'Activo',      '2026-03-30 14:45:00'),
     (404, 'BCN-SN-D',   'BC002',      'BEACON', 'Activo',      '2026-03-29 09:00:00'),

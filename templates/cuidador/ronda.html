@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ronda de Cuidador — AlzMonitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #071C27;
+            color: #F1F5F9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Header ─────────────────────────────────────────────────────── */
+        .rh-header {
+            background: linear-gradient(135deg, #071C27, #0A4F66);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .rh-brand { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -.2px; }
+        .rh-brand span { color: #2DD4BF; }
+        .rh-links { display: flex; gap: 8px; align-items: center; }
+        .rh-back {
+            font-size: 11px; font-weight: 600; color: #94A3B8;
+            text-decoration: none; padding: 5px 10px;
+            border-radius: 7px; border: 1px solid rgba(255,255,255,.1);
+        }
+        .rh-back:hover { color: #fff; background: rgba(255,255,255,.08); }
+
+        /* ── Round timer pill ───────────────────────────────────────────── */
+        .rh-timer {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: #2DD4BF;
+            padding: 4px 10px;
+            background: rgba(45,212,191,.10);
+            border: 1px solid rgba(45,212,191,.25);
+            border-radius: 20px;
+        }
+        .rh-timer.visible { display: flex; }
+        .rh-timer-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #2DD4BF;
+            animation: pulse-dot 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+        /* ── Main ───────────────────────────────────────────────────────── */
+        .rh-main {
+            flex: 1;
+            padding: 24px 18px 60px;
+            max-width: 480px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ── Hero start button ──────────────────────────────────────────── */
+        #section-start { text-align: center; padding: 32px 0; }
+        .rh-hero-title {
+            font-size: 22px; font-weight: 800; margin-bottom: 8px; color: #F1F5F9;
+        }
+        .rh-hero-sub {
+            font-size: 13px; color: #64748B; margin-bottom: 32px; line-height: 1.6;
+        }
+        .rh-btn-start {
+            width: 100%; padding: 20px;
+            border-radius: 16px; border: none;
+            background: linear-gradient(135deg, #0E7490, #2DD4BF);
+            color: #fff; font-family: inherit;
+            font-size: 16px; font-weight: 800;
+            cursor: pointer; letter-spacing: -.2px;
+            box-shadow: 0 6px 28px rgba(14,116,144,.40);
+            transition: transform .1s, filter .1s;
+            touch-action: manipulation;
+        }
+        .rh-btn-start:active { transform: scale(.97); }
+        .rh-btn-start:hover  { filter: brightness(1.07); }
+
+        /* ── Card ───────────────────────────────────────────────────────── */
+        .rh-card {
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.09);
+            border-radius: 18px;
+            padding: 22px;
+            margin-bottom: 18px;
+        }
+        .rh-card-title {
+            font-size: 10px; font-weight: 700; color: #64748B;
+            text-transform: uppercase; letter-spacing: .9px;
+            margin-bottom: 16px;
+            display: flex; align-items: center; gap: 7px;
+        }
+
+        /* ── Status banner ──────────────────────────────────────────────── */
+        .rh-status {
+            padding: 13px 15px; border-radius: 12px;
+            font-size: 13px; font-weight: 600;
+            display: none; gap: 10px; align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .rh-status.visible { display: flex; }
+        .rh-status-dot { width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0; }
+        .rh-status.scanning { background:rgba(14,116,144,.12); border:1px solid rgba(14,116,144,.3); }
+        .rh-status.scanning .rh-status-dot { background:#2DD4BF; animation:pulse-dot 1.2s ease-in-out infinite; }
+        .rh-status.ok  { background:rgba(16,185,129,.10); border:1px solid rgba(16,185,129,.28); }
+        .rh-status.ok .rh-status-dot { background:#10B981; }
+        .rh-status.error { background:rgba(244,63,94,.10); border:1px solid rgba(244,63,94,.25); }
+        .rh-status.error .rh-status-dot { background:#F43F5E; }
+        .rh-status.warn { background:rgba(245,158,11,.10); border:1px solid rgba(245,158,11,.25); }
+        .rh-status.warn .rh-status-dot { background:#F59E0B; }
+        .rh-status-body { flex:1; line-height:1.5; }
+        .rh-status-body small { font-size:11px;font-weight:500;opacity:.7;display:block;margin-top:3px; }
+
+        /* ── Detected zones list (BLE mode) ─────────────────────────────── */
+        .rh-zones-title {
+            font-size: 10px; font-weight: 700; color: #475569;
+            text-transform: uppercase; letter-spacing: .8px;
+            margin-bottom: 10px;
+        }
+        .rh-zone-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 14px; border-radius: 12px;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,.035);
+            border: 1px solid rgba(255,255,255,.07);
+        }
+        .rh-zone-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            background: rgba(45,212,191,.10);
+            font-size: 18px;
+        }
+        .rh-zone-info { flex: 1; }
+        .rh-zone-name { font-size: 14px; font-weight: 700; }
+        .rh-zone-meta { font-size: 11px; color: #64748B; margin-top: 2px; font-variant-numeric: tabular-nums; }
+        .rh-zone-rssi {
+            font-size: 11px; font-weight: 700;
+            padding: 3px 8px; border-radius: 6px;
+            background: rgba(45,212,191,.12);
+            color: #2DD4BF;
+            font-variant-numeric: tabular-nums;
+        }
+        #ble-zones-empty {
+            text-align: center; font-size: 12px; color: #475569; padding: 12px 0;
+        }
+
+        /* ── Stop round button ──────────────────────────────────────────── */
+        .rh-btn-stop {
+            width: 100%; padding: 15px;
+            border-radius: 12px; border: 1px solid rgba(244,63,94,.35);
+            background: rgba(244,63,94,.08);
+            color: #F43F5E; font-family: inherit;
+            font-size: 13px; font-weight: 700;
+            cursor: pointer; margin-top: 6px;
+            transition: background .12s;
+            touch-action: manipulation;
+        }
+        .rh-btn-stop:hover { background: rgba(244,63,94,.14); }
+
+        /* ── Manual mode zone buttons ───────────────────────────────────── */
+        .rh-zone-btn {
+            width: 100%; padding: 16px 18px;
+            border-radius: 14px; border: 1px solid rgba(255,255,255,.1);
+            background: rgba(255,255,255,.04);
+            color: #F1F5F9; font-family: inherit;
+            font-size: 14px; font-weight: 700;
+            cursor: pointer; text-align: left;
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 10px;
+            transition: background .12s, border-color .12s, transform .08s;
+            touch-action: manipulation;
+        }
+        .rh-zone-btn:active { transform: scale(.98); }
+        .rh-zone-btn.checked {
+            background: rgba(16,185,129,.12);
+            border-color: rgba(16,185,129,.35);
+            color: #10B981;
+        }
+        .rh-zone-btn .zbtn-icon { font-size: 20px; flex-shrink: 0; }
+        .rh-zone-btn .zbtn-text { flex: 1; }
+        .rh-zone-btn .zbtn-time {
+            font-size: 10px; font-variant-numeric: tabular-nums;
+            opacity: .6; font-weight: 500;
+        }
+        .rh-zone-btn.loading { opacity: .6; pointer-events: none; }
+
+        /* ── Flag note ──────────────────────────────────────────────────── */
+        .rh-flag-note {
+            font-size: 11px; color: #475569; line-height: 1.6;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: rgba(245,158,11,.07);
+            border: 1px solid rgba(245,158,11,.18);
+            margin-top: 6px;
+        }
+        .rh-flag-note a { color: #F59E0B; text-decoration: none; }
+
+        /* ── Activity log ───────────────────────────────────────────────── */
+        .rh-log-title {
+            font-size: 10px; font-weight: 700; color: #475569;
+            text-transform: uppercase; letter-spacing: .8px;
+            margin-bottom: 10px;
+        }
+        .rh-log-list { list-style: none; }
+        .rh-log-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: 9px; margin-bottom: 6px;
+            font-size: 12px; font-weight: 500;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.06);
+        }
+        .rh-log-dot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
+        .rh-log-item.ok    .rh-log-dot { background:#10B981; }
+        .rh-log-item.error .rh-log-dot { background:#F43F5E; }
+        .rh-log-item.warn  .rh-log-dot { background:#F59E0B; }
+        .rh-log-time { margin-left:auto; font-size:10px; color:#475569; font-variant-numeric:tabular-nums; flex-shrink:0; }
+        .rh-log-empty { text-align:center; color:#475569; font-size:12px; padding:14px 0; }
+    </style>
+</head>
+<body>
+
+<header class="rh-header">
+    <div class="rh-brand">Alz<span>Monitor</span> · Ronda</div>
+    <div class="rh-links">
+        <div class="rh-timer" id="round-timer">
+            <div class="rh-timer-dot"></div>
+            <span id="timer-text">00:00</span>
+        </div>
+        <a href="{{ url_for('cuidador_escanear') }}" class="rh-back">NFC</a>
+        <a href="{{ url_for('dashboard') }}" class="rh-back">← Panel</a>
+    </div>
+</header>
+
+<main class="rh-main">
+
+    <!-- ── Start screen ────────────────────────────────────────────────── -->
+    <div id="section-start">
+        <div class="rh-hero-title">Ronda de Zona</div>
+        <p class="rh-hero-sub">
+            Registra tu presencia en cada zona del edificio.<br>
+            El sistema usará el beacon BLE más cercano o te dejará marcar las zonas manualmente.
+        </p>
+        <button class="rh-btn-start" onclick="iniciarRonda()">
+            Iniciar ronda
+        </button>
+    </div>
+
+    <!-- ── BLE scanning mode ────────────────────────────────────────────── -->
+    <div id="section-ble" style="display:none;">
+        <div class="rh-card">
+            <div class="rh-card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                    <circle cx="12" cy="20" r="1"/>
+                </svg>
+                Escaneando beacons BLE
+            </div>
+
+            <div class="rh-status scanning visible" id="ble-status">
+                <div class="rh-status-dot"></div>
+                <div class="rh-status-body" id="ble-status-text">
+                    Escaneando iBeacons activos…<small>Muévete por el edificio para registrar zonas.</small>
+                </div>
+            </div>
+
+            <div class="rh-zones-title">Zonas detectadas</div>
+            <div id="ble-zones-list">
+                <div id="ble-zones-empty">Aún no se detectó ningún beacon</div>
+            </div>
+
+            <button class="rh-btn-stop" onclick="detenerRonda()">Finalizar ronda</button>
+        </div>
+
+        <p class="rh-flag-note">
+            <strong>Nota:</strong> El escaneo pasivo de iBeacons requiere Chrome en Android con
+            <code>chrome://flags/#enable-experimental-web-platform-features</code> habilitado.
+        </p>
+    </div>
+
+    <!-- ── Manual fallback mode ─────────────────────────────────────────── -->
+    <div id="section-manual" style="display:none;">
+        <div class="rh-card">
+            <div class="rh-card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Check-in manual por zona
+            </div>
+
+            <div class="rh-status warn visible" id="manual-notice">
+                <div class="rh-status-dot"></div>
+                <div class="rh-status-body">
+                    Escáner BLE no disponible en este dispositivo.<small>Marca cada zona cuando llegues físicamente.</small>
+                </div>
+            </div>
+
+            {% for z in zonas %}
+            <button
+                class="rh-zone-btn"
+                id="zbtn-{{ z.id_zona }}"
+                data-device="{{ z.id_dispositivo }}"
+                data-zona="{{ z.nombre_zona }}"
+                onclick="checkInManual(this)">
+                <span class="zbtn-icon">📍</span>
+                <span class="zbtn-text">{{ z.nombre_zona }}</span>
+                <span class="zbtn-time" id="zbtn-time-{{ z.id_zona }}"></span>
+            </button>
+            {% else %}
+            <p style="font-size:13px;color:#475569;text-align:center;padding:12px 0;">
+                No hay zonas con beacon activo configurado.
+            </p>
+            {% endfor %}
+
+            <button class="rh-btn-stop" style="margin-top:14px;" onclick="detenerRonda()">Finalizar ronda</button>
+        </div>
+    </div>
+
+    <!-- ── Activity log ─────────────────────────────────────────────────── -->
+    <div id="section-log" style="display:none;">
+        <div class="rh-log-title">Registro de esta ronda</div>
+        <ul class="rh-log-list" id="log-list">
+            <li class="rh-log-empty" id="log-empty">Sin detecciones registradas aún</li>
+        </ul>
+    </div>
+
+</main>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let roundStartTime = null;
+let timerInterval  = null;
+let bleScanner     = null;
+
+// beaconKey → { uuid, major, minor, rssi, lastSeen, lastReport, zoneName, domId }
+let detectedZones  = {};
+
+// ── Utilities ──────────────────────────────────────────────────────────────────
+function nowHMS() {
+    const d = new Date();
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+        .map(n => String(n).padStart(2, '0')).join(':');
+}
+
+function addLog(cls, text) {
+    const ul    = document.getElementById('log-list');
+    const empty = document.getElementById('log-empty');
+    if (empty) empty.remove();
+
+    const li = document.createElement('li');
+    li.className = 'rh-log-item ' + cls;
+    li.innerHTML = `<span class="rh-log-dot"></span><span>${text}</span><span class="rh-log-time">${nowHMS()}</span>`;
+    ul.insertBefore(li, ul.firstChild);
+}
+
+function setStatus(id, cls, html) {
+    const el = document.getElementById(id);
+    el.className = 'rh-status ' + cls + ' visible';
+    el.querySelector('.rh-status-body').innerHTML = html;
+}
+
+// ── Timer ──────────────────────────────────────────────────────────────────────
+function startTimer() {
+    roundStartTime = Date.now();
+    const timerEl = document.getElementById('round-timer');
+    timerEl.classList.add('visible');
+    timerInterval = setInterval(() => {
+        const secs = Math.floor((Date.now() - roundStartTime) / 1000);
+        const mm   = String(Math.floor(secs / 60)).padStart(2, '0');
+        const ss   = String(secs % 60).padStart(2, '0');
+        document.getElementById('timer-text').textContent = mm + ':' + ss;
+    }, 1000);
+}
+
+function stopTimer() {
+    clearInterval(timerInterval);
+    document.getElementById('round-timer').classList.remove('visible');
+}
+
+// ── API call ───────────────────────────────────────────────────────────────────
+async function reportBeacon(payload) {
+    const r = await fetch('/api/beacon/deteccion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    return r.json();
+}
+
+// ── BLE iBeacon scanning ───────────────────────────────────────────────────────
+async function startBLEScan() {
+    try {
+        bleScanner = await navigator.bluetooth.requestLEScan({
+            acceptAllAdvertisements: true
+        });
+        setStatus('ble-status', 'scanning', 'Escaneando iBeacons activos…<small>Muévete por el edificio para registrar zonas.</small>');
+
+        navigator.bluetooth.addEventListener('advertisementreceived', onAdvertisement);
+        return true;
+    } catch (err) {
+        // requestLEScan not available or denied — fall back to manual mode
+        return false;
+    }
+}
+
+function onAdvertisement(event) {
+    const mfData = event.manufacturerData;
+    if (!mfData) return;
+
+    // iBeacon uses Apple company ID 0x004C
+    const apple = mfData.get(0x004C);
+    if (!apple || apple.byteLength < 23) return;
+
+    // Verify iBeacon type/length prefix (0x02, 0x15)
+    if (apple.getUint8(0) !== 0x02 || apple.getUint8(1) !== 0x15) return;
+
+    // Parse UUID (bytes 2-17)
+    const b = [];
+    for (let i = 2; i < 18; i++) b.push(apple.getUint8(i).toString(16).padStart(2, '0'));
+    const uuid = [b.slice(0,4).join(''), b.slice(4,6).join(''), b.slice(6,8).join(''), b.slice(8,10).join(''), b.slice(10,16).join('')].join('-').toUpperCase();
+
+    const major = apple.getUint16(18, false);  // big-endian
+    const minor = apple.getUint16(20, false);
+    const rssi  = event.rssi;
+
+    const key = major + '-' + minor;
+    const now = Date.now();
+
+    // Debounce: re-report after 10 s cooldown
+    if (detectedZones[key] && (now - detectedZones[key].lastReport) < 10000) {
+        detectedZones[key].rssi    = rssi;
+        detectedZones[key].lastSeen = now;
+        refreshBLEZoneCard(key);
+        return;
+    }
+
+    if (!detectedZones[key]) {
+        detectedZones[key] = { uuid, major, minor, rssi, lastSeen: now, lastReport: 0, zoneName: null, domId: 'blez-' + key.replace('-', '_') };
+    }
+    detectedZones[key].rssi       = rssi;
+    detectedZones[key].lastSeen   = now;
+    detectedZones[key].lastReport = now;
+
+    reportBeacon({ uuid, major, minor, rssi, timestamp: new Date().toISOString() })
+        .then(data => {
+            if (data.status === 'ok') {
+                detectedZones[key].zoneName = data.zone_name || (major + '/' + minor);
+                addLog('ok', `Zona: ${detectedZones[key].zoneName} · RSSI ${rssi} dBm`);
+            } else {
+                detectedZones[key].zoneName = 'Beacon ' + key + ' (desconocido)';
+                addLog('warn', `Beacon ${key} no en DB — ${data.message || ''}`);
+            }
+            refreshBLEZoneCard(key);
+        })
+        .catch(() => addLog('error', 'Error de red al reportar beacon ' + key));
+}
+
+function refreshBLEZoneCard(key) {
+    const z      = detectedZones[key];
+    const listEl = document.getElementById('ble-zones-list');
+    const empty  = document.getElementById('ble-zones-empty');
+    if (empty) empty.remove();
+
+    let card = document.getElementById(z.domId);
+    if (!card) {
+        card = document.createElement('div');
+        card.id        = z.domId;
+        card.className = 'rh-zone-item';
+        listEl.appendChild(card);
+    }
+
+    const ago = Math.floor((Date.now() - z.lastSeen) / 1000);
+    card.innerHTML = `
+        <div class="rh-zone-icon">📡</div>
+        <div class="rh-zone-info">
+            <div class="rh-zone-name">${z.zoneName || (z.major + '/' + z.minor)}</div>
+            <div class="rh-zone-meta">Hace ${ago}s · UUID ${z.uuid.slice(0,8)}…</div>
+        </div>
+        <div class="rh-zone-rssi">${z.rssi} dBm</div>`;
+}
+
+// ── Manual check-in ────────────────────────────────────────────────────────────
+async function checkInManual(btn) {
+    if (btn.classList.contains('checked') || btn.classList.contains('loading')) return;
+
+    const deviceId = btn.dataset.device;
+    const zoneName = btn.dataset.zona;
+    const zonaId   = btn.id.replace('zbtn-', '');
+
+    btn.classList.add('loading');
+
+    try {
+        const data = await reportBeacon({ id_beacon: parseInt(deviceId, 10), rssi: 0, manual: true });
+
+        if (data.status === 'ok') {
+            btn.classList.remove('loading');
+            btn.classList.add('checked');
+            btn.querySelector('.zbtn-icon').textContent = '✅';
+            const timeEl = document.getElementById('zbtn-time-' + zonaId);
+            if (timeEl) timeEl.textContent = nowHMS();
+            addLog('ok', `Check-in: ${zoneName}`);
+        } else {
+            btn.classList.remove('loading');
+            addLog('error', `${zoneName}: ${data.message}`);
+        }
+    } catch (err) {
+        btn.classList.remove('loading');
+        addLog('error', `Error de red: ${zoneName}`);
+    }
+}
+
+// ── Round lifecycle ────────────────────────────────────────────────────────────
+async function iniciarRonda() {
+    document.getElementById('section-start').style.display = 'none';
+    document.getElementById('section-log').style.display   = 'block';
+    startTimer();
+
+    // Try BLE passive scan first
+    const bleAvailable = navigator.bluetooth && typeof navigator.bluetooth.requestLEScan === 'function';
+
+    if (bleAvailable) {
+        document.getElementById('section-ble').style.display = 'block';
+        const started = await startBLEScan();
+        if (!started) {
+            // requestLEScan failed (permission denied or flag not enabled)
+            document.getElementById('section-ble').style.display = 'none';
+            showManualMode();
+        }
+    } else {
+        showManualMode();
+    }
+}
+
+function showManualMode() {
+    document.getElementById('section-manual').style.display = 'block';
+}
+
+function detenerRonda() {
+    if (bleScanner) {
+        try { bleScanner.stop(); } catch(_) {}
+        bleScanner = null;
+        navigator.bluetooth.removeEventListener('advertisementreceived', onAdvertisement);
+    }
+    stopTimer();
+
+    document.getElementById('section-ble').style.display    = 'none';
+    document.getElementById('section-manual').style.display = 'none';
+
+    const count = Object.keys(detectedZones).length + document.querySelectorAll('.rh-zone-btn.checked').length;
+    document.getElementById('section-start').innerHTML = `
+        <div class="rh-hero-title">Ronda finalizada</div>
+        <p class="rh-hero-sub">${count} zona(s) registrada(s). Revisa el registro abajo.</p>
+        <button class="rh-btn-start" onclick="location.reload()">Nueva ronda</button>`;
+    document.getElementById('section-start').style.display = 'block';
+
+    addLog('ok', 'Ronda finalizada');
+}
+</script>
+
+</body>
+</html>
