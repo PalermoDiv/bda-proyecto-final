@@ -962,7 +962,12 @@ def alertas():
                    '— Zona: ' || z.nombre_zona,
                    '—'
                ) AS paciente,
-               COALESCE(s.nombre_sede, sz.nombre_sede, '—') AS nombre_sucursal
+               COALESCE(s.nombre_sede, sz.nombre_sede, '—') AS nombre_sucursal,
+               aeo.tipo_evento,
+               aeo.regla_disparada,
+               -- Priority contact for this patient
+               ce.nombre || ' ' || ce.apellido_p AS contacto_prioritario,
+               ce.telefono AS telefono_contacto
         FROM alertas a
         LEFT JOIN pacientes p       ON a.id_paciente = p.id_paciente
         LEFT JOIN zonas z           ON a.id_zona = z.id_zona
@@ -971,6 +976,17 @@ def alertas():
         LEFT JOIN sedes s           ON sp.id_sede = s.id_sede
         LEFT JOIN sede_zonas szr    ON a.id_zona = szr.id_zona
         LEFT JOIN sedes sz          ON szr.id_sede = sz.id_sede
+        LEFT JOIN alerta_evento_origen aeo ON aeo.id_alerta = a.id_alerta
+        LEFT JOIN (
+            SELECT pc.id_paciente, pc.id_contacto
+            FROM paciente_contactos pc
+            WHERE pc.prioridad = (
+                SELECT MIN(pc2.prioridad)
+                FROM paciente_contactos pc2
+                WHERE pc2.id_paciente = pc.id_paciente
+            )
+        ) pc_top ON pc_top.id_paciente = a.id_paciente
+        LEFT JOIN contactos_emergencia ce ON ce.id_contacto = pc_top.id_contacto
         ORDER BY a.fecha_hora DESC
     """)
     return render_template("alertas.html", alertas=alertas_list)
@@ -984,11 +1000,13 @@ def alertas_nueva():
 
     if request.method == "POST":
         try:
-            id_alerta   = int(request.form["id_alerta"])
-            id_paciente = int(request.form["id_paciente"])
+            id_paciente = request.form.get("id_paciente") or None
+            if id_paciente:
+                id_paciente = int(id_paciente)
             tipo_alerta = request.form["tipo_alerta"]
             fecha_hora  = request.form["fecha_hora"]
 
+            id_alerta = db.scalar("SELECT COALESCE(MAX(id_alerta), 0) + 1 FROM alertas")
             db.execute("""
                 INSERT INTO alertas (id_alerta, id_paciente, tipo_alerta, fecha_hora, estatus)
                 VALUES (%s, %s, %s, %s, 'Activa')
@@ -999,8 +1017,9 @@ def alertas_nueva():
         except Exception as e:
             flash(f"Error al registrar alerta: {e}", "error")
 
+    now_str = date.today().isoformat() + "T" + __import__("datetime").datetime.now().strftime("%H:%M")
     return render_template("alertas_form.html", pacientes=pacientes, tipos=tipos,
-                           fecha_hoy=date.today().isoformat())
+                           fecha_hoy=date.today().isoformat(), now=now_str)
 
 
 @app.route("/alertas/resolver/<int:id>", methods=["POST"])
@@ -1137,8 +1156,28 @@ def zonas():
                z.latitud_centro, z.longitud_centro,
                s.id_sede    AS id_sucursal,
                COALESCE(s.nombre_sede, '—') AS nombre_sucursal,
-               '—' AS paciente,
-               '—' AS notificar_a
+               -- Pacientes activos en esta sede (nombres concatenados)
+               COALESCE(
+                   (SELECT STRING_AGG(p.nombre || ' ' || p.apellido_p, ', ' ORDER BY p.nombre)
+                    FROM pacientes p
+                    JOIN sede_pacientes sp ON sp.id_paciente = p.id_paciente
+                    WHERE sp.id_sede = sz.id_sede
+                      AND sp.fecha_salida IS NULL
+                      AND p.id_estado != 3),
+                   '—'
+               ) AS pacientes_en_zona,
+               -- Contacto de mayor prioridad de la sede (para notificación)
+               COALESCE(
+                   (SELECT ce.nombre || ' ' || ce.apellido_p || ' · ' || ce.telefono
+                    FROM paciente_contactos pc
+                    JOIN contactos_emergencia ce ON ce.id_contacto = pc.id_contacto
+                    JOIN sede_pacientes sp ON sp.id_paciente = pc.id_paciente
+                    WHERE sp.id_sede = sz.id_sede
+                      AND sp.fecha_salida IS NULL
+                    ORDER BY pc.prioridad ASC
+                    LIMIT 1),
+                   '—'
+               ) AS notificar_a
         FROM zonas z
         LEFT JOIN sede_zonas sz ON z.id_zona = sz.id_zona
         LEFT JOIN sedes s       ON sz.id_sede = s.id_sede
@@ -2443,9 +2482,126 @@ def api_beacon_deteccion():
         db.execute(
             """INSERT INTO detecciones_beacon (id_deteccion, id_dispositivo, id_empleado, fecha_hora, rssi)
                VALUES (%s, %s, %s, NOW(), %s)""",
-            (next_id, id_beacon, id_empleado, rssi)
+            (next_id, id_beacon, id_empleado, rssi if rssi is not None else 0)
         )
         return jsonify({"status": "ok", "ok": True, "id_deteccion": next_id})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 422
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GPS SIMULATION — admin tool to inject GPS readings for demo / testing
+# Triggers trg_bateria_baja_gps and trg_zona_exit_gps automatically
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/sim/gps", methods=["GET", "POST"])
+@admin_requerido
+def sim_gps():
+    """Admin form to simulate a GPS reading for a patient's device.
+    Inserts into lecturas_gps which fires trg_bateria_baja_gps and trg_zona_exit_gps.
+    """
+    dispositivos_gps = db.query("""
+        SELECT d.id_dispositivo, d.id_serial, d.modelo,
+               p.nombre || ' ' || p.apellido_p AS paciente,
+               ak.id_paciente
+        FROM dispositivos d
+        JOIN asignacion_kit ak ON ak.id_dispositivo_gps = d.id_dispositivo
+                              AND ak.fecha_fin IS NULL
+        JOIN pacientes p ON p.id_paciente = ak.id_paciente
+        WHERE d.tipo = 'GPS' AND d.estado = 'Activo' AND p.id_estado != 3
+        ORDER BY p.nombre
+    """)
+
+    result = None
+    if request.method == "POST":
+        try:
+            id_dispositivo = int(request.form["id_dispositivo"])
+            latitud        = float(request.form["latitud"])
+            longitud       = float(request.form["longitud"])
+            nivel_bateria  = int(request.form.get("nivel_bateria") or 80)
+
+            next_id = db.scalar("SELECT COALESCE(MAX(id_lectura), 0) + 1 FROM lecturas_gps")
+            db.execute("""
+                INSERT INTO lecturas_gps
+                    (id_lectura, id_dispositivo, fecha_hora, latitud, longitud, nivel_bateria, geom)
+                VALUES (
+                    %s, %s, NOW(), %s, %s, %s,
+                    ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography
+                )
+            """, (next_id, id_dispositivo, latitud, longitud, nivel_bateria, longitud, latitud))
+
+            # Check what alerts were generated by the triggers
+            nuevas_alertas = db.query("""
+                SELECT id_alerta, tipo_alerta, estatus
+                FROM alertas
+                ORDER BY id_alerta DESC
+                LIMIT 3
+            """)
+            result = {
+                "id_lectura": next_id,
+                "latitud": latitud,
+                "longitud": longitud,
+                "nivel_bateria": nivel_bateria,
+                "alertas_generadas": nuevas_alertas,
+            }
+            flash(f"Lectura GPS #{next_id} insertada. Triggers ejecutados.", "success")
+        except Exception as e:
+            flash(f"Error al simular lectura GPS: {e}", "error")
+
+    zonas_ref = db.query("""
+        SELECT z.id_zona, z.nombre_zona, z.latitud_centro, z.longitud_centro,
+               z.radio_metros, s.nombre_sede
+        FROM zonas z
+        LEFT JOIN sede_zonas sz ON sz.id_zona = z.id_zona
+        LEFT JOIN sedes s ON s.id_sede = sz.id_sede
+        ORDER BY z.id_zona
+    """)
+
+    return render_template("sim_gps.html",
+                           dispositivos_gps=dispositivos_gps,
+                           zonas_ref=zonas_ref,
+                           result=result)
+
+
+@app.route("/api/gps/lectura", methods=["POST"])
+def api_gps_lectura():
+    """POST /api/gps/lectura
+    Inserts a GPS reading programmatically (from PG12 cloud poller or manual test).
+    Fires trg_bateria_baja_gps and trg_zona_exit_gps automatically.
+
+    JSON body:
+      id_dispositivo  int     — dispositivos.id_dispositivo (GPS type)
+      latitud         float
+      longitud        float
+      nivel_bateria   int     (optional, default 100)
+      altura          float   (optional)
+
+    Auth: session (admin) OR X-AlzMonitor-Key header.
+    """
+    if not _iot_auth():
+        return jsonify({"status": "error", "message": "No autorizado"}), 401
+
+    data = request.get_json(silent=True) or {}
+    id_dispositivo = data.get("id_dispositivo")
+    latitud        = data.get("latitud")
+    longitud       = data.get("longitud")
+    nivel_bateria  = data.get("nivel_bateria", 100)
+    altura         = data.get("altura")
+
+    if not id_dispositivo or latitud is None or longitud is None:
+        return jsonify({"status": "error", "message": "Faltan campos: id_dispositivo, latitud, longitud"}), 400
+
+    try:
+        next_id = db.scalar("SELECT COALESCE(MAX(id_lectura), 0) + 1 FROM lecturas_gps")
+        db.execute("""
+            INSERT INTO lecturas_gps
+                (id_lectura, id_dispositivo, fecha_hora, latitud, longitud, altura, nivel_bateria, geom)
+            VALUES (
+                %s, %s, NOW(), %s, %s, %s, %s,
+                ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography
+            )
+        """, (next_id, id_dispositivo, latitud, longitud, altura, nivel_bateria, longitud, latitud))
+        return jsonify({"status": "ok", "id_lectura": next_id})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 422
 

@@ -20,15 +20,12 @@
             <form method="POST" action="{{ url_for('alertas_nueva') }}">
 
                 <div class="form-group">
-                    <label class="form-label" for="id_alerta">ID de alerta</label>
-                    <input type="number" id="id_alerta" name="id_alerta"
-                           class="form-control" placeholder="Ej. 10" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="id_paciente">Paciente</label>
-                    <select id="id_paciente" name="id_paciente" class="form-control" required>
-                        <option value="" disabled selected>Seleccionar paciente...</option>
+                    <label class="form-label" for="id_paciente">
+                        Paciente
+                        <span style="font-size:11px; color:#94A3B8; font-weight:400;">(opcional — dejar vacío para alerta de zona)</span>
+                    </label>
+                    <select id="id_paciente" name="id_paciente" class="form-control">
+                        <option value="">— Sin paciente específico —</option>
                         {% for p in pacientes %}
                         <option value="{{ p.id_paciente }}">{{ p.nombre }}</option>
                         {% endfor %}
@@ -49,7 +46,7 @@
                         <label class="form-label" for="fecha_hora">Fecha y hora</label>
                         <input type="datetime-local" id="fecha_hora" name="fecha_hora"
                                class="form-control"
-                               value="{{ fecha_hoy }}T{{ now if now else '00:00' }}" required>
+                               value="{{ now }}" required>
                     </div>
                 </div>
 

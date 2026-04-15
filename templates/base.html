@@ -181,6 +181,12 @@
                 </svg>
                 Procedimientos
             </a>
+            <a href="{{ url_for('sim_gps') }}" class="nav-item {% if request.endpoint == 'sim_gps' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                Simulador GPS
+            </a>
             <a href="{{ url_for('cuidador_escanear') }}" class="nav-item {% if request.endpoint == 'cuidador_escanear' %}active{% endif %}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="5" width="20" height="14" rx="2"/>
