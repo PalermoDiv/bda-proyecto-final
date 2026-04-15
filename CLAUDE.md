@@ -104,19 +104,29 @@ BLOQUE 5 = RECETAS Y MEDICACIÓN (`recetas`, `receta_medicamentos`, `receta_nfc`
 BLOQUE 6 = EVENTOS Y ALERTAS (`lecturas_gps`, `detecciones_beacon`, `lecturas_nfc`, `alertas`, `alerta_evento_origen`).
 `lecturas_nfc` has a FK to `recetas`, so recetas must be defined first — this ordering is correct.
 
+### alerta_evento_origen — event traceability
+Bridge table linking each `alertas` row to the raw IoT event that triggered it. Columns: `id_alerta`, `tipo_origen` (`'GPS'`|`'BEACON'`|`'NFC'`|`'Manual'`), `id_evento` (FK to the origin table row), `descripcion`. Seed data includes GPS-triggered battery-low and zone-exit alerts. The `notificar_a` field in dashboard queries currently returns `'—'` hardcoded — contact escalation is not implemented in code.
+
 ### Pending: Coverage trigger (commented out in DDL BLOQUE 11)
 `fn_verificar_cobertura_zona()` + `trg_cobertura_zona` are fully written but commented out. Fires `AFTER INSERT ON detecciones_beacon`, checks all zones with active shifts for 30-min caretaker absence, inserts a `'Zona sin cobertura'` alert. Uncomment BLOQUE 11 to activate.
 
 ## Stored Procedures — RecetasProcedures.sql
 
-`RecetasProcedures.sql` contains 9 stored procedures for the receta/NFC module. **Already applied to the live DB.**
+`RecetasProcedures.sql` contains 10 stored procedures for the receta/NFC module. **Already applied to the live DB.**
 - `sp_receta_crear` — creates a new recipe for a patient
 - `sp_receta_agregar_medicamento` / `sp_receta_quitar_medicamento` / `sp_receta_actualizar_medicamento`
 - `sp_receta_activar_nfc` / `sp_receta_cerrar_nfc` / `sp_receta_cambiar_nfc`
 - `sp_nfc_registrar_lectura` — inserts into `lecturas_nfc` (validates active NFC-receta link)
 - `sp_receta_cerrar` — closes all active NFC links for a recipe
+- `sp_nfc_asignar` — assigns (or reassigns) an NFC device to a patient via `asignacion_nfc`
 
 Re-apply if needed: `psql -U palermingoat -d alzheimer -f RecetasProcedures.sql`
+
+### ProcedimientosAlmacenados.sql — consolidated reference file
+Contains all 10 procedures rewritten to follow the academic `CREATE PROCEDURE` convention (no `OR REPLACE`, explicit `IN` on all params, `BEGIN; CALL …; COMMIT;` usage block after each one). Also adds 3 read-only REFCURSOR procedures (not in the live DB — for documentation/demo):
+- `sp_receta_consultar_medicamentos(p_id_receta, INOUT io_resultados REFCURSOR)` — returns medication list joined with `medicamentos`
+- `sp_nfc_historial_lecturas(p_id_receta, p_limite, INOUT io_resultados REFCURSOR)` — returns last N NFC readings with device serial
+- `sp_paciente_recetas_activas(p_id_paciente, INOUT io_resultados REFCURSOR)` — returns active recetas with med count and NFC wristband serial
 
 ## Key Behaviors
 
@@ -181,6 +191,9 @@ Re-apply if needed: `psql -U palermingoat -d alzheimer -f RecetasProcedures.sql`
 ### Sedes
 - **No admin CRUD UI** — 3 sedes seeded by the DDL are fixed.
 
+### Kit Assignment (Escenario 4)
+- **Cannot**: Reassign a GPS kit from the UI. `asignacion_kit` has `fecha_fin` for history and partial indexes `uq_kit_activo_por_paciente` / `uq_gps_activo` (both `WHERE fecha_fin IS NULL`) prevent duplicate active assignments — but the reassignment flow only exists via SQL. No alert is auto-generated when `nivel_bateria <= 15`; the battery-low alerts in seed data were inserted manually.
+
 ### Tables with No UI at All
 `lecturas_gps`, `detecciones_beacon`, `lecturas_nfc`, `receta_medicamentos`, `receta_nfc`, `tiene_enfermedad`, `enfermedades`, `asignacion_kit`, `asignacion_cuidador`, `sede_empleados`, `sede_zonas`, `bitacora_comedor`, `cocineros`, `alerta_evento_origen`, `entregas_externas`, `visitantes`.
 
@@ -200,12 +213,46 @@ UI is entirely in Spanish.
 
 ---
 
-## Pending UI Improvements
+## Professor Demo Scenarios — Status
 
-These were identified and deferred — pick up from here in future sessions:
+Five scenarios required for the final demo/grade. Professor's core critique: fix semantic consistency between 3NF normalization, IoT event traceability, analytical queries, and UI before adding more visual modules.
+
+### Escenario 1 — Salida de zona y escalamiento 🔴 INCOMPLETE
+Chain: `lecturas_gps → PostGIS zone check → alertas → alerta_evento_origen → notify priority contact`.
+- Schema supports it fully (`paciente_contactos.prioridad`, `alerta_evento_origen`, PostGIS indexes)
+- Seed data has GPS readings and zone-exit alerts already inserted
+- **Missing**: GPS polling loop (no code calls the PG12 cloud API); PostGIS `ST_DWithin` check never runs in production; contact escalation (email/SMS) has no implementation anywhere; `notificar_a` in dashboard queries is hardcoded `'—'`
+
+### Escenario 2 — Cambio de sede sin pérdida histórica ✅ COMPLETE
+- `POST /pacientes/<id>/transferir-sede` closes active `sede_pacientes` row (`fecha_salida = CURRENT_DATE`) and inserts new one atomically
+- Alerts and visits are FK'd to `id_paciente`, not `id_sede` — fully preserved on transfer
+- Full sede history visible in `/pacientes/<id>/historial`
+
+### Escenario 3 — Cambio de tratamiento y adherencia NFC 🟡 PARTIAL
+- Stored procedures exist for all receta/NFC mutations (`sp_receta_actualizar_medicamento`, `sp_receta_cambiar_nfc`, etc.)
+- `/recetas/<id>` shows 30-day adherence % and last 20 NFC readings from seed data
+- **Missing**: No UI to modify a receta — doctor must use SQL directly; NFC endpoints (`POST /api/nfc/lectura`) are commented out so no live reading can be demonstrated
+
+### Escenario 4 — Falla de batería y reemplazo de kit 🟡 PARTIAL
+- `nivel_bateria` column exists in `lecturas_gps`; seed data has battery-low alerts in `alerta_evento_origen`
+- `uq_kit_activo_por_paciente` and `uq_gps_activo` partial indexes prevent duplicate active assignments
+- **Missing**: No UI for kit reassignment; no automatic alert trigger when `nivel_bateria <= 15` — those alerts in seed data were inserted manually
+
+### Escenario 5 — Suministro crítico multisede ✅ MOSTLY COMPLETE
+- `inventario_medicinas` PK is `(GTIN, id_sede)` — inventory is per-sede
+- `suministros` has `id_sede` + `id_farmacia` — each order targets a specific sede and pharmacy
+- Seed data has Donepezilo below `stock_minimo` in 2 sedes
+- Farmacia UI shows critical-stock highlights and allows creating supply orders
+- **Minor gap**: supply order creation form should visually enforce sede selection
+
+---
+
+## Pending UI Improvements
 
 ### Done
 - ✅ Admin panel responsive sidebar (hamburger + overlay, breakpoint 900px) — `main.css` + `base.html`
+- ✅ Admin login redesign — full-viewport dark background, animated CSS orbs + dot grid, floating card with Live badge (`templates/login.html`)
+- ✅ Portal familiar login redesign — two-column split card (brand panel + form), feature bullets, richer gradient (`templates/portal_familiar/login.html`)
 
 ### To Do
 2. **Portal familiar auto-refresh** — status banner and GPS data go stale without a page reload. Add a `setTimeout` (60s) that either reloads the page or hits a lightweight `/api/portal/estado/<id>` endpoint and updates the banner + time strings in-place. Families check this anxiously — it needs to feel live.
@@ -216,4 +263,6 @@ These were identified and deferred — pick up from here in future sessions:
 
 5. **Dashboard empty states** — when sections have no data (no visits today, no critical meds, no active alerts), replace empty tables with illustrated empty-state blocks. Consistent with the card style.
 
-6. **Portal familiar login page polish** — `templates/portal_familiar/login.html` is likely the most bare-looking page in the app. Bring it up to the same visual quality as the rest of the portal familiar.
+### Scenario gaps to close (professor priority)
+- **Escenario 1**: implement GPS polling loop + PostGIS zone check + insert into `alertas`/`alerta_evento_origen` automatically; add contact escalation display (who was notified, at what priority)
+- **Escenario 3**: add UI for a doctor to modify a receta's medications and frequency; uncomment NFC endpoints for live demo
