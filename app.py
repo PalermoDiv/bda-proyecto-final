@@ -1654,11 +1654,23 @@ def recetas_detalle(id):
         LIMIT 20
     """, (id,))
 
+    # NFC devices available for assignment (not currently linked to any active receta)
+    nfc_disponibles = db.query("""
+        SELECT d.id_dispositivo, d.id_serial, d.modelo
+        FROM dispositivos d
+        WHERE d.tipo = 'NFC' AND d.estado = 'Activo'
+          AND d.id_dispositivo NOT IN (
+              SELECT rn.id_dispositivo FROM receta_nfc rn WHERE rn.fecha_fin_gestion IS NULL
+          )
+        ORDER BY d.id_serial
+    """)
+
     return render_template("recetas_detalle.html",
                            receta=receta,
                            medicamentos=medicamentos,
                            medicamentos_disponibles=medicamentos_disponibles,
                            nfc=nfc,
+                           nfc_disponibles=nfc_disponibles,
                            lecturas=lecturas)
 
 
@@ -1722,6 +1734,42 @@ def recetas_cerrar(id):
         flash("Receta cerrada correctamente.", "success")
     except Exception as e:
         flash(f"Error al cerrar receta: {e}", "error")
+    return redirect(url_for("recetas_detalle", id=id))
+
+
+@app.route("/recetas/<int:id>/activar-nfc", methods=["POST"])
+@admin_requerido
+def recetas_activar_nfc(id):
+    try:
+        id_dispositivo = int(request.form["id_dispositivo"])
+        db.execute("CALL sp_receta_activar_nfc(%s, %s, CURRENT_DATE)", (id, id_dispositivo))
+        flash("Pulsera NFC vinculada correctamente.", "success")
+    except Exception as e:
+        flash(f"Error al activar NFC: {e}", "error")
+    return redirect(url_for("recetas_detalle", id=id))
+
+
+@app.route("/recetas/<int:id>/cerrar-nfc", methods=["POST"])
+@admin_requerido
+def recetas_cerrar_nfc(id):
+    try:
+        id_dispositivo = int(request.form["id_dispositivo"])
+        db.execute("CALL sp_receta_cerrar_nfc(%s, %s, CURRENT_DATE)", (id, id_dispositivo))
+        flash("Vínculo NFC cerrado.", "success")
+    except Exception as e:
+        flash(f"Error al cerrar NFC: {e}", "error")
+    return redirect(url_for("recetas_detalle", id=id))
+
+
+@app.route("/recetas/<int:id>/cambiar-nfc", methods=["POST"])
+@admin_requerido
+def recetas_cambiar_nfc(id):
+    try:
+        id_dispositivo_nuevo = int(request.form["id_dispositivo_nuevo"])
+        db.execute("CALL sp_receta_cambiar_nfc(%s, %s, CURRENT_DATE)", (id, id_dispositivo_nuevo))
+        flash("Pulsera NFC reemplazada correctamente.", "success")
+    except Exception as e:
+        flash(f"Error al cambiar NFC: {e}", "error")
     return redirect(url_for("recetas_detalle", id=id))
 
 
@@ -2264,32 +2312,152 @@ def portal_paciente(id):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CAREGIVER WEBAPP + IoT API — commented out, not yet active
-# Uncomment when the caregiver scanner webapp and NFC/Beacon endpoints are ready
+# CAREGIVER WEBAPP + IoT API
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# @app.route("/cuidador/escanear")
-# @admin_requerido
-# def cuidador_escanear():
-#     return render_template("cuidador/escanear.html")
-#
-#
-# _IOT_KEY = "alz-dev-2026"
-#
-# def _iot_auth():
-#     if session.get("admin") or session.get("medico"):
-#         return True
-#     return request.headers.get("X-AlzMonitor-Key", "") == _IOT_KEY
-#
-#
-# @app.route("/api/nfc/lectura", methods=["POST"])
-# def api_nfc_lectura():
-#     ...
-#
-#
-# @app.route("/api/beacon/deteccion", methods=["POST"])
-# def api_beacon_deteccion():
-#     ...
+_IOT_KEY = "alz-dev-2026"
+
+
+def _iot_auth():
+    """Returns True if the request comes from an authenticated session or carries the IoT API key."""
+    if session.get("admin") or session.get("medico"):
+        return True
+    return request.headers.get("X-AlzMonitor-Key", "") == _IOT_KEY
+
+
+@app.route("/cuidador/escanear")
+@medico_requerido
+def cuidador_escanear():
+    """Caregiver scanner webapp — taps patient NFC wristband to log medication adherence.
+    Requires HTTPS + Chrome Android (Web NFC API).
+    """
+    return render_template("cuidador/escanear.html")
+
+
+@app.route("/api/nfc/lectura", methods=["POST"])
+def api_nfc_lectura():
+    """POST /api/nfc/lectura
+    Registers an NFC medication reading via sp_nfc_registrar_lectura.
+
+    JSON body (option A — direct IDs):
+      id_dispositivo  int     — dispositivos.id_dispositivo (NFC type)
+      id_receta       int     — recetas.id_receta
+
+    JSON body (option B — from caregiver scanner, lookup by serial):
+      serial          str     — dispositivos.id_serial
+      (id_receta resolved automatically from active receta_nfc link)
+
+    Optional:
+      tipo_lectura    str     — 'Administración' | 'Verificación'  (default: Administración)
+      resultado       str     — 'Exitosa' | 'Fallida'              (default: Exitosa)
+
+    Auth: session (admin/medico) OR X-AlzMonitor-Key header.
+    """
+    if not _iot_auth():
+        return jsonify({"status": "error", "message": "No autorizado"}), 401
+
+    data = request.get_json(silent=True) or {}
+    tipo_lectura = data.get("tipo_lectura", "Administración")
+    resultado    = data.get("resultado", "Exitosa")
+
+    id_dispositivo = data.get("id_dispositivo")
+    id_receta      = data.get("id_receta")
+
+    # Option B: resolve by serial
+    if not id_dispositivo and data.get("serial"):
+        device = db.one(
+            "SELECT id_dispositivo FROM dispositivos WHERE tipo='NFC' AND LOWER(id_serial)=LOWER(%s)",
+            [data["serial"]]
+        )
+        if not device:
+            return jsonify({"status": "error", "error": f"Serial '{data['serial']}' no registrado"}), 404
+        id_dispositivo = device["id_dispositivo"]
+
+    if not id_dispositivo:
+        return jsonify({"status": "error", "message": "Falta id_dispositivo o serial"}), 400
+
+    # Resolve id_receta from active link if not provided
+    if not id_receta:
+        link = db.one(
+            "SELECT id_receta FROM receta_nfc WHERE id_dispositivo=%s AND fecha_fin_gestion IS NULL",
+            [id_dispositivo]
+        )
+        if not link:
+            return jsonify({"status": "error", "error": "No hay receta activa vinculada a este dispositivo NFC"}), 404
+        id_receta = link["id_receta"]
+
+    try:
+        next_id = db.scalar("SELECT COALESCE(MAX(id_lectura_nfc), 0) + 1 FROM lecturas_nfc")
+        db.execute(
+            "CALL sp_nfc_registrar_lectura(%s, %s, %s, NOW(), %s, %s)",
+            (next_id, id_dispositivo, id_receta, tipo_lectura, resultado)
+        )
+        return jsonify({"status": "ok", "ok": True, "id_lectura_nfc": next_id, "id_receta": id_receta})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 422
+
+
+@app.route("/api/beacon/deteccion", methods=["POST"])
+def api_beacon_deteccion():
+    """POST /api/beacon/deteccion
+    Logs a BLE beacon detection (caregiver round).
+
+    JSON body:
+      id_empleado   int   — cuidadores.id_empleado
+      id_beacon     int   — dispositivos.id_dispositivo (BEACON type)
+      rssi          int   — signal strength in dBm (optional)
+
+    Auth: session (admin/medico) OR X-AlzMonitor-Key header.
+    """
+    if not _iot_auth():
+        return jsonify({"status": "error", "message": "No autorizado"}), 401
+
+    data = request.get_json(silent=True) or {}
+    id_empleado = data.get("id_empleado")
+    id_beacon   = data.get("id_beacon")
+    serial      = data.get("serial")
+    rssi        = data.get("rssi")
+
+    # Resolve beacon by serial if id_beacon not provided
+    if not id_beacon and serial:
+        device = db.one(
+            "SELECT id_dispositivo FROM dispositivos WHERE tipo='BEACON' AND LOWER(id_serial)=LOWER(%s)",
+            [serial]
+        )
+        if device:
+            id_beacon = device["id_dispositivo"]
+
+    # Resolve id_empleado from session if not provided (caregiver webapp)
+    if not id_empleado and session.get("medico"):
+        emp = db.one("SELECT id_empleado FROM empleados WHERE usuario = %s", [session.get("medico")])
+        if emp:
+            id_empleado = emp["id_empleado"]
+
+    if not id_beacon:
+        return jsonify({"status": "error", "message": "Falta id_beacon o serial de beacon"}), 400
+    if not id_empleado:
+        return jsonify({"status": "error", "message": "Falta id_empleado"}), 400
+
+    try:
+        next_id = db.scalar("SELECT COALESCE(MAX(id_deteccion), 0) + 1 FROM detecciones_beacon")
+        db.execute(
+            """INSERT INTO detecciones_beacon (id_deteccion, id_dispositivo, id_empleado, fecha_hora, rssi)
+               VALUES (%s, %s, %s, NOW(), %s)""",
+            (next_id, id_beacon, id_empleado, rssi)
+        )
+        return jsonify({"status": "ok", "ok": True, "id_deteccion": next_id})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 422
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STORED PROCEDURES GUIDE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/procedimientos")
+@admin_requerido
+def procedimientos():
+    return render_template("procedimientos.html")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
