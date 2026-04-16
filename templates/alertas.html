@@ -25,9 +25,11 @@
                 <tr>
                     <th>ID</th>
                     <th>Tipo</th>
-                    <th>Paciente</th>
+                    <th>Paciente / Zona</th>
                     <th>Sede</th>
                     <th>Fecha / Hora</th>
+                    <th>Origen</th>
+                    <th>Notificar a</th>
                     <th>Estatus</th>
                     <th>Acciones</th>
                 </tr>
@@ -36,18 +38,51 @@
                 {% if alertas %}
                     {% for a in alertas %}
                     <tr>
-                        <td style="color:#8892a4; font-weight:600;">{{ a.id_alerta }}</td>
-                        <td style="font-weight:500;">{{ a.tipo_alerta }}</td>
-                        <td>{{ a.paciente }}</td>
+                        <td style="color:#8892a4; font-weight:600; font-size:12px;">{{ a.id_alerta }}</td>
+                        <td style="font-weight:600; font-size:12px;">{{ a.tipo_alerta }}</td>
+                        <td style="font-size:12px;">{{ a.paciente }}</td>
                         <td>
-                            {% if a.nombre_sucursal %}
-                            <span class="badge" style="background:#e6f1fb; color:#0c447c;">
+                            {% if a.nombre_sucursal and a.nombre_sucursal != '—' %}
+                            <span class="badge" style="background:#e6f1fb; color:#0c447c; font-size:11px;">
                                 {{ a.nombre_sucursal }}
                             </span>
                             {% else %}—{% endif %}
                         </td>
-                        <td style="color:#8892a4; font-variant-numeric:tabular-nums;">
+                        <td style="color:#8892a4; font-variant-numeric:tabular-nums; font-size:12px;">
                             {{ a.fecha_hora.strftime('%d/%m/%Y %H:%M') if a.fecha_hora else '—' }}
+                        </td>
+                        <td>
+                            {% if a.tipo_evento %}
+                            <div style="display:flex; flex-direction:column; gap:2px;">
+                                <span class="badge" style="font-size:10px;
+                                    {% if a.tipo_evento == 'GPS' %}background:#FEF3C7; color:#92400E;
+                                    {% elif a.tipo_evento == 'NFC' %}background:#EDE9FE; color:#5B21B6;
+                                    {% else %}background:#E0F2FE; color:#0369A1;{% endif %}">
+                                    {{ a.tipo_evento }}
+                                </span>
+                                {% if a.regla_disparada %}
+                                <span style="font-size:10px; color:#94A3B8; max-width:160px; overflow:hidden;
+                                             text-overflow:ellipsis; white-space:nowrap;"
+                                      title="{{ a.regla_disparada }}">{{ a.regla_disparada }}</span>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span style="font-size:11px; color:#CBD5E1;">Manual</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:11px;">
+                            {% if a.contacto_prioritario %}
+                            <div style="display:flex; flex-direction:column; gap:1px;">
+                                <span style="font-weight:600; color:#0F172A;">{{ a.contacto_prioritario }}</span>
+                                {% if a.telefono_contacto %}
+                                <a href="tel:{{ a.telefono_contacto }}" style="color:#0E7490; text-decoration:none;">
+                                    {{ a.telefono_contacto }}
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span style="color:#CBD5E1;">—</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if a.estatus == 'Activa' %}
@@ -59,7 +94,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            <div style="display:flex; gap:6px;">
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
                                 {% if a.estatus == 'Activa' %}
                                 <form method="POST" action="{{ url_for('alertas_resolver', id=a.id_alerta) }}">
                                     <button type="submit" class="btn btn-secondary" style="padding:4px 10px; font-size:11px;">
@@ -79,7 +114,7 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="7" style="text-align:center; color:#8892a4; padding:36px;">
+                        <td colspan="9" style="text-align:center; color:#8892a4; padding:36px;">
                             No hay alertas registradas.
                         </td>
                     </tr>

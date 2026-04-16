@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Procedimientos Almacenados{% endblock %}
+{% block page_title %}Procedimientos Almacenados{% endblock %}
+{% block breadcrumb %}Inicio / Procedimientos{% endblock %}
+
+{% block content %}
+
+<div class="section-header" style="margin-bottom:28px;">
+    <div>
+        <div class="section-title">Guía de Procedimientos Almacenados</div>
+        <div class="section-sub">10 procedimientos PostgreSQL — módulo Recetas &amp; NFC</div>
+    </div>
+    <span class="badge" style="background:#EDE9FE; color:#5B21B6; font-size:13px; padding:6px 16px; font-weight:700;">
+        RecetasProcedures.sql
+    </span>
+</div>
+
+<!-- Legend -->
+<div class="card" style="margin-bottom:24px; padding:16px 20px;">
+    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
+        <div style="font-size:11px; font-weight:700; color:#94A3B8; text-transform:uppercase; letter-spacing:.8px;">Leyenda:</div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:3px; background:#DBEAFE;"></span> Gestión de recetas
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:3px; background:#EDE9FE;"></span> Gestión NFC
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:3px; background:#ECFDF5;"></span> Lecturas / adherencia
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:3px; background:#FEF3C7;"></span> Asignación de dispositivo
+        </div>
+    </div>
+</div>
+
+{# ─── MACRO for reusable card layout ─────────────────────────────────────── #}
+{% macro sp_card(num, accent_bg, accent_txt, name, desc, modifies, trigger_label, trigger_url, call_str) %}
+<div class="card" style="margin-bottom:16px; border-left:4px solid {{ accent_txt }}40; overflow:visible;">
+    <div style="padding:20px 24px;">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-size:10px; font-weight:800; color:{{ accent_txt }}; background:{{ accent_bg }};
+                             padding:3px 8px; border-radius:6px; letter-spacing:.6px; flex-shrink:0;">SP-{{ num }}</span>
+                <div>
+                    <div style="font-family:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+                                font-size:14px; font-weight:700; color:#0F172A;">{{ name }}</div>
+                    <div style="font-size:12px; color:#64748B; margin-top:2px;">Modifica:
+                        <code style="background:#F1F5F9; padding:1px 5px; border-radius:4px; font-size:11px;">{{ modifies }}</code>
+                    </div>
+                </div>
+            </div>
+            <a href="{{ trigger_url }}" style="font-size:11px; font-weight:600; color:#0E7490; background:#F0F9FF;
+               border:1px solid #BAE6FD; border-radius:8px; padding:5px 12px; text-decoration:none;
+               white-space:nowrap; display:inline-flex; align-items:center; gap:5px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                {{ trigger_label }}
+            </a>
+        </div>
+        <p style="font-size:13px; color:#334155; line-height:1.6; margin-bottom:16px;">{{ desc }}</p>
+        {{ caller() }}
+        <div>
+            <div style="font-size:10px; font-weight:700; color:#94A3B8; text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px;">Sintaxis CALL</div>
+            <div style="background:#0F172A; border-radius:10px; padding:14px 16px; position:relative;" id="call-{{ num }}">
+                <code style="font-family:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+                             font-size:12px; color:#2DD4BF; white-space:pre-wrap; word-break:break-all;">{{ call_str }}</code>
+                <button onclick="copiarCall('call-{{ num }}')"
+                        style="position:absolute; top:10px; right:10px; background:rgba(255,255,255,.08);
+                               border:1px solid rgba(255,255,255,.12); border-radius:6px; padding:4px 9px;
+                               cursor:pointer; font-size:10px; color:#94A3B8; font-family:inherit; font-weight:600;"
+                        title="Copiar">Copiar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro params_table(rows) %}
+<div style="margin-bottom:16px;">
+    <div style="font-size:10px; font-weight:700; color:#94A3B8; text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px;">Parámetros</div>
+    <div style="border:1px solid #F1F5F9; border-radius:8px; overflow:hidden;">
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead>
+                <tr style="background:#F8FAFC;">
+                    <th style="padding:7px 12px; text-align:left; font-weight:700; color:#64748B; width:32%;">Nombre</th>
+                    <th style="padding:7px 12px; text-align:left; font-weight:700; color:#64748B; width:18%;">Tipo</th>
+                    <th style="padding:7px 12px; text-align:left; font-weight:700; color:#64748B;">Descripción</th>
+                </tr>
+            </thead>
+            <tbody>{{ rows }}</tbody>
+        </table>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro pr(name, type, desc) %}
+<tr style="border-top:1px solid #F1F5F9;">
+    <td style="padding:7px 12px;"><code style="font-family:monospace; color:#0E7490; font-size:11.5px;">{{ name }}</code></td>
+    <td style="padding:7px 12px;"><span style="font-size:11px; background:#F0F9FF; color:#0369A1; padding:1px 7px; border-radius:5px; border:1px solid #BAE6FD; font-weight:600;">{{ type }}</span></td>
+    <td style="padding:7px 12px; color:#334155;">{{ desc }}</td>
+</tr>
+{% endmacro %}
+
+{# ─── SP-01 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("01","#DBEAFE","#1E40AF","sp_receta_crear",
+    "Crea una nueva receta para un paciente. Verifica que el paciente exista y no esté dado de baja.",
+    "recetas", "Formulario Nueva receta", url_for('recetas_nueva'),
+    "CALL sp_receta_crear(42, 7, CURRENT_DATE);") %}
+{{ params_table(
+    pr("p_id_receta","INTEGER","ID de la nueva receta (asignado por la app)") ~
+    pr("p_id_paciente","INTEGER","Paciente al que se asigna") ~
+    pr("p_fecha","DATE","Fecha de emisión (CURRENT_DATE recomendado)")
+) }}
+{% endcall %}
+
+{# ─── SP-02 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("02","#DBEAFE","#1E40AF","sp_receta_agregar_medicamento",
+    "Agrega un medicamento (GTIN) a una receta activa. Valida que la receta esté Activa y que el GTIN no esté duplicado.",
+    "receta_medicamentos", "Boton Agregar en detalle de receta", url_for('recetas_lista'),
+    "CALL sp_receta_agregar_medicamento(42, '07501234567890', '10mg', 8);") %}
+{{ params_table(
+    pr("p_id_receta","INTEGER","Receta destino") ~
+    pr("p_gtin","VARCHAR","GTIN del medicamento") ~
+    pr("p_dosis","VARCHAR","Ej. '10 mg', '1 comprimido'") ~
+    pr("p_frecuencia_horas","INTEGER","Intervalo en horas entre tomas")
+) }}
+{% endcall %}
+
+{# ─── SP-03 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("03","#DBEAFE","#1E40AF","sp_receta_quitar_medicamento",
+    "Elimina un medicamento de una receta activa. Opera sobre id_detalle (PK de receta_medicamentos).",
+    "receta_medicamentos", "Boton Quitar en detalle de receta", url_for('recetas_lista'),
+    "CALL sp_receta_quitar_medicamento(42, 15);") %}
+{{ params_table(
+    pr("p_id_receta","INTEGER","Receta propietaria") ~
+    pr("p_id_detalle","INTEGER","PK del renglon de medicamento a eliminar")
+) }}
+{% endcall %}
+
+{# ─── SP-04 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("04","#DBEAFE","#1E40AF","sp_receta_actualizar_medicamento",
+    "Modifica dosis y/o frecuencia de un medicamento ya prescrito. Valida receta Activa y frecuencia > 0.",
+    "receta_medicamentos", "Boton Editar en detalle de receta", url_for('recetas_lista'),
+    "CALL sp_receta_actualizar_medicamento(42, 15, '20mg', 12);") %}
+{{ params_table(
+    pr("p_id_receta","INTEGER","Receta propietaria") ~
+    pr("p_id_detalle","INTEGER","PK del renglon a actualizar") ~
+    pr("p_dosis","VARCHAR","Nueva dosis") ~
+    pr("p_frecuencia_horas","INTEGER","Nueva frecuencia en horas")
+) }}
+{% endcall %}
+
+{# ─── SP-05 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("05","#EDE9FE","#5B21B6","sp_receta_activar_nfc",
+    "Vincula un dispositivo NFC a una receta (inicia seguimiento de adherencia). Falla si la receta ya tiene un NFC activo.",
+    "receta_nfc", "Boton Asignar pulsera en detalle de receta", url_for('recetas_lista'),
+    "CALL sp_receta_activar_nfc(42, 3, CURRENT_DATE);") %}
+{{ params_table(
+    pr("p_id_receta","INTEGER","Receta a vincular") ~
+    pr("p_id_dispositivo","INTEGER","Dispositivo NFC (tipo = 'NFC')") ~
+    pr("p_fecha_inicio","DATE","Fecha de inicio del vinculo")
+) }}
+{% endcall %}
+
+{# ─── SP-06 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("06","#EDE9FE","#5B21B6","sp_receta_cerrar_nfc",
+    "Cierra el vinculo NFC activo de una receta. Falla si no hay vinculo activo entre ese par receta-dispositivo.",
+    "receta_nfc", "Boton Desvincular en detalle de receta", url_for('recetas_lista'),
+    "CALL sp_receta_cerrar_nfc(42, 3, CURRENT_DATE);") %}
+{{ params_table(
+    pr("p_id_receta","INTEGER","Receta propietaria") ~
+    pr("p_id_dispositivo","INTEGER","Dispositivo NFC a desvincular") ~
+    pr("p_fecha_fin","DATE","Fecha de cierre del vinculo")
+) }}
+{% endcall %}
+
+{# ─── SP-07 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("07","#EDE9FE","#5B21B6","sp_receta_cambiar_nfc",
+    "Reemplaza el NFC activo de una receta en un solo paso atomico: cierra el vinculo actual e inicia uno nuevo.",
+    "receta_nfc (UPDATE + INSERT)", "Boton Cambiar pulsera en detalle de receta", url_for('recetas_lista'),
+    "CALL sp_receta_cambiar_nfc(42, 5, CURRENT_DATE);") %}
+{{ params_table(
+    pr("p_id_receta","INTEGER","Receta propietaria") ~
+    pr("p_id_dispositivo_nuevo","INTEGER","Nueva pulsera NFC") ~
+    pr("p_fecha_cambio","DATE","Fecha del cambio")
+) }}
+{% endcall %}
+
+{# ─── SP-08 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("08","#ECFDF5","#065F46","sp_nfc_registrar_lectura",
+    "Inserta una lectura NFC (administracion de medicamento). Valida vinculo activo, tipo_lectura y resultado.",
+    "lecturas_nfc", "POST /api/nfc/lectura — escanear cuidador", url_for('cuidador_escanear'),
+    "CALL sp_nfc_registrar_lectura(101, 3, 42, NOW(), 'Administracion', 'Exitosa');") %}
+{{ params_table(
+    pr("p_id_lectura_nfc","INTEGER","PK de la lectura (asignado por la app)") ~
+    pr("p_id_dispositivo","INTEGER","Dispositivo NFC que se leyo") ~
+    pr("p_id_receta","INTEGER","Receta vinculada al dispositivo") ~
+    pr("p_fecha_hora","TIMESTAMP","Momento de la lectura (NOW() habitual)") ~
+    pr("p_tipo_lectura","VARCHAR","'Administracion' o 'Verificacion'") ~
+    pr("p_resultado","VARCHAR","'Exitosa' o 'Fallida'")
+) }}
+{% endcall %}
+
+{# ─── SP-09 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("09","#DBEAFE","#1E40AF","sp_receta_cerrar",
+    "Cierra completamente una receta: escribe fecha_fin_gestion en todos los vinculos NFC activos. No elimina la receta (preserva historial).",
+    "receta_nfc", "Boton Cerrar receta en detalle de receta", url_for('recetas_lista'),
+    "CALL sp_receta_cerrar(42, CURRENT_DATE);") %}
+{{ params_table(
+    pr("p_id_receta","INTEGER","Receta a cerrar") ~
+    pr("p_fecha_fin","DATE","Fecha de cierre (CURRENT_DATE habitual)")
+) }}
+{% endcall %}
+
+{# ─── SP-10 ────────────────────────────────────────────────────────────────── #}
+{% call sp_card("10","#FEF3C7","#92400E","sp_nfc_asignar",
+    "Asigna (o reasigna) un dispositivo NFC directamente a un paciente en asignacion_nfc. Cierra cualquier asignacion activa previa del paciente o del dispositivo antes de crear la nueva.",
+    "asignacion_nfc", "Boton Asignar NFC en historial del paciente", url_for('pacientes'),
+    "CALL sp_nfc_asignar(7, 3);") %}
+{{ params_table(
+    pr("p_id_paciente","INTEGER","Paciente receptor") ~
+    pr("p_id_dispositivo","INTEGER","Dispositivo NFC (tipo = 'NFC')")
+) }}
+{% endcall %}
+
+<!-- API Endpoints section -->
+<div style="margin-top:32px; margin-bottom:12px;">
+    <div style="font-size:11px; font-weight:700; color:#94A3B8; text-transform:uppercase; letter-spacing:1px;">
+        Endpoints IoT que invocan procedimientos
+    </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+    <div style="padding:20px 24px;">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-size:10px; font-weight:800; color:#065F46; background:#ECFDF5; padding:3px 8px; border-radius:6px; letter-spacing:.6px;">POST</span>
+                <code style="font-size:14px; font-weight:700; color:#0F172A; font-family:monospace;">/api/nfc/lectura</code>
+            </div>
+            <a href="{{ url_for('cuidador_escanear') }}"
+               style="font-size:11px; font-weight:600; color:#0E7490; background:#F0F9FF; border:1px solid #BAE6FD;
+                      border-radius:8px; padding:5px 12px; text-decoration:none; white-space:nowrap;
+                      display:inline-flex; align-items:center; gap:5px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Escanear Cuidador
+            </a>
+        </div>
+        <p style="font-size:13px; color:#334155; line-height:1.6; margin-bottom:12px;">
+            Invocado por la webapp del cuidador (Web NFC API) al acercar el telefono a la pulsera del paciente.
+            Llama a <code style="background:#F1F5F9; padding:1px 5px; border-radius:4px; font-size:11px;">sp_nfc_registrar_lectura</code>
+            despues de resolver el dispositivo por serial. Auth por sesion o header <code style="background:#F1F5F9; padding:1px 5px; border-radius:4px; font-size:11px;">X-AlzMonitor-Key</code>.
+        </p>
+        <div style="background:#0F172A; border-radius:10px; padding:14px 16px;">
+            <code style="font-family:monospace; font-size:11.5px; color:#94A3B8;">POST /api/nfc/lectura</code><br>
+            <code style="font-family:monospace; font-size:11.5px; color:#2DD4BF;">{"serial": "04:AB:CD:EF:01:02", "tipo_lectura": "Administracion", "resultado": "Exitosa"}</code>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom:32px;">
+    <div style="padding:20px 24px;">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-size:10px; font-weight:800; color:#065F46; background:#ECFDF5; padding:3px 8px; border-radius:6px; letter-spacing:.6px;">POST</span>
+                <code style="font-size:14px; font-weight:700; color:#0F172A; font-family:monospace;">/api/beacon/deteccion</code>
+            </div>
+            <a href="{{ url_for('cuidador_escanear') }}"
+               style="font-size:11px; font-weight:600; color:#0E7490; background:#F0F9FF; border:1px solid #BAE6FD;
+                      border-radius:8px; padding:5px 12px; text-decoration:none; white-space:nowrap;
+                      display:inline-flex; align-items:center; gap:5px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Escanear Cuidador
+            </a>
+        </div>
+        <p style="font-size:13px; color:#334155; line-height:1.6; margin-bottom:12px;">
+            Invocado por la webapp del cuidador (Web Bluetooth API) al detectar un beacon BLE fijo en la instalacion.
+            Inserta en <code style="background:#F1F5F9; padding:1px 5px; border-radius:4px; font-size:11px;">detecciones_beacon</code>
+            directamente. El empleado se resuelve desde la sesion si no se envia en el cuerpo.
+        </p>
+        <div style="background:#0F172A; border-radius:10px; padding:14px 16px;">
+            <code style="font-family:monospace; font-size:11.5px; color:#94A3B8;">POST /api/beacon/deteccion</code><br>
+            <code style="font-family:monospace; font-size:11.5px; color:#2DD4BF;">{"serial": "FSC-BP104D-003", "rssi": -68}</code>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copiarCall(containerId) {
+    var container = document.getElementById(containerId);
+    var code = container.querySelector('code');
+    if (!code) return;
+    navigator.clipboard.writeText(code.textContent.trim()).then(function() {
+        var btn = container.querySelector('button');
+        if (!btn) return;
+        var orig = btn.textContent;
+        btn.textContent = 'Copiado';
+        btn.style.color = '#2DD4BF';
+        setTimeout(function() { btn.textContent = orig; btn.style.color = '#94A3B8'; }, 1600);
+    });
+}
+</script>
+{% endblock %}

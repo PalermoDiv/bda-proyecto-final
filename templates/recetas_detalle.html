@@ -45,20 +45,102 @@
                 {% endif %}
             </div>
         </div>
-        {% if nfc %}
         <div style="text-align:right;">
             <div style="font-size:11px; font-weight:700; color:#94A3B8; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">Pulsera NFC</div>
+            {% if nfc %}
             <span class="badge" style="background:#EDE9FE; color:#5B21B6; font-size:13px; padding:5px 14px;">{{ nfc.id_serial }}</span>
             <div style="font-size:11px; color:#94A3B8; margin-top:4px;">Activa desde {{ nfc.desde }}</div>
-        </div>
-        {% else %}
-        <div style="text-align:right;">
-            <div style="font-size:11px; font-weight:700; color:#94A3B8; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">Pulsera NFC</div>
+            {% if receta.estado == 'Activa' %}
+            <div style="margin-top:8px; display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+                <button onclick="toggleNfcForm('form-cambiar-nfc')"
+                        class="btn btn-secondary btn-sm" style="font-size:11px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+                        <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                        <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                    </svg>
+                    Cambiar
+                </button>
+                <form method="POST" action="{{ url_for('recetas_cerrar_nfc', id=receta.id_receta) }}"
+                      onsubmit="return confirm('¿Desvincular la pulsera NFC de esta receta?')" style="display:inline;">
+                    <input type="hidden" name="id_dispositivo" value="{{ nfc.id_dispositivo }}">
+                    <button type="submit" class="btn btn-sm" style="background:#FFF1F2; color:#BE123C; border:1px solid #FECDD3; font-size:11px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        Desvincular
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+            {% else %}
             <span style="font-size:13px; color:#CBD5E1;">Sin dispositivo asignado</span>
+            {% if receta.estado == 'Activa' and nfc_disponibles %}
+            <div style="margin-top:8px;">
+                <button onclick="toggleNfcForm('form-activar-nfc')"
+                        class="btn btn-primary btn-sm" style="font-size:11px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Asignar pulsera
+                </button>
+            </div>
+            {% elif receta.estado == 'Activa' %}
+            <div style="font-size:11px; color:#CBD5E1; margin-top:6px;">Sin pulseras disponibles</div>
+            {% endif %}
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 </div>
+
+<!-- Activar NFC form -->
+{% if receta.estado == 'Activa' and not nfc and nfc_disponibles %}
+<div id="form-activar-nfc" style="display:none; margin-bottom:18px;">
+    <div class="card" style="border:1px solid #A7F3D0; background:#F0FDF4;">
+        <div style="padding:16px 20px;">
+            <div style="font-size:12px; font-weight:700; color:#065F46; margin-bottom:10px;">Asignar pulsera NFC</div>
+            <form method="POST" action="{{ url_for('recetas_activar_nfc', id=receta.id_receta) }}"
+                  style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                <div>
+                    <label class="form-label">Dispositivo NFC</label>
+                    <select name="id_dispositivo" class="form-control" required style="min-width:220px;">
+                        <option value="">— Selecciona —</option>
+                        {% for d in nfc_disponibles %}
+                        <option value="{{ d.id_dispositivo }}">{{ d.id_serial }}{% if d.modelo %} · {{ d.modelo }}{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Vincular</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleNfcForm('form-activar-nfc')">Cancelar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Cambiar NFC form -->
+{% if receta.estado == 'Activa' and nfc and nfc_disponibles %}
+<div id="form-cambiar-nfc" style="display:none; margin-bottom:18px;">
+    <div class="card" style="border:1px solid #C4B5FD; background:#F5F3FF;">
+        <div style="padding:16px 20px;">
+            <div style="font-size:12px; font-weight:700; color:#5B21B6; margin-bottom:10px;">Reemplazar pulsera NFC</div>
+            <form method="POST" action="{{ url_for('recetas_cambiar_nfc', id=receta.id_receta) }}"
+                  style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                <div>
+                    <label class="form-label">Nueva pulsera</label>
+                    <select name="id_dispositivo_nuevo" class="form-control" required style="min-width:220px;">
+                        <option value="">— Selecciona —</option>
+                        {% for d in nfc_disponibles %}
+                        <option value="{{ d.id_dispositivo }}">{{ d.id_serial }}{% if d.modelo %} · {{ d.modelo }}{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Reemplazar</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleNfcForm('form-cambiar-nfc')">Cancelar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="mob-stack" style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
 
@@ -246,6 +328,11 @@
 
 {% block extra_js %}
 <script>
+function toggleNfcForm(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
 function editarMed(idDetalle, nombre, dosis, frecuencia) {
     document.getElementById('edit-id-detalle').value = idDetalle;
     document.getElementById('edit-nombre').value     = nombre;

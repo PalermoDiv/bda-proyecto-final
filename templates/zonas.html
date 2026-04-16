@@ -24,25 +24,47 @@
                 <tr>
                     <th>Nombre de la Zona</th>
                     <th>Sede</th>
-                    <th>Radio Permitido</th>
+                    <th>Radio</th>
                     <th>Coordenadas</th>
+                    <th>Pacientes</th>
+                    <th>Contacto prioritario</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for z in zonas %}
                 <tr>
-                    <td style="font-weight:600;">{{ z.nombre_zona }}</td>
+                    <td style="font-weight:600; font-size:13px;">{{ z.nombre_zona }}</td>
                     <td>
                         {% if z.nombre_sucursal != '—' %}
                         <span class="badge" style="background:#e6f1fb; color:#0c447c;">
                             {{ z.nombre_sucursal }}
                         </span>
-                        {% else %}—{% endif %}
+                        {% else %}<span style="color:#CBD5E1;">—</span>{% endif %}
                     </td>
-                    <td>{{ z.radio_metros }} m</td>
+                    <td style="font-size:12px; color:#64748B;">{{ z.radio_metros }} m</td>
                     <td style="font-size:11px; color:#94a3b8; font-variant-numeric:tabular-nums;">
                         {{ z.latitud_centro }}, {{ z.longitud_centro }}
+                    </td>
+                    <td style="font-size:12px; color:#334155; max-width:180px;">
+                        {% if z.pacientes_en_zona and z.pacientes_en_zona != '—' %}
+                        {{ z.pacientes_en_zona }}
+                        {% else %}
+                        <span style="color:#CBD5E1;">Sin pacientes</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:12px;">
+                        {% if z.notificar_a and z.notificar_a != '—' %}
+                        <div style="display:flex; flex-direction:column; gap:1px;">
+                            {% set parts = z.notificar_a.split(' · ') %}
+                            <span style="font-weight:600; color:#0F172A;">{{ parts[0] }}</span>
+                            {% if parts|length > 1 %}
+                            <a href="tel:{{ parts[1] }}" style="color:#0E7490; font-size:11px; text-decoration:none;">{{ parts[1] }}</a>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span style="color:#CBD5E1; font-size:11px;">Sin contacto</span>
+                        {% endif %}
                     </td>
                     <td>
                         <div style="display:flex; gap:6px;">
@@ -61,7 +83,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5" style="text-align:center; color:#8892a4; padding:32px;">
+                    <td colspan="7" style="text-align:center; color:#8892a4; padding:32px;">
                         No hay zonas seguras configuradas.
                     </td>
                 </tr>
