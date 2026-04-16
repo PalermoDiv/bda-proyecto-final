@@ -88,6 +88,7 @@ Full integration plan is in `DEVICES.md`. **GPS is the central safety mechanism.
 |------|--------|---------|
 | `ProyectoFinalDDL.sql` | Applied | Full schema + seed data (43 tables) |
 | `RecetasProcedures.sql` | Applied | 10 stored procedures for receta/NFC module |
+| `BeaconProcedures.sql` | Applied | 1 stored procedure for caregiver beacon rounds |
 | `TriggersDB.sql` | Applied | 3 DB triggers (cobertura zona, batería baja, zona exit) |
 | `ProcedimientosAlmacenados.sql` | Ref only | Academic convention rewrite of all SPs + 3 REFCURSOR SPs |
 | `finalqueries.sql` | Complete | Advanced analytical queries — **do not re-fix** |
@@ -208,7 +209,7 @@ Applied to live DB. Re-apply: `psql -U palermingoat -d alzheimer -f TriggersDB.s
 ### IoT APIs (active, no hardware required)
 - `POST /api/gps/lectura` — insert GPS reading, fires zone-exit + battery triggers
 - `POST /api/nfc/lectura` — register NFC tap, calls `sp_nfc_registrar_lectura`; resolves device by serial
-- `POST /api/beacon/deteccion` — log caregiver round, fires coverage trigger; resolves beacon by `id_beacon`, `serial`, or `uuid`+`major`+`minor` composite; returns `zone_name`
+- `POST /api/beacon/deteccion` — log caregiver round via `sp_cuidador_registrar_ronda`; resolves beacon by `id_beacon`, `serial`, or `uuid`+`major`+`minor` composite; returns `zone_name`
 - `GET /cuidador/escanear` — caregiver NFC wristband scanner (Web NFC; `@medico_requerido`; login at `/clinica/login`)
 - `GET /cuidador/ronda` — caregiver beacon round page (Web Bluetooth `requestLEScan` iBeacon parsing + manual zone check-in fallback; no auth yet)
 - `GET /sim/gps` — admin GPS simulator form for demo without hardware

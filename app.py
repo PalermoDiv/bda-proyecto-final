@@ -2522,28 +2522,29 @@ def api_beacon_deteccion():
         return jsonify({"status": "error", "message": "Beacon no identificado (falta id_beacon, serial, o uuid+major+minor)"}), 400
 
     try:
-        next_id = db.scalar("SELECT COALESCE(MAX(id_deteccion), 0) + 1 FROM detecciones_beacon")
+        # sp_cuidador_registrar_ronda handles ID generation, validation, and insert.
+        # trg_cobertura_zona fires automatically inside the SP's INSERT.
         db.execute(
-            """INSERT INTO detecciones_beacon (id_deteccion, id_dispositivo, id_cuidador, fecha_hora, rssi)
-               VALUES (%s, %s, %s, NOW(), %s)""",
-            (next_id, id_beacon, id_cuidador, rssi if rssi is not None else 0)
+            "CALL sp_cuidador_registrar_ronda(%s, %s, %s)",
+            (id_beacon, id_cuidador, rssi if rssi is not None else 0)
         )
 
-        # Return zone name so the frontend can display it
-        zona = db.one(
-            """SELECT z.nombre_zona
-               FROM beacon_zona bz
-               JOIN zonas z ON bz.id_zona = z.id_zona
-               WHERE bz.id_dispositivo = %s""",
+        # Fetch the id_deteccion just inserted and the zone name for the response
+        row = db.one(
+            """SELECT db.id_deteccion, z.nombre_zona
+               FROM detecciones_beacon db
+               LEFT JOIN beacon_zona bz ON db.id_dispositivo = bz.id_dispositivo
+               LEFT JOIN zonas z        ON bz.id_zona = z.id_zona
+               WHERE db.id_dispositivo = %s
+               ORDER BY db.fecha_hora DESC
+               LIMIT 1""",
             [id_beacon]
         )
-        zone_name = zona["nombre_zona"] if zona else None
-
         return jsonify({
             "status": "ok",
             "ok": True,
-            "id_deteccion": next_id,
-            "zone_name": zone_name,
+            "id_deteccion": row["id_deteccion"] if row else None,
+            "zone_name":    row["nombre_zona"]  if row else None,
         })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 422
