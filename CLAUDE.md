@@ -89,7 +89,7 @@ Helper `_haversine_m(lat1, lon1, lat2, lon2)` — returns distance in metres bet
 SQL aliases map real DB column names to the names templates expect (e.g. `nombre AS nombre_paciente`). Date columns are returned via `TO_CHAR(col, 'YYYY-MM-DD')`.
 
 ### Frontend
-Vanilla JS only (`static/js/main.js`, 25 lines) — handles auto-dismiss alerts and deletion confirmations. No build step, no bundler. Portal familiar loads Leaflet.js via CDN for the GPS map. Caregiver scanner uses Web NFC API + Web Bluetooth API (Chrome Android only).
+Vanilla JS only (`static/js/main.js`, 25 lines) — handles auto-dismiss alerts and deletion confirmations. No build step, no bundler. Portal familiar loads Leaflet.js via CDN for the GPS map. Caregiver scanner uses Web NFC API + Web Bluetooth API (Chrome Android only). **Highcharts** is needed for dashboard/analytics charts — load via CDN, free for academic use.
 
 `pdf_report.py` — standalone ReportLab module. `generate_patient_report(patient_id)` returns a `BytesIO` PDF. Called only from `GET /pacientes/<id>/reporte-pdf`.
 
