@@ -294,11 +294,11 @@ UI is entirely in Spanish.
 ## Professor Demo Scenarios — Status
 
 ### Escenario 1 — Salida de zona y escalamiento ✅ COMPLETE
-- `trg_zona_exit_gps` fires on every `lecturas_gps` INSERT, PostGIS `ST_DWithin` check, inserts alert + `alerta_evento_origen` with zone names and coordinates
-- Alertas list shows `tipo_evento` badge + `regla_disparada` + full escalation chain for `'Salida de Zona'` and `'Botón SOS'` alerts — priority-numbered contacts (red=1, amber=2, gray=3+) with parentesco and tap-to-call phone
+- **Real PG12 GPS tracker working** — device pushes to `GET|POST /api/gps/osmand` on plain HTTP port 5003 via Traccar Client app on phone (confirmed working 2026-04-19). No polling loop needed; device pushes on its own schedule.
+- `POST /api/gps/lectura` (JSON) and `GET /sim/gps` remain available for demo without hardware
+- Alertas list shows `tipo_evento` badge + `regla_disparada` + full escalation chain for `'Salida de Zona'` and `'Botón SOS'` — priority-numbered contacts (red=1, amber=2, gray=3+) with parentesco and tap-to-call
 - Zonas list shows patients in zone + priority contact
-- `POST /api/gps/lectura` and `GET /sim/gps` enable demo without physical device
-- `GET|POST /api/gps/osmand` on port 5003 enables real PG12 device via Traccar Client app
+- Note: `trg_zona_exit_gps` currently DISABLED — alerts must be created manually or via `/sim/gps` for demo until triggers are re-enabled
 
 ### Escenario 2 — Cambio de sede sin pérdida histórica ✅ COMPLETE
 - Atomic sede transfer via `execute_many`; full sede history in historial
