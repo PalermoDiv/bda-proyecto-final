@@ -26,7 +26,7 @@ Convención de nombres de SPs:
 Archivos SQL con SPs aplicados a la DB:
 - `RecetasProcedures.sql` — módulo recetas/NFC (10 SPs)
 - `BeaconProcedures.sql` — módulo rondas beacon (1 SP, legacy)
-- `AppProcedures.sql` — 31 SPs DML: pacientes, cuidadores, enfermedades, contactos, kit GPS, turnos, asignacion_beacon, deteccion_beacon, alertas, farmacia, visitas, lecturas GPS. Todos los DML de app.py migrados a SPs.
+- `AppProcedures.sql` — 32 SPs DML: pacientes, cuidadores, enfermedades, contactos, kit GPS (incl. reasignación), turnos, asignacion_beacon, deteccion_beacon, alertas, farmacia, visitas, lecturas GPS. Todos los DML de app.py migrados a SPs.
 
 ## Running the App
 
@@ -34,6 +34,7 @@ Archivos SQL con SPs aplicados a la DB:
 pip install -r requirements.txt
 python app.py
 # Runs at https://localhost:5002  (self-signed TLS — auto-generated on first run)
+# Also spawns a plain HTTP listener on http://0.0.0.0:5003 for Traccar/OsmAnd GPS apps
 ```
 
 Apply the schema from scratch:
@@ -124,7 +125,7 @@ Full integration plan is in `DEVICES.md`. **GPS is the central safety mechanism.
 | `ProyectoFinalDDL.sql` | Applied | Full schema + seed data (46 tables incl. asignacion_beacon) |
 | `RecetasProcedures.sql` | Applied | 10 stored procedures for receta/NFC module |
 | `BeaconProcedures.sql` | Applied | 1 SP legacy (sp_cuidador_registrar_ronda) |
-| `AppProcedures.sql` | Applied | 31 DML SPs — pacientes, cuidadores, enfermedades, contactos, kit GPS, turnos, asignacion_beacon, deteccion_beacon, alertas, farmacia, visitas, lecturas GPS |
+| `AppProcedures.sql` | Applied | 32 DML SPs — pacientes, cuidadores, enfermedades, contactos, kit GPS (incl. sp_kit_reasignar), turnos, asignacion_beacon, deteccion_beacon, alertas, farmacia, visitas, lecturas GPS |
 | `beacon_scanner.py` | Active | Python BLE scanner using bleak — run alongside Flask to detect caregiver beacons |
 | `TriggersDB.sql` | Applied | 3 DB triggers (cobertura zona, batería baja, zona exit) |
 | `ProcedimientosAlmacenados.sql` | Ref only | Academic convention rewrite of all SPs + 3 REFCURSOR SPs |
@@ -215,7 +216,7 @@ Applied to live DB. Re-apply: `psql -U palermingoat -d alzheimer -f TriggersDB.s
 
 ### Pacientes
 - **Can**: List active (id_estado != 3); create (with sede assignment, manual ID); edit name/DOB/estado; soft-delete; transfer sede.
-- **Can**: Historial — enfermedades (add/remove), contactos de emergencia (add), kit GPS (assign), full sede history, alerts, visits.
+- **Can**: Historial — enfermedades (add/remove), contactos de emergencia (add), kit GPS (assign + reassign via `POST /pacientes/<id>/cambiar-kit`), full sede history, alerts, visits.
 - **Cannot**: Add a cuidador assignment from the UI; register entrega externa.
 
 ### Cuidadores
@@ -247,7 +248,8 @@ Applied to live DB. Re-apply: `psql -U palermingoat -d alzheimer -f TriggersDB.s
 - **Cannot**: View recetas filtered by medico (only admin can see all).
 
 ### IoT APIs (active, no hardware required)
-- `POST /api/gps/lectura` — insert GPS reading, fires zone-exit + battery triggers
+- `POST /api/gps/lectura` — insert GPS reading (JSON, auth required), fires zone-exit + battery triggers
+- `GET|POST /api/gps/osmand` — GPS ingestion for real devices via Traccar Client / OsmAnd app (HTTP port 5003, no auth). Resolves device by `id_serial` or numeric `id`. Accepts query params (`id`, `lat`, `lon`, `batt`, `altitude`) or JSON body with `location.coords`. Calls `sp_ins_lectura_gps`.
 - `POST /api/nfc/lectura` — register NFC tap, calls `sp_nfc_registrar_lectura`; resolves device by serial
 - `POST /api/beacon/deteccion` — called by `beacon_scanner.py`; resolves beacon by `id_beacon`, `serial`, or `uuid`+`major`+`minor`; looks up caregiver via `asignacion_beacon`; calls `sp_ins_deteccion_beacon`; returns `caregiver_name`
 - `GET /cuidador/escanear` — caregiver NFC wristband scanner (Web NFC; `@medico_requerido`; login at `/clinica/login`)
@@ -292,7 +294,8 @@ UI is entirely in Spanish.
 - Alertas list shows `tipo_evento` badge + `regla_disparada` + priority contact name + tap-to-call phone
 - Zonas list shows patients in zone + priority contact
 - `POST /api/gps/lectura` and `GET /sim/gps` enable demo without physical device
-- **Still missing**: actual PG12 cloud API polling loop (no scheduled background task); contact escalation via email/SMS
+- `GET|POST /api/gps/osmand` on port 5003 enables real PG12 device via Traccar Client app (no polling loop needed — device pushes directly)
+- **Still missing**: contact escalation via email/SMS
 
 ### Escenario 2 — Cambio de sede sin pérdida histórica ✅ COMPLETE
 - Atomic sede transfer via `execute_many`; full sede history in historial
@@ -303,10 +306,10 @@ UI is entirely in Spanish.
 - `POST /api/nfc/lectura` live, resolves by serial
 - 30-day adherence % per medication, last 20 NFC readings
 
-### Escenario 4 — Falla de batería y reemplazo de kit 🟡 MOSTLY COMPLETE
+### Escenario 4 — Falla de batería y reemplazo de kit ✅ COMPLETE
 - `trg_bateria_baja_gps` auto-fires on INSERT, inserts `'Batería Baja'` alert + origen
 - `sim/gps` simulator: set `nivel_bateria ≤ 15` to demo trigger in real time
-- **Still missing**: UI for GPS kit reassignment (`asignacion_kit fecha_fin` flow); `uq_kit_activo_por_paciente` index enforces correctness but reassignment is SQL-only
+- `POST /pacientes/<id>/cambiar-kit` calls `sp_kit_reasignar` — closes active `asignacion_kit` and opens new one atomically; enforced by `uq_kit_activo_por_paciente` index
 
 ### Escenario 5 — Suministro crítico multisede ✅ COMPLETE
 - Per-sede inventory, critical-stock highlights, supply order creation
@@ -316,9 +319,7 @@ UI is entirely in Spanish.
 ## Pending for Future Sessions
 
 ### High priority (demo gaps)
-1. **GPS polling loop** — background thread or APScheduler job calling the PG12 cloud API every 60s, POSTing to `POST /api/gps/lectura`. No complex logic needed — the DB triggers handle everything once a row is inserted.
-2. **GPS kit reassignment UI** — form in `historial.html` to close current `asignacion_kit` (set `fecha_fin = CURRENT_DATE`) and open a new one. The partial index `uq_kit_activo_por_paciente` already enforces correctness at the DB level.
-3. **Contact escalation display** — when a `'Salida de Zona'` or `'Botón SOS'` alert fires, show on the alert detail which contact was notified at which priority. Currently the `notificar_a` chain is computable from `paciente_contactos` but nothing sends or logs a notification.
+1. **Contact escalation display** — when a `'Salida de Zona'` or `'Botón SOS'` alert fires, show on the alert detail which contact was notified at which priority. Currently the `notificar_a` chain is computable from `paciente_contactos` but nothing sends or logs a notification.
 
 ### Medium priority (UX)
 4. **Portal familiar auto-refresh** — 60s `setTimeout` reload or lightweight `/api/portal/estado/<id>` JSON endpoint so the status banner and GPS time strings feel live without a manual reload.
@@ -326,7 +327,6 @@ UI is entirely in Spanish.
 6. **Dashboard empty states** — illustrated empty-state blocks when no visits, no critical meds, no active alerts.
 
 ### Low priority (completeness)
-7. **GPS kit reassignment stored procedure** — `sp_kit_reasignar(id_paciente, id_dispositivo_nuevo)` wrapping the close+open in a single atomic call.
-8. **Assign `beacon_zona` from UI** — seed data applied and live; no admin form to add/remove beacon↔zone links yet.
-9. **`turno_cuidador` in zone detail** — show active shifts per zone on the zonas page so coverage can be inspected visually.
-10. **Medico-scoped recetas** — filter `/recetas` by the medico's sede so doctors only see their patients' prescriptions.
+7. **Assign `beacon_zona` from UI** — seed data applied and live; no admin form to add/remove beacon↔zone links yet.
+8. **`turno_cuidador` in zone detail** — show active shifts per zone on the zonas page so coverage can be inspected visually.
+9. **Medico-scoped recetas** — filter `/recetas` by the medico's sede so doctors only see their patients' prescriptions.
