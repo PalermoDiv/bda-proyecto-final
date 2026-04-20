@@ -45,6 +45,8 @@ psql -U palermingoat -d alzheimer -f BeaconProcedures.sql
 psql -U palermingoat -d alzheimer -f AppProcedures.sql
 psql -U palermingoat -d alzheimer -f TriggersDB.sql
 psql -U palermingoat -d alzheimer -f DisableTriggers.sql
+psql -U palermingoat -d alzheimer -f ViewsDB.sql
+psql -U palermingoat -d alzheimer -f SelectProcedures.sql
 ```
 
 `DisableTriggers.sql` must be applied after `TriggersDB.sql` — it disables all 3 triggers without deleting them. To re-enable, apply `TriggersDB.sql` again (it recreates them in enabled state).
@@ -131,6 +133,8 @@ Full integration plan is in `DEVICES.md`. **GPS is the central safety mechanism.
 | `RecetasProcedures.sql` | Applied | 10 stored procedures for receta/NFC module |
 | `BeaconProcedures.sql` | Applied | 1 SP legacy (sp_cuidador_registrar_ronda) |
 | `AppProcedures.sql` | Applied | 32 DML SPs — pacientes, cuidadores, enfermedades, contactos, kit GPS (incl. sp_kit_reasignar), turnos, asignacion_beacon, deteccion_beacon, alertas, farmacia, visitas, lecturas GPS |
+| `ViewsDB.sql` | Applied | **49 read-only views** covering all SELECT queries in app.py. Must be applied before SelectProcedures.sql. Note: `v_asignacion_nfc_paciente` omitted — `asignacion_nfc` table does not exist in the DDL. |
+| `SelectProcedures.sql` | Applied | **49 SPs `sp_sel_*`** — one per view, each opens a REFCURSOR. 3 are parameterized: `sp_sel_pacientes_por_contacto(p_id_contacto)`, `sp_sel_zonas_por_paciente(p_id_paciente)`, `sp_sel_alertas_por_sede(p_id_sede)`. These are what app.py must call instead of embedded SQL. |
 | `beacon_scanner.py` | Active | Python BLE scanner using bleak — run alongside Flask to detect caregiver beacons |
 | `TriggersDB.sql` | Applied | 3 DB triggers defined (cobertura zona, batería baja, zona exit) — all currently DISABLED via DisableTriggers.sql |
 | `DisableTriggers.sql` | Applied | Disables all 3 triggers; apply after TriggersDB.sql on fresh schema |

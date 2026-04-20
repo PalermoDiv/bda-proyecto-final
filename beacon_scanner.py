@@ -17,7 +17,7 @@ import time
 import requests
 from bleak import BleakScanner
 
-FLASK_URL      = "https://localhost:5002/api/beacon/deteccion"
+FLASK_URL      = "http://136.112.31.69:5000/api/beacon/deteccion"
 API_KEY        = "alz-dev-2026"
 SCAN_INTERVAL  = 5    # seconds per scan cycle
 REPORT_COOLDOWN = 10  # seconds before re-reporting the same beacon

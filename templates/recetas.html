@@ -19,6 +19,18 @@
     </a>
 </div>
 
+{% if adherencia_chart %}
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Adherencia NFC — últimos 30 días</div>
+            <div style="font-size:11px; color:#8892a4; margin-top:2px;">% de tomas exitosas por paciente (solo pacientes con lecturas)</div>
+        </div>
+    </div>
+    <div id="chart-adherencia" style="height:{{ adherencia_chart|length * 34 + 60 }}px; min-height:200px;"></div>
+</div>
+{% endif %}
+
 <div class="card">
     <div class="table-wrapper">
         <table>
@@ -135,4 +147,52 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+{% if adherencia_chart %}
+<script>
+(function () {
+    Highcharts.setOptions({
+        chart:  { style: { fontFamily: 'Inter, system-ui, sans-serif' }, backgroundColor: 'transparent' },
+        title:  { text: null },
+        credits:{ enabled: false },
+    });
+
+    const adData = {{ adherencia_chart | tojson }};
+    const nombres     = adData.map(r => r.nombre_paciente);
+    const porcentajes = adData.map(r => {
+        const t = parseInt(r.total);
+        const e = parseInt(r.exitosas);
+        return t > 0 ? Math.round((e / t) * 100) : 0;
+    });
+
+    Highcharts.chart('chart-adherencia', {
+        chart: { type: 'bar', spacing: [8, 12, 8, 8] },
+        xAxis: {
+            categories: nombres,
+            labels: { style: { fontSize: '11px', color: '#475569' } },
+            lineColor: 'transparent',
+        },
+        yAxis: {
+            title: { text: null },
+            max: 100,
+            gridLineColor: '#F1F5F9',
+            labels: { format: '{value}%', style: { fontSize: '10px', color: '#94A3B8' } },
+        },
+        tooltip: { valueSuffix: '%', pointFormat: '<b>{point.y}%</b> de adherencia' },
+        plotOptions: {
+            bar: {
+                borderRadius: 3,
+                dataLabels: { enabled: true, format: '{y}%', style: { fontSize: '10px', fontWeight: '600' } },
+                colorByPoint: true,
+                colors: porcentajes.map(p => p >= 80 ? '#059669' : p >= 50 ? '#D97706' : '#E11D48'),
+            }
+        },
+        legend: { enabled: false },
+        series: [{ name: 'Adherencia', data: porcentajes }]
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

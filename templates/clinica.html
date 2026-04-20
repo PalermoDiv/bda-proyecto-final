@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Módulo Clínico — AlzMonitor</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -552,6 +554,53 @@
         /* ── Divider between tables ─────────────────────────── */
         .cl-gap { margin-bottom: 24px; }
 
+        /* ── Patient status list ────────────────────────────── */
+        .cl-status-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 20px;
+            border-bottom: 1px solid #F1F5F9;
+            font-size: 13px;
+        }
+        .cl-status-row:last-child { border-bottom: none; }
+        .cl-status-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .cl-status-dot.dentro  { background: #059669; }
+        .cl-status-dot.fuera   { background: #E11D48; }
+        .cl-status-dot.sin_datos { background: #94A3B8; }
+        .cl-status-name { font-weight: 600; color: #1E293B; flex: 1; }
+        .cl-status-zona { font-size: 12px; color: #64748B; }
+        .cl-status-meta { font-size: 11px; color: #94A3B8; text-align: right; }
+
+        /* ── Battery color ──────────────────────────────────── */
+        .bat-green { color: #059669; font-weight: 700; }
+        .bat-amber { color: #D97706; font-weight: 700; }
+        .bat-red   { color: #E11D48; font-weight: 700; }
+
+        /* ── Medication today rows ──────────────────────────── */
+        .cl-med-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 20px;
+            border-bottom: 1px solid #F1F5F9;
+            font-size: 13px;
+        }
+        .cl-med-row:last-child { border-bottom: none; }
+        .cl-med-patient { font-size: 11px; font-weight: 700; color: #0E7490; width: 110px; flex-shrink: 0; }
+        .cl-med-name { flex: 1; color: #1E293B; font-weight: 500; }
+        .cl-med-dosis { font-size: 11px; color: #94A3B8; }
+        .cl-med-status { font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .cl-med-status.ok      { color: #059669; }
+        .cl-med-status.pending { color: #D97706; }
+
+        /* ── Map ─────────────────────────────────────────────── */
+        #mapa-clinica { height: 280px; border-radius: 0 0 14px 14px; }
+
         /* ── Mobile responsive ───────────────────────────────── */
         @media (max-width: 899px) {
             .cl-navbar       { padding: 0 20px; }
@@ -631,7 +680,7 @@
         <div class="cl-panel active" id="tab-resumen">
 
             <div class="cl-section-title">Resumen del día</div>
-            <div class="cl-section-sub">{% if sucursal %}{{ sucursal.nombre }} · {% endif %}Estado operativo actual del centro — {{ "24 de marzo, 2026" }}</div>
+            <div class="cl-section-sub">{% if sucursal %}{{ sucursal.nombre }} · {% endif %}Estado operativo actual del centro — {{ fecha_hoy }}</div>
 
             <!-- Stat cards -->
             <div class="cl-stats">
@@ -749,6 +798,92 @@
                 </div>
 
             </div>
+
+            <!-- Estado de pacientes + Medicación del día -->
+            <div class="cl-cols" style="margin-top:20px;">
+
+                <!-- Estado de pacientes -->
+                <div class="cl-card">
+                    <div class="cl-card-header">
+                        Estado de pacientes
+                        <span style="font-size:11px;font-weight:500;color:#94a3b8;">{{ sucursal.nombre }}</span>
+                    </div>
+                    <div class="cl-card-body">
+                        {% if estado_pacientes %}
+                            {% for p in estado_pacientes %}
+                            <div class="cl-status-row">
+                                <span class="cl-status-dot {{ p.zona_status }}"></span>
+                                <span class="cl-status-name">{{ p.nombre }} {{ p.apellido_p }}</span>
+                                {% if p.zona_status == 'sin_datos' %}
+                                    <span class="cl-status-zona" style="color:#94a3b8;">Sin datos GPS</span>
+                                {% elif p.zona_status == 'dentro' %}
+                                    <span class="cl-status-zona">Dentro de zona</span>
+                                {% else %}
+                                    <span class="cl-status-zona" style="color:#E11D48;">Fuera de zona</span>
+                                {% endif %}
+                                <div class="cl-status-meta">
+                                    {% if p.nivel_bateria is not none %}
+                                        <span class="{% if p.nivel_bateria > 50 %}bat-green{% elif p.nivel_bateria > 20 %}bat-amber{% else %}bat-red{% endif %}">
+                                            {{ p.nivel_bateria }}%
+                                        </span><br>
+                                    {% endif %}
+                                    {% if p.tiempo_rel %}
+                                        <span>{{ p.tiempo_rel }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="font-size:13px;color:#94a3b8;padding:16px 20px;">Sin pacientes en esta sede.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Medicación del día -->
+                <div class="cl-card">
+                    <div class="cl-card-header">
+                        Medicación del día
+                        <span style="font-size:11px;font-weight:500;color:#94a3b8;">Adherencia NFC hoy</span>
+                    </div>
+                    <div class="cl-card-body">
+                        {% if meds_sede %}
+                            {% set ns = namespace(last_p='') %}
+                            {% for med in meds_sede %}
+                            <div class="cl-med-row">
+                                <span class="cl-med-patient">
+                                    {% if med.nombre_paciente != ns.last_p %}
+                                        {{ med.nombre_paciente }}
+                                        {% set ns.last_p = med.nombre_paciente %}
+                                    {% endif %}
+                                </span>
+                                <div style="flex:1;">
+                                    <div class="cl-med-name">{{ med.nombre_medicamento }}</div>
+                                    <div class="cl-med-dosis">{{ med.dosis }}</div>
+                                </div>
+                                {% if med.tomada_hoy %}
+                                    <span class="cl-med-status ok">✓ {{ med.tomada_hoy }}</span>
+                                {% else %}
+                                    <span class="cl-med-status pending">⏳ Pendiente</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="font-size:13px;color:#94a3b8;padding:16px 20px;">Sin medicamentos activos.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Mapa de ubicación -->
+            <div class="cl-card" style="margin-top:20px;">
+                <div class="cl-card-header">
+                    Ubicación de pacientes
+                    <span style="font-size:11px;font-weight:500;color:#94a3b8;">Última lectura GPS</span>
+                </div>
+                <div id="mapa-clinica"></div>
+            </div>
+
         </div>
 
         <!-- ══ TAB 2: Turnos y Asignaciones ════════════════════ -->
@@ -883,43 +1018,10 @@
                     <!-- Body -->
                     <div class="cl-ehr-body">
 
-                        <!-- Perfil clínico -->
-                        <div class="cl-ehr-section">
-                            <div class="cl-ehr-section-title">Perfil clínico</div>
-                            {% if perfil %}
-                            <div class="cl-profile-grid">
-                                <div class="cl-profile-item">
-                                    <div class="cl-profile-item-label">Grupo sanguíneo</div>
-                                    <div class="cl-profile-item-value">{{ perfil.grupo_sanguineo }}</div>
-                                </div>
-                                <div class="cl-profile-item">
-                                    <div class="cl-profile-item-label">Alergias conocidas</div>
-                                    <div class="cl-profile-item-value">{{ perfil.alergias }}</div>
-                                </div>
-                                <div class="cl-profile-item">
-                                    <div class="cl-profile-item-label">Etapa Alzheimer</div>
-                                    <div class="cl-profile-item-value">{{ perfil.etapa_alzheimer }}</div>
-                                </div>
-                                <div class="cl-profile-item">
-                                    <div class="cl-profile-item-label">Peso / Talla</div>
-                                    <div class="cl-profile-item-value">{{ perfil.peso_kg }} kg &nbsp;/&nbsp; {{ perfil.talla_cm }} cm</div>
-                                </div>
-                                <div class="cl-profile-item">
-                                    <div class="cl-profile-item-label">Médico tratante</div>
-                                    <div class="cl-profile-item-value">{{ perfil.medico_tratante }}</div>
-                                </div>
-                                <div class="cl-profile-item">
-                                    <div class="cl-profile-item-label">Contacto de emergencia</div>
-                                    <div class="cl-profile-item-value" style="font-size:12px;">{{ perfil.contacto_emergencia }}</div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-
                         <!-- Diagnósticos -->
-                        {% if exp.enfermedades %}
                         <div class="cl-ehr-section">
                             <div class="cl-ehr-section-title">Diagnósticos registrados</div>
+                            {% if exp.enfermedades %}
                             <div class="cl-table-wrap">
                                 <table class="cl-table">
                                     <thead>
@@ -937,59 +1039,25 @@
                                     </tbody>
                                 </table>
                             </div>
+                            {% else %}
+                                <p style="font-size:13px; color:#94a3b8; padding:8px 0;">Sin diagnósticos registrados.</p>
+                            {% endif %}
                         </div>
-                        {% endif %}
 
-                        <!-- Medicamentos (MAR) -->
+                        <!-- Medicamentos activos -->
                         <div class="cl-ehr-section">
-                            <div class="cl-ehr-section-title">Medicamentos — Hoja de administración (MAR)</div>
+                            <div class="cl-ehr-section-title">Medicamentos activos</div>
                             {% if exp.medicamentos %}
                                 {% for med in exp.medicamentos %}
                                 <div class="cl-mar-row">
                                     <div>
                                         <div class="cl-mar-name">{{ med.medicamento }} <span style="font-weight:400; color:#64748b;">{{ med.dosis }}</span></div>
-                                        <div class="cl-mar-detail">{{ med.via }} · {{ med.indicacion }}</div>
-                                    </div>
-                                    <div class="cl-mar-right">
-                                        <span class="cl-mar-hora">{{ med.hora }}</span>
-                                        <span class="bd {% if med.estado_hoy == 'Administrado' %}bd-green{% else %}bd-amber{% endif %}">
-                                            {{ med.estado_hoy }}
-                                        </span>
+                                        <div class="cl-mar-detail">Cada {{ med.frecuencia_horas }} h</div>
                                     </div>
                                 </div>
                                 {% endfor %}
                             {% else %}
-                                <p style="font-size:13px; color:#94a3b8; padding:8px 0;">Sin medicamentos registrados.</p>
-                            {% endif %}
-                        </div>
-
-                        <!-- Bitácoras -->
-                        <div class="cl-ehr-section">
-                            <div class="cl-ehr-section-title">Bitácoras de sesión</div>
-                            {% if exp.bitacoras %}
-                                {% for b in exp.bitacoras %}
-                                <div class="cl-bitacora">
-                                    <div class="cl-bitacora-header">
-                                        <div>
-                                            <span class="cl-bitacora-type">{{ b.tipo_sesion }}</span>
-                                            <span style="font-size:11px; color:#94a3b8; margin-left:10px;">{{ b.terapeuta }}</span>
-                                        </div>
-                                        <div style="display:flex; align-items:center; gap:10px;">
-                                            <span class="bd
-                                                {% if b.estado == 'Favorable' %}bd-green
-                                                {% elif b.estado == 'Estable' %}bd-blue
-                                                {% elif b.estado == 'Atención requerida' %}bd-amber
-                                                {% else %}bd-gray{% endif %}">
-                                                {{ b.estado }}
-                                            </span>
-                                            <span class="cl-bitacora-date">{{ b.fecha[8:10] }}/{{ b.fecha[5:7] }}/{{ b.fecha[0:4] }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="cl-bitacora-note">{{ b.nota }}</div>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <p style="font-size:13px; color:#94a3b8; padding:8px 0;">Sin bitácoras registradas.</p>
+                                <p style="font-size:13px; color:#94a3b8; padding:8px 0;">Sin medicamentos en receta activa.</p>
                             {% endif %}
                         </div>
 
@@ -1005,9 +1073,10 @@
             <div class="cl-section-title">Incidentes y Seguimiento</div>
             <div class="cl-section-sub">Registro de eventos clínicamente relevantes y las acciones tomadas</div>
 
+            {% if incidentes %}
             <div class="cl-incident-list">
                 {% for inc in incidentes %}
-                <div class="cl-incident {{ inc.gravedad | lower }}">
+                <div class="cl-incident {% if inc.gravedad == 'Activa' %}alta{% else %}baja{% endif %}">
                     <div class="cl-incident-header">
                         <div>
                             <div class="cl-incident-tipo">{{ inc.tipo }}</div>
@@ -1016,21 +1085,16 @@
                                 {{ inc.fecha[8:10] }}/{{ inc.fecha[5:7] }}/{{ inc.fecha[0:4] }} a las {{ inc.hora }}
                             </div>
                         </div>
-                        <span class="bd
-                            {% if inc.gravedad == 'Alta' %}bd-red
-                            {% elif inc.gravedad == 'Media' %}bd-amber
-                            {% else %}bd-green{% endif %}">
-                            Gravedad: {{ inc.gravedad }}
+                        <span class="bd {% if inc.gravedad == 'Activa' %}bd-red{% else %}bd-green{% endif %}">
+                            {{ inc.gravedad }}
                         </span>
-                    </div>
-                    <div class="cl-incident-body">{{ inc.descripcion }}</div>
-                    <div class="cl-incident-action">
-                        <div class="cl-incident-action-label">Acción tomada</div>
-                        {{ inc.accion_tomada }}
                     </div>
                 </div>
                 {% endfor %}
             </div>
+            {% else %}
+            <p style="font-size:13px;color:#94a3b8;padding:12px 0;">No hay incidentes registrados para esta sede.</p>
+            {% endif %}
 
         </div>
 
@@ -1177,6 +1241,44 @@
         function toggleEHR(id) {
             const card = document.getElementById('ehr-' + id);
             card.classList.toggle('open');
+        }
+
+        // ── Leaflet map ────────────────────────────────────────
+        const zonas = {{ zonas_mapa | tojson }};
+        const pacientes = {{ estado_pacientes | tojson }};
+
+        const mapaEl = document.getElementById('mapa-clinica');
+        if (mapaEl) {
+            // Find center: first zone or Mexico City default
+            let centerLat = 19.4326, centerLon = -99.1332, zoom = 13;
+            if (zonas.length > 0) {
+                centerLat = parseFloat(zonas[0].latitud_centro);
+                centerLon = parseFloat(zonas[0].longitud_centro);
+            }
+
+            const mapa = L.map('mapa-clinica').setView([centerLat, centerLon], zoom);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(mapa);
+
+            // Draw safe zones
+            zonas.forEach(z => {
+                L.circle([parseFloat(z.latitud_centro), parseFloat(z.longitud_centro)], {
+                    radius: parseFloat(z.radio_metros),
+                    color: '#059669', fillColor: '#059669', fillOpacity: 0.12, weight: 2
+                }).addTo(mapa).bindTooltip(z.nombre_zona);
+            });
+
+            // Draw patient markers
+            pacientes.forEach(p => {
+                if (p.latitud === null || p.longitud === null) return;
+                const color = p.zona_status === 'fuera' ? '#E11D48' : '#0E7490';
+                const marker = L.circleMarker([parseFloat(p.latitud), parseFloat(p.longitud)], {
+                    radius: 8, color: color, fillColor: color, fillOpacity: 0.85, weight: 2
+                }).addTo(mapa);
+                const bat = p.nivel_bateria !== null ? ` · Bat: ${p.nivel_bateria}%` : '';
+                marker.bindPopup(`<b>${p.nombre} ${p.apellido_p}</b>${bat}`);
+            });
         }
     </script>
 

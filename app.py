@@ -230,6 +230,41 @@ def dashboard():
         ORDER BY v.hora_entrada DESC
     """)
 
+    # ── Chart data ───────────────────────────────────────────────────────────
+    alertas_por_tipo = db.query("""
+        SELECT tipo_alerta, COUNT(*) AS total
+        FROM alertas
+        GROUP BY tipo_alerta
+        ORDER BY total DESC
+    """)
+
+    alertas_por_dia = db.query("""
+        SELECT TO_CHAR(fecha_hora::date, 'DD/MM') AS dia, COUNT(*) AS total
+        FROM alertas
+        WHERE fecha_hora >= CURRENT_DATE - INTERVAL '13 days'
+        GROUP BY fecha_hora::date
+        ORDER BY fecha_hora::date
+    """)
+    # Fill in missing days with 0 (build full 14-day series)
+    from datetime import timedelta
+    hoy = date.today()
+    dia_map = {r["dia"]: int(r["total"]) for r in alertas_por_dia}
+    alertas_dias_labels = []
+    alertas_dias_valores = []
+    for i in range(13, -1, -1):
+        d = hoy - timedelta(days=i)
+        label = d.strftime("%d/%m")
+        alertas_dias_labels.append(label)
+        alertas_dias_valores.append(dia_map.get(label, 0))
+
+    stock_farmacia = db.query("""
+        SELECT m.nombre_medicamento, im.stock_actual, im.stock_minimo, s.nombre_sede
+        FROM inventario_medicinas im
+        JOIN medicamentos m ON im.GTIN = m.GTIN
+        JOIN sedes s        ON im.id_sede = s.id_sede
+        ORDER BY s.nombre_sede, m.nombre_medicamento
+    """)
+
     return render_template(
         "dashboard.html",
         stats=stats,
@@ -239,6 +274,10 @@ def dashboard():
         medicamentos_criticos=medicamentos_criticos,
         suministros_pendientes=suministros_pendientes,
         visitas_hoy=visitas_hoy,
+        alertas_por_tipo=alertas_por_tipo,
+        alertas_dias_labels=alertas_dias_labels,
+        alertas_dias_valores=alertas_dias_valores,
+        stock_farmacia=stock_farmacia,
     )
 
 
@@ -1006,7 +1045,7 @@ def alertas():
         rows = db.query("""
             SELECT pc.id_paciente, pc.prioridad,
                    ce.nombre || ' ' || ce.apellido_p AS nombre,
-                   ce.telefono, ce.parentesco
+                   ce.telefono, ce.relacion AS parentesco
             FROM paciente_contactos pc
             JOIN contactos_emergencia ce ON ce.id_contacto = pc.id_contacto
             WHERE pc.id_paciente = ANY(%s)
@@ -1593,7 +1632,28 @@ def recetas_lista():
                  p.apellido_m, s.nombre_sede, d.id_serial, rn.fecha_inicio_gestion
         ORDER BY r.fecha DESC
     """)
-    return render_template("recetas.html", recetas=recetas)
+
+    adherencia_chart = db.query("""
+        SELECT nombre_paciente, exitosas, total
+        FROM (
+            SELECT p.nombre || ' ' || p.apellido_p AS nombre_paciente,
+                   COUNT(ln.id_lectura_nfc)
+                       FILTER (WHERE ln.resultado = 'Exitosa') AS exitosas,
+                   COUNT(ln.id_lectura_nfc)                    AS total
+            FROM recetas r
+            JOIN pacientes p ON p.id_paciente = r.id_paciente
+            LEFT JOIN lecturas_nfc ln
+                ON ln.id_receta = r.id_receta
+                AND ln.fecha_hora >= NOW() - INTERVAL '30 days'
+            WHERE p.id_estado != 3
+            GROUP BY p.id_paciente, p.nombre, p.apellido_p
+            HAVING COUNT(ln.id_lectura_nfc) > 0
+        ) sub
+        ORDER BY exitosas::float / NULLIF(total, 0) DESC
+        LIMIT 15
+    """)
+
+    return render_template("recetas.html", recetas=recetas, adherencia_chart=adherencia_chart)
 
 
 @app.route("/recetas/nueva", methods=["GET", "POST"])
@@ -1840,6 +1900,7 @@ def clinica_sedes():
                 "id_sucursal": s["id_sede"],
                 "nombre":      s["nombre_sede"],
                 "zona":        s.get("municipio", ""),
+                "direccion":   f"{s.get('calle','').strip()} {s.get('numero','').strip()}, {s.get('municipio','').strip()}",
             },
             "total_pacientes": total,
         })
@@ -2028,6 +2089,110 @@ def dashboard_clinica(id_sucursal):
         WHERE sp.id_sede = %s AND sp.fecha_salida IS NULL AND ee.estado = 'Pendiente'
     """, (id_sucursal,))
 
+    # Fecha hoy en español sin locale
+    _meses = ['enero','febrero','marzo','abril','mayo','junio',
+              'julio','agosto','septiembre','octubre','noviembre','diciembre']
+    from datetime import date as _date
+    _hoy = _date.today()
+    fecha_hoy = f"{_hoy.day} de {_meses[_hoy.month - 1]}, {_hoy.year}"
+
+    # Estado GPS por paciente (lateral join para última lectura)
+    estado_pacientes = db.query("""
+        SELECT p.id_paciente, p.nombre, p.apellido_p,
+               lg.latitud, lg.longitud, lg.nivel_bateria,
+               lg.fecha_hora AS ultima_lectura
+        FROM pacientes p
+        JOIN sede_pacientes sp ON p.id_paciente = sp.id_paciente
+            AND sp.fecha_salida IS NULL AND sp.id_sede = %s
+        LEFT JOIN asignacion_kit ak ON p.id_paciente = ak.id_paciente
+            AND ak.fecha_fin IS NULL
+        LEFT JOIN LATERAL (
+            SELECT latitud, longitud, nivel_bateria, fecha_hora
+            FROM lecturas_gps
+            WHERE id_dispositivo = ak.id_dispositivo_gps
+            ORDER BY fecha_hora DESC LIMIT 1
+        ) lg ON true
+        WHERE p.id_estado != 3
+        ORDER BY p.nombre
+    """, (id_sucursal,))
+
+    # Zonas seguras de la sede para el mapa
+    zonas_mapa = db.query("""
+        SELECT z.id_zona, z.nombre_zona,
+               z.latitud_centro, z.longitud_centro, z.radio_metros
+        FROM zonas z
+        JOIN sede_zonas sz ON sz.id_zona = z.id_zona
+        WHERE sz.id_sede = %s
+    """, (id_sucursal,))
+
+    # Pacientes con alerta 'Salida de Zona' activa
+    alertas_salida_ids = {
+        row["id_paciente"]
+        for row in db.query("""
+            SELECT DISTINCT a.id_paciente FROM alertas a
+            JOIN sede_pacientes sp ON a.id_paciente = sp.id_paciente
+            WHERE sp.id_sede = %s AND sp.fecha_salida IS NULL
+              AND a.estatus = 'Activa' AND a.tipo_alerta = 'Salida de Zona'
+        """, (id_sucursal,))
+    }
+
+    # Calcular estado de zona y tiempo relativo por paciente
+    for p in estado_pacientes:
+        if p["ultima_lectura"] is None:
+            p["zona_status"] = "sin_datos"
+            p["tiempo_rel"] = None
+        else:
+            if p["id_paciente"] in alertas_salida_ids:
+                p["zona_status"] = "fuera"
+            else:
+                dentro = any(
+                    _haversine_m(p["latitud"], p["longitud"],
+                                 float(z["latitud_centro"]), float(z["longitud_centro"]))
+                    <= float(z["radio_metros"])
+                    for z in zonas_mapa
+                )
+                p["zona_status"] = "dentro" if dentro else "fuera"
+            mins = int((_now - p["ultima_lectura"]).total_seconds() / 60)
+            if mins < 1:
+                p["tiempo_rel"] = "hace un momento"
+            elif mins < 60:
+                p["tiempo_rel"] = f"hace {mins} min"
+            elif mins < 1440:
+                p["tiempo_rel"] = f"hace {mins // 60} h"
+            else:
+                p["tiempo_rel"] = f"hace {mins // 1440} d"
+
+    # Medicamentos activos con adherencia NFC de hoy
+    meds_sede = db.query("""
+        SELECT p.id_paciente, p.nombre || ' ' || p.apellido_p AS nombre_paciente,
+               m.nombre_medicamento, rm.dosis, r.id_receta
+        FROM pacientes p
+        JOIN sede_pacientes sp ON p.id_paciente = sp.id_paciente
+            AND sp.fecha_salida IS NULL AND sp.id_sede = %s
+        JOIN recetas r ON p.id_paciente = r.id_paciente AND r.estado = 'Activa'
+        JOIN receta_medicamentos rm ON r.id_receta = rm.id_receta
+        JOIN medicamentos m ON rm.gtin = m.gtin
+        WHERE p.id_estado != 3
+        ORDER BY p.nombre, m.nombre_medicamento
+    """, (id_sucursal,))
+
+    receta_ids = list({med["id_receta"] for med in meds_sede})
+    if receta_ids:
+        nfc_hoy_rows = db.query("""
+            SELECT DISTINCT ON (id_receta) id_receta,
+                   TO_CHAR(fecha_hora, 'HH24:MI') AS hora_toma
+            FROM lecturas_nfc
+            WHERE id_receta = ANY(%s)
+              AND fecha_hora::date = CURRENT_DATE
+              AND resultado = 'Exitosa'
+            ORDER BY id_receta, fecha_hora DESC
+        """, (receta_ids,))
+        nfc_hoy = {row["id_receta"]: row["hora_toma"] for row in nfc_hoy_rows}
+    else:
+        nfc_hoy = {}
+    for med in meds_sede:
+        med["tomada_hoy"] = nfc_hoy.get(med["id_receta"])
+
     return render_template(
         "clinica.html",
         sucursal=sucursal,
@@ -2045,6 +2210,10 @@ def dashboard_clinica(id_sucursal):
         comedor_hoy=comedor_hoy,
         visitas_hoy=visitas_hoy,
         entregas_pendientes=entregas_pend,
+        fecha_hoy=fecha_hoy,
+        estado_pacientes=estado_pacientes,
+        zonas_mapa=zonas_mapa,
+        meds_sede=meds_sede,
     )
 
 
@@ -2306,6 +2475,19 @@ def portal_paciente(id):
         LIMIT 10
     """, (id,))
 
+    # ── GPS battery history (last 20 readings, oldest→newest for sparkline) ────
+    bateria_historial = db.query("""
+        SELECT TO_CHAR(lg.fecha_hora, 'DD/MM HH24:MI') AS label,
+               lg.nivel_bateria
+        FROM lecturas_gps lg
+        JOIN asignacion_kit ak ON lg.id_dispositivo = ak.id_dispositivo_gps
+        WHERE ak.id_paciente = %s AND ak.fecha_fin IS NULL
+          AND lg.nivel_bateria IS NOT NULL
+        ORDER BY lg.fecha_hora DESC
+        LIMIT 20
+    """, (id,))
+    bateria_historial = list(reversed(bateria_historial))
+
     # ── Last caregiver round — resolved via asignacion_beacon (caregiver-carried) ──
     ultima_ronda = db.scalar("""
         SELECT MAX(db2.fecha_hora)
@@ -2339,6 +2521,7 @@ def portal_paciente(id):
         tiempo_alerta_critica=tiempo_alerta_critica,
         nombre_zona_actual=nombre_zona_actual,
         tiempo_gps=tiempo_gps,
+        bateria_historial=bateria_historial,
     )
 
 

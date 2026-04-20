@@ -257,44 +257,42 @@
         </div>
     </div>
 
-    <!-- Gráfica de alertas por tipo -->
+    <!-- Gráfica de alertas por tipo (donut) -->
     <div class="card">
         <div class="card-header">
             <div>
                 <div class="card-title">Alertas por tipo</div>
-                <div style="font-size:11px; color:#8892a4; margin-top:2px;">Distribución del periodo actual</div>
+                <div style="font-size:11px; color:#8892a4; margin-top:2px;">Distribución acumulada del sistema</div>
             </div>
         </div>
-        <div style="padding:16px 18px 18px;">
-            <div id="chart-bars" style="display:flex; align-items:flex-end; gap:12px; height:130px; padding-bottom:8px; border-bottom:1px solid #f0f2f5; margin-bottom:12px;">
-                <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end;">
-                    <span id="val-salida" style="font-size:13px; font-weight:700; color:#1a1a2e;">—</span>
-                    <div id="bar-salida" style="width:100%; background:#0E7490; border-radius:5px 5px 0 0; height:0%; min-height:4px; transition:height .5s ease;"></div>
-                    <span style="font-size:10px; color:#8892a4; font-weight:500; text-align:center;">Salida zona</span>
-                </div>
-                <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end;">
-                    <span id="val-bateria" style="font-size:13px; font-weight:700; color:#1a1a2e;">—</span>
-                    <div id="bar-bateria" style="width:100%; background:#ba7517; border-radius:5px 5px 0 0; height:0%; min-height:4px; transition:height .5s ease;"></div>
-                    <span style="font-size:10px; color:#8892a4; font-weight:500; text-align:center;">Batería baja</span>
-                </div>
-                <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end;">
-                    <span id="val-sos" style="font-size:13px; font-weight:700; color:#1a1a2e;">—</span>
-                    <div id="bar-sos" style="width:100%; background:#e24b4a; border-radius:5px 5px 0 0; height:0%; min-height:4px; transition:height .5s ease;"></div>
-                    <span style="font-size:10px; color:#8892a4; font-weight:500; text-align:center;">Botón SOS</span>
-                </div>
-            </div>
-            <div style="display:flex; gap:14px; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#8892a4;">
-                    <div style="width:8px; height:8px; border-radius:2px; background:#0E7490;"></div>Salida de zona
-                </div>
-                <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#8892a4;">
-                    <div style="width:8px; height:8px; border-radius:2px; background:#ba7517;"></div>Batería baja
-                </div>
-                <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#8892a4;">
-                    <div style="width:8px; height:8px; border-radius:2px; background:#e24b4a;"></div>Botón SOS
-                </div>
+        <div id="chart-donut-tipos" style="height:220px;"></div>
+    </div>
+
+</div>
+
+<!-- Fila 3: alertas por día + stock farmacia -->
+<div class="mob-stack" style="display:grid; grid-template-columns: 1fr 1fr; gap:18px; margin-bottom:20px;">
+
+    <!-- Alertas por día — últimos 14 días -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Alertas — últimos 14 días</div>
+                <div style="font-size:11px; color:#8892a4; margin-top:2px;">Evolución diaria de eventos</div>
             </div>
         </div>
+        <div id="chart-alertas-dia" style="height:220px;"></div>
+    </div>
+
+    <!-- Stock farmacia actual vs mínimo -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Stock de farmacia</div>
+                <div style="font-size:11px; color:#8892a4; margin-top:2px;">Actual vs. mínimo operativo por medicamento</div>
+            </div>
+        </div>
+        <div id="chart-stock" style="height:220px;"></div>
     </div>
 
 </div>
@@ -392,29 +390,97 @@
 
 {% block extra_js %}
 <script>
-    fetch('/api/estadisticas')
-        .then(r => r.json())
-        .then(data => {
-            const tipos = data.alertas_por_tipo || [];
-            let maxVal = 1;
-            tipos.forEach(t => { if (t.total > maxVal) maxVal = t.total; });
+(function () {
+    // ── Shared Highcharts theme ──────────────────────────────────────────────
+    Highcharts.setOptions({
+        chart:  { style: { fontFamily: 'Inter, system-ui, sans-serif' }, backgroundColor: 'transparent' },
+        title:  { text: null },
+        credits:{ enabled: false },
+        colors: ['#0E7490','#059669','#D97706','#E11D48','#7C3AED','#0369A1'],
+    });
 
-            tipos.forEach(t => {
-                const pct = Math.round((t.total / maxVal) * 100);
-                if (t.tipo_alerta === 'Salida de Zona') {
-                    document.getElementById('bar-salida').style.height = pct + '%';
-                    document.getElementById('val-salida').textContent  = t.total;
-                }
-                if (t.tipo_alerta === 'Batería Baja') {
-                    document.getElementById('bar-bateria').style.height = pct + '%';
-                    document.getElementById('val-bateria').textContent  = t.total;
-                }
-                if (t.tipo_alerta === 'Botón SOS') {
-                    document.getElementById('bar-sos').style.height = pct + '%';
-                    document.getElementById('val-sos').textContent  = t.total;
-                }
-            });
-        })
-        .catch(() => {});
+    // ── 1. Donut: alertas por tipo ───────────────────────────────────────────
+    const tiposData = {{ alertas_por_tipo | tojson }};
+    Highcharts.chart('chart-donut-tipos', {
+        chart: { type: 'pie', margin: [8, 0, 8, 0] },
+        plotOptions: {
+            pie: {
+                innerSize: '58%',
+                dataLabels: { enabled: false },
+                showInLegend: true,
+            }
+        },
+        legend: {
+            enabled: true,
+            layout: 'vertical',
+            align: 'right',
+            verticalAlign: 'middle',
+            itemStyle: { fontSize: '11px', fontWeight: '500', color: '#475569' },
+        },
+        tooltip: { pointFormat: '<b>{point.y}</b> alertas ({point.percentage:.1f}%)' },
+        series: [{
+            name: 'Alertas',
+            data: tiposData.map(t => ({ name: t.tipo_alerta, y: parseInt(t.total) }))
+        }]
+    });
+
+    // ── 2. Column: alertas por día (últimos 14 días) ─────────────────────────
+    const diasLabels  = {{ alertas_dias_labels | tojson }};
+    const diasValores = {{ alertas_dias_valores | tojson }};
+    Highcharts.chart('chart-alertas-dia', {
+        chart: { type: 'column', spacing: [12, 8, 8, 8] },
+        xAxis: {
+            categories: diasLabels,
+            labels: { style: { fontSize: '10px', color: '#94A3B8' } },
+            tickLength: 0,
+            lineColor: '#E2E8F0',
+        },
+        yAxis: {
+            title: { text: null },
+            gridLineColor: '#F1F5F9',
+            labels: { style: { fontSize: '10px', color: '#94A3B8' } },
+            allowDecimals: false,
+        },
+        tooltip: { headerFormat: '<span style="font-size:11px">{point.key}</span><br>', pointFormat: '<b>{point.y}</b> alerta(s)' },
+        plotOptions: {
+            column: { borderRadius: 3, pointPadding: 0.1, groupPadding: 0.1 }
+        },
+        series: [{
+            name: 'Alertas',
+            data: diasValores,
+            color: '#0E7490',
+        }]
+    });
+
+    // ── 3. Bar: stock farmacia actual vs mínimo ──────────────────────────────
+    const stockData = {{ stock_farmacia | tojson }};
+    const stockLabels  = stockData.map(s => s.nombre_medicamento);
+    const stockActual  = stockData.map(s => parseInt(s.stock_actual));
+    const stockMinimo  = stockData.map(s => parseInt(s.stock_minimo));
+    Highcharts.chart('chart-stock', {
+        chart: { type: 'bar', spacing: [8, 8, 8, 8] },
+        xAxis: {
+            categories: stockLabels,
+            labels: { style: { fontSize: '10px', color: '#475569' } },
+            lineColor: 'transparent',
+        },
+        yAxis: {
+            title: { text: null },
+            gridLineColor: '#F1F5F9',
+            labels: { style: { fontSize: '10px', color: '#94A3B8' } },
+        },
+        tooltip: { shared: true },
+        plotOptions: {
+            bar: { borderRadius: 2, groupPadding: 0.08, pointPadding: 0.05 }
+        },
+        legend: {
+            itemStyle: { fontSize: '11px', fontWeight: '500', color: '#475569' }
+        },
+        series: [
+            { name: 'Stock actual', data: stockActual, color: '#0E7490' },
+            { name: 'Mínimo',       data: stockMinimo, color: '#FDA4AF', dashStyle: 'dot' },
+        ]
+    });
+})();
 </script>
 {% endblock %}

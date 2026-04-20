@@ -296,6 +296,21 @@
     {% endif %}
 </div>
 
+{% if bateria_historial %}
+{# ── Battery sparkline card ───────────────────────────────────────────────── #}
+<div class="pf-card" style="margin-bottom:20px;">
+    <div class="pf-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             width="13" height="13">
+            <rect x="2" y="7" width="16" height="10" rx="2"/>
+            <path d="M22 11v2" stroke-linecap="round"/>
+        </svg>
+        Batería GPS — últimas lecturas
+    </div>
+    <div id="chart-bateria-sparkline" style="height:130px;"></div>
+</div>
+{% endif %}
+
 {# ═══════════════════════════════════════════════════════════════════════════
    SECTION 3 — Today's Medication Checklist
    ═══════════════════════════════════════════════════════════════════════════ #}
@@ -550,6 +565,57 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     L.marker([lat, lng], { icon: icon, interactive: false }).addTo(map);
 });
+</script>
+{% endif %}
+
+{% if bateria_historial %}
+<script>
+(function () {
+    const bData = {{ bateria_historial | tojson }};
+    const labels = bData.map(r => r.label);
+    const valores = bData.map(r => parseInt(r.nivel_bateria));
+
+    Highcharts.chart('chart-bateria-sparkline', {
+        chart: { type: 'area', margin: [12, 12, 24, 36], style: { fontFamily: 'Inter, system-ui, sans-serif' }, backgroundColor: 'transparent' },
+        title: { text: null },
+        credits: { enabled: false },
+        xAxis: {
+            categories: labels,
+            labels: { enabled: false },
+            lineColor: 'transparent',
+            tickLength: 0,
+        },
+        yAxis: {
+            title: { text: null },
+            min: 0, max: 100,
+            gridLineColor: '#F1F5F9',
+            labels: { format: '{value}%', style: { fontSize: '9px', color: '#94A3B8' } },
+        },
+        tooltip: {
+            headerFormat: '<span style="font-size:10px">{point.key}</span><br>',
+            pointFormat: 'Batería: <b>{point.y}%</b>',
+        },
+        plotOptions: {
+            area: {
+                fillOpacity: 0.15,
+                marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
+                lineWidth: 2,
+            }
+        },
+        legend: { enabled: false },
+        series: [{
+            name: 'Batería',
+            data: valores,
+            color: '#0E7490',
+            fillColor: { linearGradient: { x1:0, y1:0, x2:0, y2:1 }, stops: [[0,'rgba(14,116,144,.35)'],[1,'rgba(14,116,144,.0)']] },
+            zones: [
+                { value: 15, color: '#E11D48', fillColor: 'rgba(225,29,72,.15)' },
+                { value: 30, color: '#D97706', fillColor: 'rgba(217,119,6,.15)' },
+                { color: '#0E7490', fillColor: 'rgba(14,116,144,.15)' },
+            ],
+        }]
+    });
+})();
 </script>
 {% endif %}
 {% endblock %}
