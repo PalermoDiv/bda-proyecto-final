@@ -501,10 +501,10 @@
                     <tr>
                         <td style="font-weight:600; color:#0F172A;">{{ r.nombre_sede }}</td>
                         <td style="font-variant-numeric:tabular-nums; font-size:12px;">
-                            {{ r.fecha_ingreso[8:10] }}/{{ r.fecha_ingreso[5:7] }}/{{ r.fecha_ingreso[0:4] }}
+                            {{ r.fecha_entrada[8:10] }}/{{ r.fecha_entrada[5:7] }}/{{ r.fecha_entrada[0:4] }}
                         </td>
                         <td style="font-size:12px; color:#64748B; font-variant-numeric:tabular-nums;">
-                            {{ r.hora_ingreso }}
+                            {{ r.hora_entrada if r.hora_entrada else '—' }}
                         </td>
                         <td style="font-variant-numeric:tabular-nums; font-size:12px; color:#64748B;">
                             {% if r.fecha_salida %}
@@ -610,9 +610,9 @@
                     <tr>
                         <td style="font-weight:600; font-size:13px;">{{ a.tipo_alerta }}</td>
                         <td style="font-size:12px; color:#64748B; font-variant-numeric:tabular-nums;">
-                            {{ a.fecha[8:10] }}/{{ a.fecha[5:7] }}/{{ a.fecha[0:4] }}
+                            {% set fh = a.fecha_hora|string %}{{ fh[8:10] }}/{{ fh[5:7] }}/{{ fh[0:4] }}
                         </td>
-                        <td style="font-size:12px; color:#64748B; font-variant-numeric:tabular-nums;">{{ a.hora }}</td>
+                        <td style="font-size:12px; color:#64748B; font-variant-numeric:tabular-nums;">{{ fh[11:19] }}</td>
                         <td>
                             {% if a.estatus == 'Activa' %}
                                 <span class="badge" style="background:#FFF1F2; color:#BE123C; border:1px solid #FECDD3; font-size:10px; padding:3px 9px; border-radius:100px; font-weight:700;">Activa</span>
