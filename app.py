@@ -1633,7 +1633,7 @@ def api_nfc_lectura():
     try:
         next_id = db.one_sp("sp_sel_next_id_lectura_nfc")["next_id"]
         db.execute(
-            "CALL sp_nfc_registrar_lectura(%s, %s, %s, NOW(), %s, %s)",
+            "CALL sp_nfc_registrar_lectura(%s::integer, %s::integer, %s::integer, NOW(), %s, %s)",
             (next_id, id_dispositivo, id_receta, tipo_lectura, resultado)
         )
         return jsonify({"status": "ok", "ok": True, "id_lectura_nfc": next_id, "id_receta": id_receta})
