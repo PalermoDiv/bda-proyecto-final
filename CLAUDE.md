@@ -33,9 +33,17 @@ Archivos SQL con SPs aplicados a la DB:
 ```bash
 pip install -r requirements.txt
 python app.py
-# Runs at https://localhost:5002  (self-signed TLS — auto-generated on first run)
+# Runs at https://0.0.0.0:5002  (self-signed TLS — cert.pem/key.pem must exist)
 # Also spawns a plain HTTP listener on http://0.0.0.0:5003 for Traccar/OsmAnd GPS apps
+# Generate certs if missing: openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=<YOUR_IP>" -addext "subjectAltName=IP:<YOUR_IP>"
 ```
+
+**VM deployment (GCP):**
+- App runs on port 5002 (HTTPS) and 5003 (HTTP)
+- GCP firewall rules must allow TCP 5002 and 5003
+- CentOS: pg_hba.conf at `/var/lib/pgsql/data/pg_hba.conf` — set local auth to `trust`
+- beacon_scanner.py runs on the local Mac (needs BLE hardware), not the VM
+- NFC simulation (no Android): `curl -X POST https://<IP>:5002/api/nfc/lectura -H "X-AlzMonitor-Key: alz-dev-2026" -H "Content-Type: application/json" -d '{"serial":"<NFC_SERIAL>"}' -k`
 
 Apply the schema from scratch:
 ```bash
@@ -107,12 +115,12 @@ Vanilla JS only (`static/js/main.js`, 25 lines) — handles auto-dismiss alerts 
 
 Full integration plan is in `DEVICES.md`. **GPS is the central safety mechanism.**
 
-### Beacon architecture — UPDATED 2026-04-18
+### Beacon architecture — UPDATED 2026-04-21
 **Old approach (abandoned):** Beacons fixed to walls, caregiver's phone detects them via Web Bluetooth. Dropped because `requestLEScan` is unreliable in Chrome Android.
 
 **New approach:** Caregiver carries the beacon. The central computer (same Mac running Flask) runs `beacon_scanner.py` using the `bleak` library. It scans for BLE advertisements continuously, identifies the beacon by UUID/major/minor, resolves the caregiver via `asignacion_beacon`, and POSTs to `POST /api/beacon/deteccion`.
 
-- `beacon_scanner.py` — run alongside Flask: `python beacon_scanner.py`
+- `beacon_scanner.py` — run on local Mac (not VM): `python beacon_scanner.py`. Uses `https://` endpoint with `verify=False` for self-signed cert.
 - Beacons are assigned to caregivers via `asignacion_beacon` table (not `beacon_zona`)
 - `beacon_zona` still exists for the wall-mounted approach but is not used in the current flow
 - Admin UI for assignments: `GET /equipamiento/asignacion-beacons`
@@ -133,8 +141,8 @@ Full integration plan is in `DEVICES.md`. **GPS is the central safety mechanism.
 | `RecetasProcedures.sql` | Applied | 10 stored procedures for receta/NFC module |
 | `BeaconProcedures.sql` | Applied | 1 SP legacy (sp_cuidador_registrar_ronda) |
 | `AppProcedures.sql` | Applied | 32 DML SPs — pacientes, cuidadores, enfermedades, contactos, kit GPS (incl. sp_kit_reasignar), turnos, asignacion_beacon, deteccion_beacon, alertas, farmacia, visitas, lecturas GPS |
-| `ViewsDB.sql` | Applied | **114 read-only views** covering all SELECT queries in app.py. Must be applied before SelectProcedures.sql. Note: `v_asignacion_nfc_paciente` omitted — `asignacion_nfc` table does not exist in the DDL. Added `v_clinica_cobertura_zonas` (SP 136). |
-| `SelectProcedures.sql` | Applied | **136 SPs `sp_sel_*`** — one per view, each opens a REFCURSOR. All embedded SQL in app.py has been migrated to these SPs. Bug fixes applied: SP 54 (`fecha_hora` added), SP 88 (now uses `v_nfc_activo`), SP 92 (`ORDER BY fecha_entrada` fixed). SP 136 (`sp_sel_clinica_cobertura_zonas`) added. |
+| `ViewsDB.sql` | Applied | **114 read-only views** covering all SELECT queries in app.py. Must be applied before SelectProcedures.sql. Note: `v_asignacion_nfc_paciente` omitted — `asignacion_nfc` table does not exist in the DDL. Added `v_clinica_cobertura_zonas` (SP 136). Fixed `v_adherencia_nfc_por_paciente` ORDER BY alias bug. |
+| `SelectProcedures.sql` | Applied | **138 SPs `sp_sel_*`** — all embedded SQL in app.py migrated. Bug fixes: SP 54 (`fecha_hora`), SP 81 (`ORDER BY fecha_entrada`), SP 88 (`v_nfc_activo`), SP 92 (`ORDER BY fecha_entrada`), SP 117 (`ORDER BY fecha DESC, hora DESC`). Added SP 136 (`sp_sel_clinica_cobertura_zonas`), SP 137 (`sp_sel_next_id_empleado`), SP 138 (`sp_sel_next_id_suministro`). Removed DEFAULT from p_limite params (SP 53, 54, 85). |
 | `beacon_scanner.py` | Active | Python BLE scanner using bleak — run alongside Flask to detect caregiver beacons |
 | `TriggersDB.sql` | Applied | 3 DB triggers defined (cobertura zona, batería baja, zona exit) — all currently DISABLED via DisableTriggers.sql |
 | `DisableTriggers.sql` | Applied | Disables all 3 triggers; apply after TriggersDB.sql on fresh schema |
@@ -213,6 +221,9 @@ Defined in DB but **all currently DISABLED** via `DisableTriggers.sql`. Re-apply
 ## Key Behaviors
 
 - **Dispositivo registration**: `id_dispositivo` must be supplied manually (no SERIAL). `estado` defaults to `'Activo'`. `tipo` must be exactly `GPS`, `BEACON`, or `NFC`.
+- **Cuidador creation**: `id_empleado` is auto-computed via `sp_sel_next_id_empleado` — no manual ID input in the form.
+- **Suministro creation**: `id_suministro` is auto-computed via `sp_sel_next_id_suministro` — no manual ID input in the form.
+- **NFC lectura**: params cast to `::integer` explicitly to avoid psycopg smallint inference mismatch.
 - **Cuidador deletion**: deletes from `cuidadores` then `empleados` in a single transaction (FK dependency).
 - **Paciente deletion**: soft-delete only — `UPDATE pacientes SET id_estado = 3`.
 - **Sede transfer**: `POST /pacientes/<id>/transferir-sede` closes active `sede_pacientes` row and inserts new one atomically via `execute_many`. Guards against same-sede transfers.
