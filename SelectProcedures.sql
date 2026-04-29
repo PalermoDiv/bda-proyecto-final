@@ -796,7 +796,7 @@ LANGUAGE plpgsql AS $$
 BEGIN
     OPEN io_resultados FOR
         SELECT * FROM v_cuidadores
-        WHERE id_empleado = p_id_cuidador;
+        WHERE id_cuidador = p_id_cuidador;
 END;
 $$;
 

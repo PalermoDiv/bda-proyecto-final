@@ -1,318 +1,425 @@
 # AlzMonitor
 
-A multi-tenant clinical management system for Alzheimer's patients, built as the final project for an Advanced Databases (BDA) university course. The system integrates PostgreSQL with PostGIS, stored procedures, database triggers, and a three-layer IoT architecture (GPS, BLE Beacons, NFC wristbands) to provide real-time patient safety monitoring across multiple clinical facilities.
+Sistema de gestión clínica multisede para pacientes de Alzheimer, desarrollado como proyecto final de la materia de Bases de Datos Avanzadas (BDA). Integra PostgreSQL + PostGIS, procedimientos almacenados, triggers de base de datos y una arquitectura IoT de tres capas: GPS, beacons BLE y pulseras NFC.
 
 ---
 
-## Technology Stack
+## Índice
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | Python 3.11 · Flask |
-| Database | PostgreSQL 15 · PostGIS |
-| ORM | None — raw SQL via `psycopg2` with `RealDictCursor` |
-| PDF generation | ReportLab |
-| Frontend | Jinja2 · Vanilla JS · CSS custom properties |
-| IoT protocols | GPRS/4G GPS · Bluetooth 5.1 BLE · ISO 14443A NFC |
-| Maps | Leaflet.js (family portal only) |
-| Transport | HTTPS (self-signed TLS, required for Web NFC/Bluetooth APIs) |
+1. [Requisitos previos](#1-requisitos-previos)
+2. [Instalación de dependencias Python](#2-instalación-de-dependencias-python)
+3. [Configurar PostgreSQL](#3-configurar-postgresql)
+4. [Aplicar el esquema y los procedimientos](#4-aplicar-el-esquema-y-los-procedimientos)
+5. [Configurar variables de entorno (.env)](#5-configurar-variables-de-entorno-env)
+6. [Generar certificado TLS](#6-generar-certificado-tls)
+7. [Abrir puertos en el firewall](#7-abrir-puertos-en-el-firewall)
+8. [Levantar la aplicación](#8-levantar-la-aplicación)
+9. [Credenciales de prueba](#9-credenciales-de-prueba)
+10. [beacon_scanner.py — escáner BLE local](#10-beacon_scannerpy--escáner-ble-local)
+11. [Agregar dispositivos propios y probarlos](#11-agregar-dispositivos-propios-y-probarlos)
+12. [Escenarios de demostración](#12-escenarios-de-demostración)
 
 ---
 
-## Setup
+## 1. Requisitos previos
 
-### Prerequisites
+| Software | Versión mínima | Notas |
+|----------|---------------|-------|
+| Python | 3.10+ | |
+| PostgreSQL | 14+ | Con extensión PostGIS |
+| PostGIS | 3.x | Ver instrucciones abajo |
+| OpenSSL | cualquiera | Incluido en Linux/macOS |
 
-- Python 3.10+
-- PostgreSQL 14+ with PostGIS extension
-- `brew install postgis` (macOS) or equivalent
+### Instalar PostGIS
 
-### Installation
+**Ubuntu / Debian (GCP):**
+```bash
+sudo apt update
+sudo apt install -y postgresql postgresql-contrib python3-pip
+# PostGIS — ajustar versión según `psql --version`
+sudo apt install -y postgresql-15-postgis-3
+# Si el comando anterior falla, buscar el paquete correcto:
+apt-cache search postgis
+```
+
+**CentOS / RHEL:**
+```bash
+sudo dnf install -y postgresql-server postgresql-contrib
+sudo postgresql-setup --initdb
+sudo systemctl enable --now postgresql
+sudo dnf install -y postgis33_15   # ajustar según versión de PG
+```
+
+**macOS:**
+```bash
+brew install postgresql@15 postgis
+brew services start postgresql@15
+```
+
+---
+
+## 2. Instalación de dependencias Python
+
+Desde el directorio del proyecto:
+```bash
+pip install -r requirements.txt
+```
+
+Dependencias incluidas: `Flask`, `psycopg` (v3), `python-dotenv`, `reportlab`, `bleak`, `requests`.
+
+---
+
+## 3. Configurar PostgreSQL
+
+### Crear usuario y base de datos
 
 ```bash
-# 1. Install Python dependencies
-pip install -r requirements.txt
+# Entrar como superusuario de PostgreSQL
+sudo -u postgres psql
 
-# 2. Create the database and apply the schema
-psql -U palermingoat -d alzheimer -f ProyectoFinalDDL.sql
-
-# 3. Apply stored procedures
-psql -U palermingoat -d alzheimer -f RecetasProcedures.sql
-
-# 4. Apply database triggers
-psql -U palermingoat -d alzheimer -f TriggersDB.sql
-
-# 5. Start the development server
-python app.py
-# Serves at https://localhost:5002 (TLS cert auto-generated on first run)
+# Dentro de psql:
+CREATE USER alzadmin WITH PASSWORD 'alzpass123';
+CREATE DATABASE alzheimer OWNER alzadmin;
+GRANT ALL PRIVILEGES ON DATABASE alzheimer TO alzadmin;
+\q
 ```
 
-### Environment Variables (`.env`)
+> Se puede usar cualquier nombre de usuario y contraseña — solo recordarlos para el `.env` del paso 5.
 
+### Verificar que PostGIS esté disponible
+
+```bash
+sudo -u postgres psql -d alzheimer -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 ```
-DB_HOST=/tmp
-DB_NAME=alzheimer
-DB_USER=palermingoat
-DB_PASS=
+
+Si da error, la extensión PostGIS no está instalada — volver al paso 1.
+
+### Permitir conexiones TCP locales (si aplica)
+
+En la mayoría de instalaciones, `localhost` con contraseña ya funciona. Si psql da error de autenticación, editar `pg_hba.conf`:
+
+```bash
+# Ubuntu
+sudo nano /etc/postgresql/15/main/pg_hba.conf
+
+# CentOS
+sudo nano /var/lib/pgsql/data/pg_hba.conf
+```
+
+Buscar la línea de `127.0.0.1` y cambiar el método a `md5` (o `trust` para simplificar en entorno de pruebas):
+```
+host    all    all    127.0.0.1/32    md5
+```
+
+Luego reiniciar PostgreSQL:
+```bash
+sudo systemctl restart postgresql
+```
+
+---
+
+## 4. Aplicar el esquema y los procedimientos
+
+Ejecutar los archivos SQL en este orden exacto. Reemplazar `alzadmin` con el usuario creado en el paso 3.
+
+```bash
+psql -U alzadmin -d alzheimer -f ProyectoFinalDDL.sql
+psql -U alzadmin -d alzheimer -f RecetasProcedures.sql
+psql -U alzadmin -d alzheimer -f BeaconProcedures.sql
+psql -U alzadmin -d alzheimer -f AppProcedures.sql
+psql -U alzadmin -d alzheimer -f TriggersDB.sql
+psql -U alzadmin -d alzheimer -f DisableTriggers.sql
+psql -U alzadmin -d alzheimer -f ViewsDB.sql
+psql -U alzadmin -d alzheimer -f SelectProcedures.sql
+```
+
+Cada archivo imprimirá `NOTICE` de confirmación al terminar. Si alguno falla con error de permisos, ejecutar primero:
+```bash
+sudo -u postgres psql -d alzheimer -c "GRANT ALL ON SCHEMA public TO alzadmin;"
+```
+
+El archivo `ProyectoFinalDDL.sql` incluye datos semilla completos (pacientes, cuidadores, sedes, medicamentos, dispositivos, zonas seguras).
+
+---
+
+## 5. Configurar variables de entorno (.env)
+
+Copiar el archivo de ejemplo y editarlo:
+
+```bash
+cp .env.example .env
+nano .env   # o el editor de preferencia
+```
+
+Contenido a ajustar:
+
+```env
+SECRET_KEY=cualquier-cadena-aleatoria-aqui
+
 ADMIN_USER=admin
-ADMIN_PASS=admin123
-MEDICO_USER=medico
-MEDICO_PASS=medico123
-SECRET_KEY=<flask-secret>
+ADMIN_PASSWORD=admin123
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=alzheimer
+DB_USER=alzadmin        # usuario creado en el paso 3
+DB_PASSWORD=alzpass123  # contraseña del paso 3
 ```
 
-### Demo Credentials
-
-| Role | Username | Password | Entry point |
-|------|----------|----------|-------------|
-| Administrator | `admin` | `admin123` | `/dashboard` |
-| Clinical staff | `medico` | `medico123` | `/clinica` |
-| Family portal | `lucia.garcia@demo.com` | `1234` (PIN) | `/portal-familiar/login` |
+> Si se usó Unix socket en lugar de TCP (macOS con Homebrew, o instalación local sin contraseña), cambiar `DB_HOST` al path del socket:
+> - macOS Homebrew: `DB_HOST=/tmp`
+> - Ubuntu: `DB_HOST=/var/run/postgresql`
+> - Y dejar `DB_PASSWORD=` vacío
 
 ---
 
-## Project Structure
+## 6. Generar certificado TLS
 
-```
-app.py                        Route handlers (flat, no blueprints)
-db.py                         PostgreSQL connection helpers
-pdf_report.py                 Patient PDF report generator (ReportLab)
-data.py                       Legacy in-memory stubs (partially migrated)
+La app requiere HTTPS porque las APIs del navegador (Web NFC, Web Bluetooth) solo funcionan en contexto seguro. El certificado es autofirmado — el navegador mostrará advertencia de seguridad (es normal).
 
-ProyectoFinalDDL.sql          Full schema DDL — 43 tables + seed data
-RecetasProcedures.sql         10 stored procedures (receta/NFC module)
-TriggersDB.sql                3 database triggers (GPS zone exit, battery low, beacon coverage)
-ProcedimientosAlmacenados.sql Academic convention rewrite + 3 REFCURSOR procedures (reference only)
-finalqueries.sql              Advanced analytical queries
-
-static/
-  css/main.css                Global stylesheet (CSS custom properties, teal palette)
-  js/main.js                  Alert auto-dismiss and delete confirmations (25 lines)
-
-templates/
-  base.html                   Admin layout — sticky 248px sidebar
-  login.html                  Admin/medico login (immersive dark background)
-  dashboard.html              Global stats, per-sede counters, live alerts feed
-  alertas.html / alertas_form.html
-  dispositivos.html / dispositivos_form.html
-  zonas.html / zonas_form.html
-  farmacia.html / farmacia_suministro_*.html
-  visitas.html / visitas_form.html
-  recetas.html / recetas_form.html / recetas_detalle.html
-  reportes.html
-  procedimientos.html         SP guide (all 10 procedures, parameters, CALL syntax)
-  sim_gps.html                GPS simulator for trigger demo
-  clinica.html / clinica_sedes.html
-  pacientes/
-    list.html / form.html / historial.html
-  cuidadores/
-    list.html / form.html
-  turnos/
-    list.html / form.html
-  cuidador/
-    escanear.html             Mobile caregiver scanner (Web NFC + Web Bluetooth)
-  portal_familiar/
-    base_familiar.html        Family portal layout (mobile-first, no sidebar)
-    login.html                Two-column split card login
-    paciente.html             Patient detail (map, medications, caregivers, alerts)
+```bash
+# Reemplazar <IP_O_HOSTNAME> con la IP de la máquina o localhost
+openssl req -x509 -newkey rsa:2048 \
+  -keyout key.pem -out cert.pem \
+  -days 365 -nodes \
+  -subj "/CN=<IP_O_HOSTNAME>" \
+  -addext "subjectAltName=IP:<IP_O_HOSTNAME>"
 ```
 
----
+Ejemplos:
+```bash
+# Si se accede desde la misma máquina (localhost)
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem \
+  -days 365 -nodes -subj "/CN=127.0.0.1" \
+  -addext "subjectAltName=IP:127.0.0.1"
 
-## Database Design
-
-### Schema overview
-
-The schema is organized into logical blocs in `ProyectoFinalDDL.sql`:
-
-| Bloc | Tables |
-|------|--------|
-| Catalog tables | `estados_paciente`, `cat_tipo_dispositivo`, `cat_tipo_alerta`, `cat_estado_alerta`, `cat_estado_suministro`, `cat_estado_entrega`, `cat_turno_comedor` |
-| People | `pacientes`, `empleados`, `cuidadores`, `cocineros`, `contactos_emergencia`, `paciente_contactos`, `visitantes` |
-| Facilities | `sedes`, `sede_pacientes`, `sede_empleados`, `sede_zonas` |
-| Clinical | `enfermedades`, `tiene_enfermedad`, `visitas`, `entregas_externas`, `bitacora_comedor` |
-| IoT devices | `dispositivos`, `asignacion_kit`, `asignacion_nfc`, `zonas`, `beacon_zona`, `turno_cuidador` |
-| IoT events | `lecturas_gps`, `detecciones_beacon`, `lecturas_nfc` |
-| Alerts | `alertas`, `alerta_evento_origen` |
-| Pharmacy | `medicamentos`, `inventario_medicinas`, `farmacias_proveedoras`, `suministros`, `suministro_medicinas` |
-| Prescriptions | `recetas`, `receta_medicamentos`, `receta_nfc` |
-| Shifts | `asignacion_cuidador` |
-
-### Key design decisions
-
-**Soft deletes for patients** — `pacientes.id_estado = 3` marks a patient as discharged without losing any FK-referenced history (alerts, visits, GPS readings, prescriptions all stay intact).
-
-**Sede history** — `sede_pacientes` has `fecha_salida` for temporal tracking. A partial unique index (`WHERE fecha_salida IS NULL`) enforces that a patient can only have one active sede. Transferring a patient is a two-statement atomic operation: close the current row and insert a new one.
-
-**IoT event traceability** — `alerta_evento_origen` links each alert to the raw IoT event that triggered it (`tipo_evento IN ('GPS', 'NFC', 'SOS')`), with a `regla_disparada` text description. This enables forensic reconstruction of why any alert was raised.
-
-**Geography types** — `zonas.geom` and `lecturas_gps.geom` are `GEOGRAPHY(Point, 4326)`. Zone boundary checks use PostGIS `ST_DWithin(point, zone_center, radius_meters)` which correctly accounts for Earth's curvature. GIST indexes on both columns.
-
-**Catalog tables instead of CHECK constraints** — all enumerated values are FK-constrained to catalog tables (e.g., `cat_tipo_alerta`) rather than inline CHECK constraints, enabling `ON UPDATE CASCADE` and maintainability.
-
-**Prescription-NFC link** — `receta_nfc` is a history table (not a simple FK on `recetas`). A device can be swapped mid-treatment; each row has `fecha_inicio_gestion`/`fecha_fin_gestion` so the full wristband history is preserved.
-
----
-
-## Stored Procedures
-
-All 10 procedures are in `RecetasProcedures.sql` and are applied to the live database. Every mutation to the receta/NFC module goes through a stored procedure rather than raw SQL to enforce business rules at the database level.
-
-| Procedure | What it enforces |
-|-----------|-----------------|
-| `sp_receta_crear` | Patient must exist and not be discharged |
-| `sp_receta_agregar_medicamento` | Receta must be Activa; no duplicate GTIN |
-| `sp_receta_quitar_medicamento` | Receta must be Activa; operates on `id_detalle` |
-| `sp_receta_actualizar_medicamento` | Receta must be Activa; `frecuencia_horas > 0` |
-| `sp_receta_activar_nfc` | Device must be type NFC; receta must not have an active NFC link already |
-| `sp_receta_cerrar_nfc` | Active link between this receta and this device must exist |
-| `sp_receta_cambiar_nfc` | New device must be type NFC; atomically closes old link and opens new one |
-| `sp_nfc_registrar_lectura` | Active receta-NFC link must exist; validates `tipo_lectura` and `resultado` values |
-| `sp_receta_cerrar` | Closes all active NFC links; preserves history (no DELETE) |
-| `sp_nfc_asignar` | Closes any prior assignment for patient or device before creating new one |
-
-An interactive guide to all procedures — with parameter tables, trigger location links, and copyable CALL syntax — is available at `GET /procedimientos` (admin role required).
-
----
-
-## Database Triggers
-
-Three triggers are defined in `TriggersDB.sql`:
-
-### `trg_cobertura_zona` — Beacon coverage monitoring
-
-Fires `AFTER INSERT ON detecciones_beacon`. Iterates all zones that have an active `turno_cuidador` shift at the time of the new detection. For each such zone, checks whether any caregiver has been detected in the last 30 minutes (`id_cuidador IS NOT NULL`). If not, inserts a `'Zona sin cobertura'` alert. Deduplication prevents multiple alerts for the same zone within a 2-hour window.
-
-### `trg_bateria_baja_gps` — Battery alert
-
-Fires `AFTER INSERT ON lecturas_gps`. If `nivel_bateria ≤ 15`, resolves the patient via `asignacion_kit WHERE fecha_fin IS NULL` and inserts a `'Batería Baja'` alert plus an `alerta_evento_origen` row with the exact battery percentage. Dedup window: 2 hours.
-
-### `trg_zona_exit_gps` — GPS zone exit
-
-Fires `AFTER INSERT ON lecturas_gps`. Uses PostGIS `ST_DWithin` to test whether the reading falls inside any of the patient's active sede zones. If the patient is outside all zones, inserts a `'Salida de Zona'` alert plus an `alerta_evento_origen` row listing the zone names and the exact coordinates. Dedup window: 1 hour.
-
----
-
-## IoT Architecture
-
-```
-                 ┌──────────────────────────────────┐
-                 │           PostgreSQL              │
-                 │                                  │
-  GPS tracker ──►│  lecturas_gps                    │
-  (PG12 / API)   │    └─ trg_zona_exit_gps ─────────┤──► alertas
-                 │    └─ trg_bateria_baja_gps ───────┤──► alerta_evento_origen
-                 │                                  │
-  BLE Beacon ───►│  detecciones_beacon              │
-  (caregiver     │    └─ trg_cobertura_zona ─────────┤──► alertas
-   phone scan)   │                                  │
-                 │  lecturas_nfc                    │
-  NFC wristband ►│    └─ sp_nfc_registrar_lectura   │
-  (caregiver tap)│         (validates active link)  │
-                 └──────────────────────────────────┘
+# Si se accede desde otra máquina / red (poner la IP de esta VM)
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem \
+  -days 365 -nodes -subj "/CN=34.x.x.x" \
+  -addext "subjectAltName=IP:34.x.x.x"
 ```
 
-**Layer 1 — GPS (safety-critical):** The PG12 tracker pushes readings to a cloud endpoint. The app polls that endpoint and POSTs to `POST /api/gps/lectura`, which inserts into `lecturas_gps`. Both GPS triggers fire automatically on every insert. No application code is needed for zone checking — it is entirely in the database.
-
-**Layer 2 — BLE Beacons (indoor rounds):** Beacons are building-fixed, not patient-worn. A caregiver opens `/cuidador/escanear` on their Android phone. The Web Bluetooth API scans for nearby beacons and POSTs the detection to `POST /api/beacon/deteccion`. The coverage trigger checks zone staffing.
-
-**Layer 3 — NFC wristbands (medication adherence):** Each patient wears an NFC DESFire wristband. At medication time, a caregiver taps their Android phone to the wristband via the Web NFC API on `/cuidador/escanear`. The app POSTs to `POST /api/nfc/lectura`, which resolves the device by serial, finds the linked active prescription, and calls `sp_nfc_registrar_lectura`.
-
-All three endpoints accept authentication via session (`admin`/`medico`) or the `X-AlzMonitor-Key` header for device-to-server calls.
-
-### GPS Simulator
-
-For demo and development without physical hardware, `GET /sim/gps` provides an admin form to insert GPS readings directly. The form shows all zones with their center coordinates as clickable references. Submitting a reading with `nivel_bateria ≤ 15` or coordinates outside the configured zones demonstrates both GPS triggers firing in real time.
+Los archivos `cert.pem` y `key.pem` deben quedar en el directorio raíz del proyecto (donde está `app.py`).
 
 ---
 
-## API Endpoints
+## 7. Abrir puertos en el firewall
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/gps/lectura` | IoT key / session | Insert GPS reading; fires zone-exit + battery triggers |
-| `POST` | `/api/nfc/lectura` | IoT key / session | Register NFC medication tap; resolves by `serial` or `id_dispositivo` |
-| `POST` | `/api/beacon/deteccion` | IoT key / session | Log caregiver beacon round; resolves by `serial` or `id_beacon` |
-| `GET` | `/api/test/nfc` | None | Development NFC tag lookup (returns device + linked patient) |
+La app usa dos puertos:
 
-**`POST /api/nfc/lectura` — smart resolution:**
-```json
-// Option A — direct IDs
-{ "id_dispositivo": 3, "id_receta": 42, "tipo_lectura": "Administración", "resultado": "Exitosa" }
+| Puerto | Protocolo | Uso |
+|--------|-----------|-----|
+| `5002` | HTTPS | Aplicación web principal |
+| `5003` | HTTP | Receptor GPS (Traccar Client / OsmAnd) |
 
-// Option B — from caregiver scanner (serial lookup + auto receta resolution)
-{ "serial": "04:AB:CD:EF:01:02", "tipo_lectura": "Administración", "resultado": "Exitosa" }
+### En GCP (Google Cloud Platform)
+
+1. Ir a **VPC Network → Firewall** en GCP Console
+2. Crear regla: nombre `allow-alz-5002`, protocolo TCP, puerto `5002`, targets: all instances
+3. Crear regla: nombre `allow-alz-5003`, protocolo TCP, puerto `5003`, targets: all instances
+
+### En Ubuntu con ufw
+
+```bash
+sudo ufw allow 5002/tcp
+sudo ufw allow 5003/tcp
+```
+
+### En CentOS con firewalld
+
+```bash
+sudo firewall-cmd --permanent --add-port=5002/tcp
+sudo firewall-cmd --permanent --add-port=5003/tcp
+sudo firewall-cmd --reload
 ```
 
 ---
 
-## Application Roles
+## 8. Levantar la aplicación
 
-### Administrator (`/dashboard`)
-
-Full CRUD access to all entities across all facilities. Key capabilities:
-
-- **Patients** — create (with initial sede assignment), edit, soft-delete, transfer between sedes, view full historial (diseases, caregivers, emergency contacts, GPS kit, sede history, alerts, visits)
-- **Prescriptions** — create and manage medications; assign/change/deactivate NFC wristband; view 30-day adherence percentage per medication
-- **Alerts** — full list with IoT origin badge, rule description, and priority contact info; mark as attended
-- **Zones** — list with active patients and priority contact for each zone
-- **GPS Simulator** — inject readings to demo triggers without hardware
-- **Procedures guide** — `GET /procedimientos` shows all stored procedures with parameters and CALL syntax
-
-### Clinical Staff (`/clinica`)
-
-Read-only, scoped to a specific sede. Views patients, assignments, active shifts, and alerts for that facility.
-
-### Family Portal (`/portal-familiar`)
-
-Mobile-first single-page view per patient. Scoped to the patient(s) linked to the contact via `paciente_contactos`. Shows:
-
-1. **Status banner** — green (ok) / red pulsing (active critical alert) / amber (no data >2h)
-2. **GPS map** — Leaflet map with zone circles and patient's last known position
-3. **Today's medications** — NFC confirmation status per medication, adherence progress bar
-4. **On-duty caregivers** — tap-to-call button per caregiver
-5. **Recent alerts** — last 30 days, active in red / attended in gray
-6. **Recent visits**
-
----
-
-## Data Access Layer
-
-`db.py` wraps a connection pool and exposes four functions, all using `psycopg2.extras.RealDictCursor`:
-
-```python
-db.query(sql, params)        # → list[dict]  — for SELECT returning multiple rows
-db.one(sql, params)          # → dict | None — for SELECT returning one row
-db.scalar(sql, params)       # → any         — for SELECT returning one value
-db.execute(sql, params)      # → None        — for INSERT/UPDATE/DELETE (auto-commit)
-db.execute_many([(sql, p)])  # → None        — multiple statements in one transaction
+```bash
+python app.py
 ```
 
-All mutations that touch more than one table use `execute_many` for atomicity (e.g., patient creation inserts into `pacientes` + `sede_pacientes` in a single call).
+Salida esperada:
+```
+ * Traccar/OsmAnd HTTP listener on http://0.0.0.0:5003
+ * Running on https://0.0.0.0:5002
+```
+
+### Acceder desde el navegador
+
+```
+https://<IP_DE_LA_VM>:5002
+```
+
+El navegador mostrará advertencia por certificado autofirmado. Para continuar:
+
+- **Chrome / Edge:** clic en *Configuración avanzada* → *Acceder a X.X.X.X (no seguro)*
+- **Firefox:** clic en *Avanzado* → *Aceptar el riesgo y continuar*
+- **Safari:** clic en *Mostrar detalles* → *visitar este sitio web*
 
 ---
 
-## PDF Reports
+## 9. Credenciales de prueba
 
-`GET /pacientes/<id>/reporte-pdf` streams a PDF generated by `pdf_report.py` using ReportLab. The report includes:
+| Rol | Usuario / Email | Contraseña / PIN | URL de entrada |
+|-----|----------------|-----------------|----------------|
+| Administrador | `admin` | `admin123` | `/dashboard` |
+| Personal clínico | `medico` | `medico123` | `/clinica` |
+| Portal familiar | `lucia.garcia@demo.com` | `1234` | `/portal-familiar/login` |
+| Portal familiar | `roberto.mendez@demo.com` | `1234` | `/portal-familiar/login` |
 
-- Patient identity and current status
-- Assigned GPS kit and last battery reading
-- Active diagnoses
-- Assigned caregivers
-- Emergency contacts with priority order
-- Alert history (last 30 days)
-- Medication adherence by NFC (last 7 days)
-- Last 10 GPS readings with coordinates
+El rol administrador tiene acceso completo a todos los módulos. El rol médico tiene vista de solo lectura de su sede. El portal familiar muestra el estado del paciente vinculado al contacto.
 
 ---
 
-## Demo Scenarios (Academic Requirements)
+## 10. beacon_scanner.py — escáner BLE local
 
-| # | Scenario | Status |
-|---|----------|--------|
-| 1 | Zone exit detection and escalation | 🟡 Triggers + UI complete; GPS polling loop pending |
-| 2 | Sede transfer without data loss | ✅ Complete |
-| 3 | Treatment change and NFC adherence | ✅ Complete |
-| 4 | Battery failure and kit replacement | 🟡 Battery trigger complete; kit reassignment UI pending |
-| 5 | Critical multi-sede pharmacy supply | ✅ Complete |
+Este script corre en una **Mac local** con Bluetooth (no en la VM), detecta beacons BLE de los cuidadores y los reporta a la app.
+
+### Requisitos
+
+```bash
+pip install bleak requests
+```
+
+### Ejecutar apuntando a la VM
+
+```bash
+ALZMONITOR_URL="https://<IP_DE_LA_VM>:5002/api/beacon/deteccion" python beacon_scanner.py
+```
+
+### Qué hace
+
+Escanea en busca de beacons iBeacon continuamente. Cuando detecta el beacon registrado (`FeasyBeacon FSC-BP104D`, UUID `FDA50693-1000-1001`), POSTea a la app y la detección aparece en **Admin → Rondas**.
+
+Salida esperada:
+```
+==================================================
+AlzMonitor — Escáner BLE
+Reportando a: https://34.x.x.x:5002/api/beacon/deteccion
+Intervalo de escaneo: 5s
+==================================================
+[OK] Beacon 1001-1 | RSSI -68 dBm | Cuidador: Juan Martínez
+```
+
+---
+
+## 11. Agregar dispositivos propios y probarlos
+
+### Registrar el dispositivo
+
+**Admin → Dispositivos → Nuevo dispositivo**
+
+| Campo | GPS | Beacon BLE | Pulsera NFC |
+|-------|-----|-----------|-------------|
+| Tipo | `GPS` | `BEACON` | `NFC` |
+| ID | número entero libre | número entero libre | número entero libre |
+| Serial | IMEI o identificador | UUID del beacon | `04:XX:XX:XX:XX:XX` |
+
+### Probar GPS (sin hardware físico)
+
+Usar el simulador en **Admin → Sim GPS** o via API:
+
+```bash
+curl -k -X POST https://localhost:5002/api/gps/lectura \
+  -H "X-AlzMonitor-Key: alz-dev-2026" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_dispositivo": <ID_REGISTRADO>,
+    "latitud": 19.4326,
+    "longitud": -99.1332,
+    "nivel_bateria": 80,
+    "velocidad": 0,
+    "altitud": 2240
+  }'
+```
+
+Enviar `nivel_bateria` ≤ 15 dispara el trigger `trg_bateria_baja_gps` → alerta automática en **Admin → Alertas**.
+
+### Probar NFC (sin pulsera física)
+
+```bash
+curl -k -X POST https://localhost:5002/api/nfc/lectura \
+  -H "X-AlzMonitor-Key: alz-dev-2026" \
+  -H "Content-Type: application/json" \
+  -d '{"serial": "<SERIAL_NFC>", "tipo_lectura": "Administración", "resultado": "Exitosa"}'
+```
+
+### Probar beacon (sin hardware BLE)
+
+```bash
+curl -k -X POST https://localhost:5002/api/beacon/deteccion \
+  -H "X-AlzMonitor-Key: alz-dev-2026" \
+  -H "Content-Type: application/json" \
+  -d '{"uuid": "FDA50693-1000-1001", "major": 1001, "minor": 1, "rssi": -70}'
+```
+
+### Asignar dispositivo a paciente
+
+- **Kit GPS:** Admin → Pacientes → [paciente] → Historial → Asignar kit GPS
+- **Pulsera NFC:** Admin → Recetas → [receta] → Activar NFC
+- **Beacon a cuidador:** Admin → Asignación de Beacons
+
+---
+
+## 12. Escenarios de demostración
+
+### Escenario 1 — Salida de zona y escalamiento de alertas
+
+1. Ir a **Admin → Sim GPS**
+2. Seleccionar un paciente con kit GPS asignado
+3. Ingresar coordenadas fuera de cualquier zona segura del paciente
+4. Ir a **Admin → Alertas** → aparece alerta `Salida de Zona` con origen IoT, regla disparada y cadena de contactos de emergencia con prioridad numerada
+
+### Escenario 2 — Cambio de sede sin pérdida de historial
+
+1. **Admin → Pacientes → [paciente] → Historial → Transferir sede**
+2. Seleccionar sede destino → confirmar
+3. El historial completo de sedes se conserva en la tabla `sede_pacientes`
+
+### Escenario 3 — Cambio de tratamiento y adherencia NFC
+
+1. **Admin → Recetas → Nueva receta** para un paciente
+2. Agregar medicamentos con dosis y frecuencia
+3. **Activar NFC** → asignar serial de pulsera
+4. Simular lecturas NFC con el comando curl de la sección anterior
+5. El detalle de la receta muestra % de adherencia a 30 días por medicamento
+
+### Escenario 4 — Falla de batería y reemplazo de kit GPS
+
+1. **Sim GPS** → enviar lectura con `nivel_bateria = 10`
+2. El trigger `trg_bateria_baja_gps` inserta alerta `Batería Baja` automáticamente
+3. **Admin → Pacientes → Historial → Cambiar kit GPS** → seleccionar nuevo dispositivo
+4. El kit anterior queda con `fecha_fin` en el historial; el nuevo queda activo
+
+### Escenario 5 — Inventario crítico multisede
+
+1. **Admin → Farmacia** → ver medicamentos con stock crítico resaltados en rojo por sede
+2. Ajustar stock directamente desde la tabla
+3. Crear orden de suministro para reabastecer
+
+---
+
+## Tecnologías
+
+| Capa | Tecnología |
+|------|-----------|
+| Backend | Python 3.12 · Flask |
+| Base de datos | PostgreSQL 15 · PostGIS 3 |
+| Acceso a datos | `psycopg` v3 · `RealDictCursor` · sin SQL embebido en Python |
+| Procedimientos almacenados | 138 SPs `sp_sel_*` · 32 SPs DML · 10 SPs módulo receta/NFC |
+| Vistas | 114 vistas de solo lectura |
+| Triggers | 3 triggers de base de datos (zona GPS, batería baja, cobertura beacon) |
+| Reportes PDF | ReportLab |
+| Frontend | Jinja2 · CSS custom properties · Vanilla JS |
+| IoT | GPS/GPRS via Traccar · BLE 5.1 via `bleak` · NFC ISO 14443A via Web NFC API |
+| Mapas | Leaflet.js (portal familiar) · PostGIS `ST_DWithin` (validación de zonas) |
+| TLS | Certificado autofirmado (openssl) |
+
+### Guía interactiva de procedimientos almacenados
+
+Con sesión de admin: `https://<IP>:5002/procedimientos`
+
+Muestra todos los SPs con parámetros, ubicación en el código y sintaxis CALL lista para copiar.
