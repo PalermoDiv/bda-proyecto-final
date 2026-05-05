@@ -5,7 +5,8 @@ from datetime import date
 import math
 import os
 import db
-import data  # clinica-specific in-memory structures not yet in DB
+
+
 
 load_dotenv()
 
