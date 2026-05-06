@@ -1258,7 +1258,6 @@ JOIN empleados e ON e.id_empleado = c.id_empleado
 ORDER BY e.nombre;
 
 -- 64 UPDATE v_pacientes_activos — añade aliases _pac que esperan los templates
-DROP VIEW IF EXISTS v_pacientes_activos CASCADE;
 CREATE OR REPLACE VIEW v_pacientes_activos AS
 SELECT
     p.id_paciente,
@@ -1279,7 +1278,6 @@ WHERE p.id_estado != 3
 ORDER BY p.id_paciente;
 
 -- 65 UPDATE v_cuidadores — añade aliases _cuid que esperan los templates + CURP
-DROP VIEW IF EXISTS v_cuidadores CASCADE;
 CREATE OR REPLACE VIEW v_cuidadores AS
 SELECT
     e.id_empleado               AS id_cuidador,
@@ -1790,10 +1788,10 @@ SELECT COALESCE(MAX(id_lectura_nfc), 0) + 1 AS next_id FROM lecturas_nfc;
 -- -----------------------------------------------------------------------------
 DO $$
 BEGIN
-    RAISE NOTICE '✓ v_pacientes_activos';
-    RAISE NOTICE '✓ v_cuidadores';
-    RAISE NOTICE '✓ v_dispositivos';
-    RAISE NOTICE '✓ v_zonas';
+    RAISE NOTICE ' v_pacientes_activos';
+    RAISE NOTICE ' v_cuidadores';
+    RAISE NOTICE ' v_dispositivos';
+    RAISE NOTICE ' v_zonas';
     RAISE NOTICE '✓ v_alertas';
     RAISE NOTICE '✓ v_recetas';
     RAISE NOTICE '✓ v_turnos';
