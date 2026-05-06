@@ -1740,12 +1740,60 @@ BEGIN
 END;
 $$;
 
+-- 139
+CREATE OR REPLACE PROCEDURE sp_sel_next_id_zona(
+    INOUT io_resultados REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN io_resultados FOR
+        SELECT COALESCE(MAX(id_zona), 0) + 1 AS next_id FROM zonas;
+END;
+$$;
+
+-- 140
+CREATE OR REPLACE PROCEDURE sp_sel_sedes_por_zona(
+    IN  p_id_zona       INTEGER,
+    INOUT io_resultados REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN io_resultados FOR
+        SELECT id_zona, id_sede, nombre_sede
+        FROM v_sedes_por_zona
+        WHERE id_zona = p_id_zona;
+END;
+$$;
+
+-- 141
+CREATE OR REPLACE PROCEDURE sp_sel_next_id_sede(
+    INOUT io_resultados REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN io_resultados FOR
+        SELECT COALESCE(MAX(id_sede), 0) + 1 AS next_id FROM sedes;
+END;
+$$;
+
+-- 142
+CREATE OR REPLACE PROCEDURE sp_sel_sede_por_id(
+    IN  p_id_sede       INTEGER,
+    INOUT io_resultados REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN io_resultados FOR
+        SELECT * FROM v_sedes WHERE id_sede = p_id_sede;
+END;
+$$;
+
 -- =============================================================================
 -- Confirmación
 -- =============================================================================
 DO $$
 BEGIN
-    RAISE NOTICE '138 SPs de consulta SELECT aplicados correctamente.';
+    RAISE NOTICE '142 SPs de consulta SELECT aplicados correctamente.';
     RAISE NOTICE 'Requiere ViewsDB.sql aplicado previamente.';
 END;
 $$;

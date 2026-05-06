@@ -262,33 +262,42 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE PROCEDURE sp_ins_zona(
+    p_id_zona     INT,
     p_nombre_zona VARCHAR,
-    p_latitud DOUBLE PRECISION,
-    p_longitud DOUBLE PRECISION,
+    p_latitud     DOUBLE PRECISION,
+    p_longitud    DOUBLE PRECISION,
     p_radio_metros DOUBLE PRECISION
 )
 LANGUAGE plpgsql AS $$
 BEGIN
-    INSERT INTO zonas (nombre_zona, latitud_centro, longitud_centro, radio_metros)
-    VALUES (p_nombre_zona, p_latitud, p_longitud, p_radio_metros);
+    INSERT INTO zonas (id_zona, nombre_zona, latitud_centro, longitud_centro, radio_metros, geom)
+    VALUES (
+        p_id_zona,
+        p_nombre_zona,
+        p_latitud,
+        p_longitud,
+        p_radio_metros,
+        ST_SetSRID(ST_MakePoint(p_longitud, p_latitud), 4326)::geography
+    );
 END;
 $$;
 
 
 CREATE OR REPLACE PROCEDURE sp_upd_zona(
-    p_id_zona INT,
-    p_nombre_zona VARCHAR,
-    p_latitud DOUBLE PRECISION,
-    p_longitud DOUBLE PRECISION,
+    p_id_zona      INT,
+    p_nombre_zona  VARCHAR,
+    p_latitud      DOUBLE PRECISION,
+    p_longitud     DOUBLE PRECISION,
     p_radio_metros DOUBLE PRECISION
 )
 LANGUAGE plpgsql AS $$
 BEGIN
     UPDATE zonas
-    SET nombre_zona = p_nombre_zona,
-        latitud_centro = p_latitud,
+    SET nombre_zona     = p_nombre_zona,
+        latitud_centro  = p_latitud,
         longitud_centro = p_longitud,
-        radio_metros = p_radio_metros
+        radio_metros    = p_radio_metros,
+        geom = ST_SetSRID(ST_MakePoint(p_longitud, p_latitud), 4326)::geography
     WHERE id_zona = p_id_zona;
 END;
 $$;
@@ -300,6 +309,29 @@ CREATE OR REPLACE PROCEDURE sp_del_zona(
 LANGUAGE plpgsql AS $$
 BEGIN
     DELETE FROM zonas WHERE id_zona = p_id_zona;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE sp_ins_sede_zona(
+    p_id_zona INT,
+    p_id_sede INT
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO sede_zonas (id_sede, id_zona)
+    VALUES (p_id_sede, p_id_zona)
+    ON CONFLICT DO NOTHING;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE sp_del_sedes_zona(
+    p_id_zona INT
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    DELETE FROM sede_zonas WHERE id_zona = p_id_zona;
 END;
 $$;
 
@@ -604,5 +636,56 @@ BEGIN
         v_id, p_id_dispositivo, NOW(), p_latitud, p_longitud, p_altura, p_nivel_bateria,
         ST_SetSRID(ST_MakePoint(p_longitud, p_latitud), 4326)::geography
     );
+END;
+$$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- SEDES — CRUD
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE PROCEDURE sp_ins_sede(
+    p_id_sede    INT,
+    p_nombre     VARCHAR,
+    p_calle      VARCHAR,
+    p_numero     VARCHAR,
+    p_municipio  VARCHAR,
+    p_estado     VARCHAR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO sedes (id_sede, nombre_sede, calle, numero, municipio, estado)
+    VALUES (p_id_sede, p_nombre, p_calle, p_numero, p_municipio, p_estado);
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE sp_upd_sede(
+    p_id_sede    INT,
+    p_nombre     VARCHAR,
+    p_calle      VARCHAR,
+    p_numero     VARCHAR,
+    p_municipio  VARCHAR,
+    p_estado     VARCHAR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE sedes
+    SET nombre_sede = p_nombre,
+        calle       = p_calle,
+        numero      = p_numero,
+        municipio   = p_municipio,
+        estado      = p_estado
+    WHERE id_sede = p_id_sede;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE sp_del_sede(
+    p_id_sede INT
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    DELETE FROM sedes WHERE id_sede = p_id_sede;
 END;
 $$;

@@ -51,6 +51,7 @@ def create_app():
     from blueprints.portal_familiar import bp as portal_familiar_bp
     from blueprints.cuidador      import bp as cuidador_bp
     from blueprints.api           import bp as api_bp
+    from blueprints.sedes         import bp as sedes_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
@@ -68,6 +69,7 @@ def create_app():
     app.register_blueprint(portal_familiar_bp)
     app.register_blueprint(cuidador_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(sedes_bp)
 
     return app
 

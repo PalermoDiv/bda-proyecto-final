@@ -1258,6 +1258,7 @@ JOIN empleados e ON e.id_empleado = c.id_empleado
 ORDER BY e.nombre;
 
 -- 64 UPDATE v_pacientes_activos — añade aliases _pac que esperan los templates
+DROP VIEW IF EXISTS v_pacientes_activos CASCADE;
 CREATE OR REPLACE VIEW v_pacientes_activos AS
 SELECT
     p.id_paciente,
@@ -1278,6 +1279,7 @@ WHERE p.id_estado != 3
 ORDER BY p.id_paciente;
 
 -- 65 UPDATE v_cuidadores — añade aliases _cuid que esperan los templates + CURP
+DROP VIEW IF EXISTS v_cuidadores CASCADE;
 CREATE OR REPLACE VIEW v_cuidadores AS
 SELECT
     e.id_empleado               AS id_cuidador,
@@ -1639,7 +1641,14 @@ JOIN pacientes p ON p.id_paciente = ak.id_paciente
 WHERE d.tipo = 'GPS' AND d.estado = 'Activo' AND p.id_estado != 3
 ORDER BY p.nombre;
 
--- 95 Zonas seguras con nombre de sede (mapa de referencia simulador GPS)
+-- 95 Sedes vinculadas a una zona (para formulario de edición)
+CREATE OR REPLACE VIEW v_sedes_por_zona AS
+SELECT sz.id_zona, s.id_sede, s.nombre_sede
+FROM sede_zonas sz
+JOIN sedes s ON s.id_sede = sz.id_sede
+ORDER BY sz.id_zona, s.nombre_sede;
+
+-- 96 Zonas seguras con nombre de sede (mapa de referencia simulador GPS)
 CREATE OR REPLACE VIEW v_zonas_ref AS
 SELECT z.id_zona, z.nombre_zona, z.latitud_centro, z.longitud_centro,
        z.radio_metros, s.nombre_sede
@@ -1835,6 +1844,7 @@ BEGIN
     RAISE NOTICE '✓ v_adherencia_nfc_por_paciente';
     RAISE NOTICE '✓ v_bateria_historial_gps';
     RAISE NOTICE '✓ v_lecturas_gps_paciente';
-    RAISE NOTICE '54 vistas aplicadas correctamente.';
+    RAISE NOTICE '✓ v_sedes_por_zona';
+    RAISE NOTICE '55 vistas aplicadas correctamente.';
 END;
 $$;

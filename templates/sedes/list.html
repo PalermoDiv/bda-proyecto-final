@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Sedes{% endblock %}
+{% block breadcrumb %}Inicio / Zonas Seguras / Sedes{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <div class="section-title">Sedes clínicas</div>
+        <div class="section-sub">Instalaciones donde se atienden pacientes. Las zonas seguras se vinculan por sede.</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <a href="{{ url_for('zonas.zonas') }}" class="btn btn-secondary">
+            ← Zonas seguras
+        </a>
+        <a href="{{ url_for('sedes.sedes_nueva') }}" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nueva sede
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Dirección</th>
+                    <th>Municipio</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sedes %}
+                <tr>
+                    <td style="color:#94a3b8; font-size:12px;">{{ s.id_sede }}</td>
+                    <td style="font-weight:600;">{{ s.nombre_sede }}</td>
+                    <td style="font-size:13px; color:#475569;">{{ s.calle }} {{ s.numero }}</td>
+                    <td style="font-size:13px;">{{ s.municipio }}</td>
+                    <td style="font-size:13px; color:#475569;">{{ s.estado }}</td>
+                    <td>
+                        <div style="display:flex; gap:6px;">
+                            <a href="{{ url_for('sedes.sedes_editar', id=s.id_sede) }}"
+                               class="btn btn-secondary" style="padding:4px 10px; font-size:11px;">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('sedes.sedes_eliminar', id=s.id_sede) }}"
+                                  onsubmit="return confirm('¿Eliminar esta sede? Se eliminarán sus vínculos con zonas.')">
+                                <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:11px;">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align:center; color:#8892a4; padding:32px;">
+                        No hay sedes registradas.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -101,16 +101,28 @@
                     </select>
                 </div>
 
-                <!-- Sede inicial (solo en creación) -->
-                {% if not paciente %}
+                <!-- Sede -->
+                {% if sedes %}
                 <div class="form-group">
-                    <label class="form-label" for="id_sede">Sede de ingreso</label>
+                    <label class="form-label" for="id_sede">
+                        {{ 'Sede actual' if paciente else 'Sede de ingreso' }}
+                    </label>
                     <select id="id_sede" name="id_sede" class="form-control" required>
-                        <option value="" disabled selected>Selecciona una sede...</option>
+                        {% if not paciente %}
+                            <option value="" disabled selected>Selecciona una sede...</option>
+                        {% endif %}
                         {% for sede in sedes %}
-                            <option value="{{ sede.id_sede }}">{{ sede.nombre_sede }}</option>
+                            <option value="{{ sede.id_sede }}"
+                                {% if paciente and sede.id_sede == sede_actual_id %}selected{% endif %}>
+                                {{ sede.nombre_sede }}
+                            </option>
                         {% endfor %}
                     </select>
+                    {% if paciente %}
+                    <div style="font-size:11px; color:#64748B; margin-top:4px;">
+                        Cambiar la sede registrará una transferencia y cerrará el registro histórico actual.
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
 

@@ -1077,6 +1077,11 @@ INSERT INTO lecturas_gps
 
 UPDATE lecturas_gps SET geom = ST_SetSRID(ST_MakePoint(longitud, latitud), 4326)::geography;
 
+-- ── Asignación beacon ────────────────────────────────────────────────────────
+-- Dispositivo 401 (FeasyBeacon FSC-BP104D) asignado al cuidador 1 (Juan Martínez)
+INSERT INTO asignacion_beacon (id_dispositivo, id_cuidador, fecha_inicio) VALUES
+    (401, 1, '2026-03-01');
+
 -- ── Detecciones beacon ────────────────────────────────────────────────────────
 -- Registradas por el teléfono del cuidador vía Web Bluetooth (sin gateway).
 

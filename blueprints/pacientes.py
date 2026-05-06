@@ -40,10 +40,15 @@ def pacientes_nuevo():
 @admin_requerido
 def pacientes_editar(id):
     estados  = db.query_sp("sp_sel_estados_paciente")
+    sedes    = db.query_sp("sp_sel_sedes")
     paciente = db.one_sp("sp_sel_paciente_por_id", (id,))
     if not paciente:
         flash("Paciente no encontrado.", "error")
         return redirect(url_for("pacientes.pacientes_lista"))
+
+    activos        = db.query_sp("sp_sel_sede_activa_por_paciente", (id,))
+    sede_actual_id = activos[0]["id_sede"] if activos else None
+
     if request.method == "POST":
         try:
             nombre     = request.form["nombre_paciente"].strip()
@@ -51,13 +56,23 @@ def pacientes_editar(id):
             apellido_m = request.form["apellido_m_pac"].strip()
             fecha_nac  = request.form["fecha_nacimiento"]
             id_estado  = int(request.form["id_estado"])
-            db.execute("CALL sp_upd_paciente(%s, %s, %s, %s, %s, %s)",
-                       (id, nombre, apellido_p, apellido_m, fecha_nac, id_estado))
+            id_sede    = int(request.form["id_sede"]) if request.form.get("id_sede") else None
+
+            statements = [
+                ("CALL sp_upd_paciente(%s, %s, %s, %s, %s, %s)",
+                 (id, nombre, apellido_p, apellido_m, fecha_nac, id_estado)),
+            ]
+            if id_sede and id_sede != sede_actual_id:
+                statements.append(("CALL sp_transferir_sede(%s, %s)", (id, id_sede)))
+
+            db.execute_many(statements)
             flash("Paciente actualizado correctamente.", "success")
             return redirect(url_for("pacientes.pacientes_lista"))
         except Exception as e:
             flash(f"Error al actualizar paciente: {e}", "error")
-    return render_template("pacientes/form.html", paciente=paciente, estados=estados, sedes=[])
+
+    return render_template("pacientes/form.html", paciente=paciente, estados=estados,
+                           sedes=sedes, sede_actual_id=sede_actual_id)
 
 
 @bp.route("/eliminar/<int:id>", methods=["POST"])
