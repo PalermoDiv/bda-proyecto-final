@@ -4,7 +4,7 @@
 {% block page_title %}Nueva orden de suministro{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('farmacia') }}" style="color:#185fa5;">Farmacia</a> /
+    <a href="{{ url_for('farmacia.farmacia') }}" style="color:#185fa5;">Farmacia</a> /
     Nueva orden
 {% endblock %}
 
@@ -17,7 +17,7 @@
         </div>
 
         <div class="card-body">
-            <form method="POST" action="{{ url_for('farmacia_suministro_nuevo') }}">
+            <form method="POST" action="{{ url_for('farmacia.farmacia_suministro_nuevo') }}">
 
                 <div class="form-grid">
                     <div class="form-group">
@@ -75,7 +75,7 @@
                         </svg>
                         Registrar orden
                     </button>
-                    <a href="{{ url_for('farmacia') }}" class="btn btn-secondary">Cancelar</a>
+                    <a href="{{ url_for('farmacia.farmacia') }}" class="btn btn-secondary">Cancelar</a>
                 </div>
 
             </form>

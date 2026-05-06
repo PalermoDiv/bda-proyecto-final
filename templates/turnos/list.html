@@ -11,7 +11,7 @@
         <div class="section-title">Cuadro de turnos</div>
         <div class="section-sub">{{ turnos | length }} turno(s) configurado(s)</div>
     </div>
-    <a href="{{ url_for('turnos_nuevo') }}" class="btn btn-primary">
+    <a href="{{ url_for('turnos.turnos_nuevo') }}" class="btn btn-primary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"/>
             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -67,7 +67,7 @@
                         </td>
                         <td>
                             <div class="td-actions">
-                                <a href="{{ url_for('turnos_editar', id=t.id_turno) }}"
+                                <a href="{{ url_for('turnos.turnos_editar', id=t.id_turno) }}"
                                    class="btn btn-secondary btn-sm">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -76,7 +76,7 @@
                                     Editar
                                 </a>
                                 <form method="POST"
-                                      action="{{ url_for('turnos_eliminar', id=t.id_turno) }}"
+                                      action="{{ url_for('turnos.turnos_eliminar', id=t.id_turno) }}"
                                       class="form-delete"
                                       data-nombre="turno {{ t.id_turno }} ({{ t.nombre_zona }})">
                                     <button type="submit" class="btn btn-danger btn-sm">
@@ -96,7 +96,7 @@
                     <tr>
                         <td colspan="7" style="text-align:center; color:#8892a4; padding:36px;">
                             No hay turnos configurados.
-                            <a href="{{ url_for('turnos_nuevo') }}" style="color:#185fa5; font-weight:600;">
+                            <a href="{{ url_for('turnos.turnos_nuevo') }}" style="color:#185fa5; font-weight:600;">
                                 Crear el primero
                             </a>
                         </td>

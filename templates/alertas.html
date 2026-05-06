@@ -10,7 +10,7 @@
         <div class="section-title">Reporte de Alertas</div>
         <div class="section-sub">Historial de incidentes detectados por los dispositivos.</div>
     </div>
-    <a href="{{ url_for('alertas_nueva') }}" class="btn btn-primary">
+    <a href="{{ url_for('alertas.alertas_nueva') }}" class="btn btn-primary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
@@ -123,13 +123,13 @@
                         <td>
                             <div style="display:flex; gap:6px; flex-wrap:wrap;">
                                 {% if a.estatus == 'Activa' %}
-                                <form method="POST" action="{{ url_for('alertas_resolver', id=a.id_alerta) }}">
+                                <form method="POST" action="{{ url_for('alertas.alertas_resolver', id=a.id_alerta) }}">
                                     <button type="submit" class="btn btn-secondary" style="padding:4px 10px; font-size:11px;">
                                         Atender
                                     </button>
                                 </form>
                                 {% endif %}
-                                <form method="POST" action="{{ url_for('alertas_eliminar', id=a.id_alerta) }}"
+                                <form method="POST" action="{{ url_for('alertas.alertas_eliminar', id=a.id_alerta) }}"
                                       onsubmit="return confirm('¿Eliminar esta alerta?')">
                                     <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:11px;">
                                         Eliminar

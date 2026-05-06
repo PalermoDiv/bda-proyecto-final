@@ -2,7 +2,7 @@
 
 {% block title %}{% if turno %}Editar turno{% else %}Nuevo turno{% endif %}{% endblock %}
 {% block page_title %}{% if turno %}Editar turno{% else %}Nuevo turno{% endif %}{% endblock %}
-{% block breadcrumb %}Inicio / <a href="{{ url_for('turnos_lista') }}">Turnos</a> / {% if turno %}Editar{% else %}Nuevo{% endif %}{% endblock %}
+{% block breadcrumb %}Inicio / <a href="{{ url_for('turnos.turnos_lista') }}">Turnos</a> / {% if turno %}Editar{% else %}Nuevo{% endif %}{% endblock %}
 
 {% block content %}
 
@@ -98,7 +98,7 @@
                 <button type="submit" class="btn btn-primary">
                     {% if turno %}Guardar cambios{% else %}Registrar turno{% endif %}
                 </button>
-                <a href="{{ url_for('turnos_lista') }}" class="btn btn-secondary">Cancelar</a>
+                <a href="{{ url_for('turnos.turnos_lista') }}" class="btn btn-secondary">Cancelar</a>
             </div>
         </form>
     </div>

@@ -70,7 +70,7 @@
                         </td>
                         <td>
                             {% if a.fecha_fin is none %}
-                            <form method="POST" action="{{ url_for('beacon_cerrar_asignacion', id=a.id_asignacion) }}">
+                            <form method="POST" action="{{ url_for('equipamiento.beacon_cerrar_asignacion', id=a.id_asignacion) }}">
                                 <button type="submit" class="btn btn-secondary btn-sm">Cerrar</button>
                             </form>
                             {% endif %}

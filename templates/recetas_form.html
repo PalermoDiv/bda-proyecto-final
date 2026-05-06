@@ -4,7 +4,7 @@
 {% block page_title %}Nueva receta{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('recetas_lista') }}" style="color:#185fa5;">Recetas</a> /
+    <a href="{{ url_for('recetas.recetas_lista') }}" style="color:#185fa5;">Recetas</a> /
     Nueva
 {% endblock %}
 
@@ -16,7 +16,7 @@
             <div class="card-title">Crear nueva receta</div>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ url_for('recetas_nueva') }}">
+            <form method="POST" action="{{ url_for('recetas.recetas_nueva') }}">
 
                 <div class="form-group">
                     <label class="form-label" for="id_paciente">Paciente</label>
@@ -47,7 +47,7 @@
                         </svg>
                         Crear receta
                     </button>
-                    <a href="{{ url_for('recetas_lista') }}" class="btn btn-secondary">Cancelar</a>
+                    <a href="{{ url_for('recetas.recetas_lista') }}" class="btn btn-secondary">Cancelar</a>
                 </div>
 
             </form>

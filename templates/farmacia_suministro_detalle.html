@@ -4,7 +4,7 @@
 {% block page_title %}Orden #{{ suministro.id_suministro }}{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('farmacia') }}" style="color:#185fa5;">Farmacia</a> /
+    <a href="{{ url_for('farmacia.farmacia') }}" style="color:#185fa5;">Farmacia</a> /
     Orden #{{ suministro.id_suministro }}
 {% endblock %}
 
@@ -16,7 +16,7 @@
     <div class="card">
         <div class="card-header">
             <div class="card-title">Información de la orden</div>
-            <form method="POST" action="{{ url_for('farmacia_suministro_estado', id=suministro.id_suministro) }}"
+            <form method="POST" action="{{ url_for('farmacia.farmacia_suministro_estado', id=suministro.id_suministro) }}"
                   style="display:flex; gap:8px; align-items:center;">
                 <select name="estado" class="form-control" style="width:auto; padding:4px 8px; font-size:12px;">
                     {% for e in estados %}
@@ -109,7 +109,7 @@
     </div>
 
     <div id="form-agregar-linea" class="hidden" style="padding:14px 20px; border-bottom:1px solid #f0f2f5; background:#f8fafc;">
-        <form method="POST" action="{{ url_for('farmacia_suministro_agregar_linea', id=suministro.id_suministro) }}">
+        <form method="POST" action="{{ url_for('farmacia.farmacia_suministro_agregar_linea', id=suministro.id_suministro) }}">
             <div style="display:grid; grid-template-columns:1fr 120px auto; gap:10px; align-items:end;">
                 <div class="form-group" style="margin-bottom:0;">
                     <label class="form-label">Medicamento</label>
@@ -179,8 +179,8 @@
 </div>
 
 <div style="display:flex; gap:12px;">
-    <a href="{{ url_for('farmacia') }}" class="btn btn-secondary">Volver a Farmacia</a>
-    <form method="POST" action="{{ url_for('farmacia_suministro_eliminar', id=suministro.id_suministro) }}"
+    <a href="{{ url_for('farmacia.farmacia') }}" class="btn btn-secondary">Volver a Farmacia</a>
+    <form method="POST" action="{{ url_for('farmacia.farmacia_suministro_eliminar', id=suministro.id_suministro) }}"
           onsubmit="return confirm('¿Eliminar esta orden y todos sus medicamentos?')"
           style="margin-left:auto;">
         <button type="submit" class="btn btn-danger">Eliminar orden</button>

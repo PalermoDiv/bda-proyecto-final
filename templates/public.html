@@ -21,10 +21,10 @@
         <a href="#nfc">NFC</a>
     </div>
     <div style="display:flex; align-items:center; gap:10px;">
-        <a href="{{ url_for('portal_login') }}" class="lp-btn-enter" style="background:transparent; color:#2DD4BF; border:1px solid rgba(45,212,191,.35);">
+        <a href="{{ url_for('portal_familiar.portal_login') }}" class="lp-btn-enter" style="background:transparent; color:#2DD4BF; border:1px solid rgba(45,212,191,.35);">
             Portal Familiar
         </a>
-        <a href="{{ url_for('login') }}" class="lp-btn-enter">Iniciar Sesión</a>
+        <a href="{{ url_for('auth.login') }}" class="lp-btn-enter">Iniciar Sesión</a>
     </div>
 </nav>
 
@@ -50,13 +50,13 @@
         </p>
 
         <div class="lp-hero-actions">
-            <a href="{{ url_for('login') }}" class="lp-btn-primary">
+            <a href="{{ url_for('auth.login') }}" class="lp-btn-primary">
                 Acceder al portal
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14">
                     <path d="M3 8h10M9 4l4 4-4 4"/>
                 </svg>
             </a>
-            <a href="{{ url_for('portal_login') }}" class="lp-btn-ghost" style="display:inline-flex; align-items:center; gap:7px;">
+            <a href="{{ url_for('portal_familiar.portal_login') }}" class="lp-btn-ghost" style="display:inline-flex; align-items:center; gap:7px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                     <polyline points="9 22 9 12 15 12 15 22"/>
@@ -591,7 +591,7 @@
             contexto, comparte la misma base de datos centralizada y mantiene historial
             completo ante transferencias de pacientes, cambios de tratamiento o reemplazos de hardware.
         </p>
-        <a href="{{ url_for('login') }}" class="lp-btn-primary" style="font-size:16px; padding:16px 36px;">
+        <a href="{{ url_for('auth.login') }}" class="lp-btn-primary" style="font-size:16px; padding:16px 36px;">
             Ingresar al sistema
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15">
                 <path d="M3 8h10M9 4l4 4-4 4"/>

@@ -108,7 +108,7 @@
 {# ─── SP-01 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("01","#DBEAFE","#1E40AF","sp_receta_crear",
     "Crea una nueva receta para un paciente. Verifica que el paciente exista y no esté dado de baja.",
-    "recetas", "Formulario Nueva receta", url_for('recetas_nueva'),
+    "recetas", "Formulario Nueva receta", url_for('recetas.recetas_nueva'),
     "CALL sp_receta_crear(42, 7, CURRENT_DATE);") %}
 {{ params_table(
     pr("p_id_receta","INTEGER","ID de la nueva receta (asignado por la app)") ~
@@ -120,7 +120,7 @@
 {# ─── SP-02 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("02","#DBEAFE","#1E40AF","sp_receta_agregar_medicamento",
     "Agrega un medicamento (GTIN) a una receta activa. Valida que la receta esté Activa y que el GTIN no esté duplicado.",
-    "receta_medicamentos", "Boton Agregar en detalle de receta", url_for('recetas_lista'),
+    "receta_medicamentos", "Boton Agregar en detalle de receta", url_for('recetas.recetas_lista'),
     "CALL sp_receta_agregar_medicamento(42, '07501234567890', '10mg', 8);") %}
 {{ params_table(
     pr("p_id_receta","INTEGER","Receta destino") ~
@@ -133,7 +133,7 @@
 {# ─── SP-03 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("03","#DBEAFE","#1E40AF","sp_receta_quitar_medicamento",
     "Elimina un medicamento de una receta activa. Opera sobre id_detalle (PK de receta_medicamentos).",
-    "receta_medicamentos", "Boton Quitar en detalle de receta", url_for('recetas_lista'),
+    "receta_medicamentos", "Boton Quitar en detalle de receta", url_for('recetas.recetas_lista'),
     "CALL sp_receta_quitar_medicamento(42, 15);") %}
 {{ params_table(
     pr("p_id_receta","INTEGER","Receta propietaria") ~
@@ -144,7 +144,7 @@
 {# ─── SP-04 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("04","#DBEAFE","#1E40AF","sp_receta_actualizar_medicamento",
     "Modifica dosis y/o frecuencia de un medicamento ya prescrito. Valida receta Activa y frecuencia > 0.",
-    "receta_medicamentos", "Boton Editar en detalle de receta", url_for('recetas_lista'),
+    "receta_medicamentos", "Boton Editar en detalle de receta", url_for('recetas.recetas_lista'),
     "CALL sp_receta_actualizar_medicamento(42, 15, '20mg', 12);") %}
 {{ params_table(
     pr("p_id_receta","INTEGER","Receta propietaria") ~
@@ -157,7 +157,7 @@
 {# ─── SP-05 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("05","#EDE9FE","#5B21B6","sp_receta_activar_nfc",
     "Vincula un dispositivo NFC a una receta (inicia seguimiento de adherencia). Falla si la receta ya tiene un NFC activo.",
-    "receta_nfc", "Boton Asignar pulsera en detalle de receta", url_for('recetas_lista'),
+    "receta_nfc", "Boton Asignar pulsera en detalle de receta", url_for('recetas.recetas_lista'),
     "CALL sp_receta_activar_nfc(42, 3, CURRENT_DATE);") %}
 {{ params_table(
     pr("p_id_receta","INTEGER","Receta a vincular") ~
@@ -169,7 +169,7 @@
 {# ─── SP-06 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("06","#EDE9FE","#5B21B6","sp_receta_cerrar_nfc",
     "Cierra el vinculo NFC activo de una receta. Falla si no hay vinculo activo entre ese par receta-dispositivo.",
-    "receta_nfc", "Boton Desvincular en detalle de receta", url_for('recetas_lista'),
+    "receta_nfc", "Boton Desvincular en detalle de receta", url_for('recetas.recetas_lista'),
     "CALL sp_receta_cerrar_nfc(42, 3, CURRENT_DATE);") %}
 {{ params_table(
     pr("p_id_receta","INTEGER","Receta propietaria") ~
@@ -181,7 +181,7 @@
 {# ─── SP-07 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("07","#EDE9FE","#5B21B6","sp_receta_cambiar_nfc",
     "Reemplaza el NFC activo de una receta en un solo paso atomico: cierra el vinculo actual e inicia uno nuevo.",
-    "receta_nfc (UPDATE + INSERT)", "Boton Cambiar pulsera en detalle de receta", url_for('recetas_lista'),
+    "receta_nfc (UPDATE + INSERT)", "Boton Cambiar pulsera en detalle de receta", url_for('recetas.recetas_lista'),
     "CALL sp_receta_cambiar_nfc(42, 5, CURRENT_DATE);") %}
 {{ params_table(
     pr("p_id_receta","INTEGER","Receta propietaria") ~
@@ -193,7 +193,7 @@
 {# ─── SP-08 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("08","#ECFDF5","#065F46","sp_nfc_registrar_lectura",
     "Inserta una lectura NFC (administracion de medicamento). Valida vinculo activo, tipo_lectura y resultado.",
-    "lecturas_nfc", "POST /api/nfc/lectura — escanear cuidador", url_for('cuidador_escanear'),
+    "lecturas_nfc", "POST /api/nfc/lectura — escanear cuidador", url_for('cuidador.cuidador_escanear'),
     "CALL sp_nfc_registrar_lectura(101, 3, 42, NOW(), 'Administracion', 'Exitosa');") %}
 {{ params_table(
     pr("p_id_lectura_nfc","INTEGER","PK de la lectura (asignado por la app)") ~
@@ -208,7 +208,7 @@
 {# ─── SP-09 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("09","#DBEAFE","#1E40AF","sp_receta_cerrar",
     "Cierra completamente una receta: escribe fecha_fin_gestion en todos los vinculos NFC activos. No elimina la receta (preserva historial).",
-    "receta_nfc", "Boton Cerrar receta en detalle de receta", url_for('recetas_lista'),
+    "receta_nfc", "Boton Cerrar receta en detalle de receta", url_for('recetas.recetas_lista'),
     "CALL sp_receta_cerrar(42, CURRENT_DATE);") %}
 {{ params_table(
     pr("p_id_receta","INTEGER","Receta a cerrar") ~
@@ -219,7 +219,7 @@
 {# ─── SP-10 ────────────────────────────────────────────────────────────────── #}
 {% call sp_card("10","#FEF3C7","#92400E","sp_nfc_asignar",
     "Asigna (o reasigna) un dispositivo NFC directamente a un paciente en asignacion_nfc. Cierra cualquier asignacion activa previa del paciente o del dispositivo antes de crear la nueva.",
-    "asignacion_nfc", "Boton Asignar NFC en historial del paciente", url_for('pacientes_lista'),
+    "asignacion_nfc", "Boton Asignar NFC en historial del paciente", url_for('pacientes.pacientes_lista'),
     "CALL sp_nfc_asignar(7, 3);") %}
 {{ params_table(
     pr("p_id_paciente","INTEGER","Paciente receptor") ~
@@ -241,7 +241,7 @@
                 <span style="font-size:10px; font-weight:800; color:#065F46; background:#ECFDF5; padding:3px 8px; border-radius:6px; letter-spacing:.6px;">POST</span>
                 <code style="font-size:14px; font-weight:700; color:#0F172A; font-family:monospace;">/api/nfc/lectura</code>
             </div>
-            <a href="{{ url_for('cuidador_escanear') }}"
+            <a href="{{ url_for('cuidador.cuidador_escanear') }}"
                style="font-size:11px; font-weight:600; color:#0E7490; background:#F0F9FF; border:1px solid #BAE6FD;
                       border-radius:8px; padding:5px 12px; text-decoration:none; white-space:nowrap;
                       display:inline-flex; align-items:center; gap:5px;">
@@ -271,7 +271,7 @@
                 <span style="font-size:10px; font-weight:800; color:#065F46; background:#ECFDF5; padding:3px 8px; border-radius:6px; letter-spacing:.6px;">POST</span>
                 <code style="font-size:14px; font-weight:700; color:#0F172A; font-family:monospace;">/api/beacon/deteccion</code>
             </div>
-            <a href="{{ url_for('cuidador_escanear') }}"
+            <a href="{{ url_for('cuidador.cuidador_escanear') }}"
                style="font-size:11px; font-weight:600; color:#0E7490; background:#F0F9FF; border:1px solid #BAE6FD;
                       border-radius:8px; padding:5px 12px; text-decoration:none; white-space:nowrap;
                       display:inline-flex; align-items:center; gap:5px;">

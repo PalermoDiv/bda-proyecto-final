@@ -4,7 +4,7 @@
 {% block page_title %}Registrar alerta{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('alertas') }}" style="color:#185fa5;">Alertas</a> /
+    <a href="{{ url_for('alertas.alertas') }}" style="color:#185fa5;">Alertas</a> /
     Nueva
 {% endblock %}
 
@@ -17,7 +17,7 @@
         </div>
 
         <div class="card-body">
-            <form method="POST" action="{{ url_for('alertas_nueva') }}">
+            <form method="POST" action="{{ url_for('alertas.alertas_nueva') }}">
 
                 <div class="form-group">
                     <label class="form-label" for="id_paciente">
@@ -57,7 +57,7 @@
                         </svg>
                         Registrar alerta
                     </button>
-                    <a href="{{ url_for('alertas') }}" class="btn btn-secondary">Cancelar</a>
+                    <a href="{{ url_for('alertas.alertas') }}" class="btn btn-secondary">Cancelar</a>
                 </div>
 
             </form>

@@ -4,7 +4,7 @@
 {% block page_title %}{{ 'Editar' if cuidador else 'Nuevo' }} cuidador{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('cuidadores_lista') }}" style="color:#185fa5;">Cuidadores</a> /
+    <a href="{{ url_for('cuidadores.cuidadores_lista') }}" style="color:#185fa5;">Cuidadores</a> /
     {{ 'Editar' if cuidador else 'Nuevo' }}
 {% endblock %}
 
@@ -24,7 +24,7 @@
 
         <div class="card-body">
             <form method="POST"
-                  action="{{ url_for('cuidadores_editar', id=cuidador.id_cuidador) if cuidador else url_for('cuidadores_nuevo') }}">
+                  action="{{ url_for('cuidadores.cuidadores_editar', id=cuidador.id_cuidador) if cuidador else url_for('cuidadores.cuidadores_nuevo') }}">
 
                 <!-- Nombre y apellidos -->
                 <div class="form-grid">
@@ -91,7 +91,7 @@
                         </svg>
                         {{ 'Guardar cambios' if cuidador else 'Registrar cuidador' }}
                     </button>
-                    <a href="{{ url_for('cuidadores_lista') }}" class="btn btn-secondary">
+                    <a href="{{ url_for('cuidadores.cuidadores_lista') }}" class="btn btn-secondary">
                         Cancelar
                     </a>
                 </div>

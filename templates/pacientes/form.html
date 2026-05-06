@@ -4,7 +4,7 @@
 {% block page_title %}{{ 'Editar' if paciente else 'Nuevo' }} paciente{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('pacientes_lista') }}" style="color:#185fa5;">Pacientes</a> /
+    <a href="{{ url_for('pacientes.pacientes_lista') }}" style="color:#185fa5;">Pacientes</a> /
     {{ 'Editar' if paciente else 'Nuevo' }}
 {% endblock %}
 
@@ -24,7 +24,7 @@
 
         <div class="card-body">
             <form method="POST"
-                  action="{{ url_for('pacientes_editar', id=paciente.id_paciente) if paciente else url_for('pacientes_nuevo') }}">
+                  action="{{ url_for('pacientes.pacientes_editar', id=paciente.id_paciente) if paciente else url_for('pacientes.pacientes_nuevo') }}">
 
                 <!-- ID del paciente (solo en creación) -->
                 {% if not paciente %}
@@ -122,7 +122,7 @@
                         </svg>
                         {{ 'Guardar cambios' if paciente else 'Registrar paciente' }}
                     </button>
-                    <a href="{{ url_for('pacientes_lista') }}" class="btn btn-secondary">
+                    <a href="{{ url_for('pacientes.pacientes_lista') }}" class="btn btn-secondary">
                         Cancelar
                     </a>
                 </div>

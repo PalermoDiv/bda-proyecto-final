@@ -625,7 +625,7 @@
             {% endif %}
         </div>
         <div class="cl-user">
-            <a href="{{ url_for('clinica_sedes') }}" class="cl-sedes-link">
+            <a href="{{ url_for('clinica.clinica_sedes') }}" class="cl-sedes-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
                     <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -635,7 +635,7 @@
                 <div class="cl-user-name">Dr. Médico en Turno</div>
                 <div class="cl-user-role">Portal clínico · Solo lectura</div>
             </div>
-            <a href="{{ url_for('logout') }}" class="cl-logout">Cerrar sesión</a>
+            <a href="{{ url_for('auth.logout') }}" class="cl-logout">Cerrar sesión</a>
         </div>
     </nav>
 

@@ -4,7 +4,7 @@
 {% block page_title %}Registrar visita{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('visitas') }}" style="color:#185fa5;">Visitas</a> /
+    <a href="{{ url_for('visitas.visitas') }}" style="color:#185fa5;">Visitas</a> /
     Nueva
 {% endblock %}
 
@@ -17,7 +17,7 @@
         </div>
 
         <div class="card-body">
-            <form method="POST" action="{{ url_for('visitas_nueva') }}">
+            <form method="POST" action="{{ url_for('visitas.visitas_nueva') }}">
 
                 <div class="form-group">
                     <label class="form-label" for="id_visita">ID de visita</label>
@@ -76,7 +76,7 @@
                         </svg>
                         Registrar visita
                     </button>
-                    <a href="{{ url_for('visitas') }}" class="btn btn-secondary">Cancelar</a>
+                    <a href="{{ url_for('visitas.visitas') }}" class="btn btn-secondary">Cancelar</a>
                 </div>
 
             </form>

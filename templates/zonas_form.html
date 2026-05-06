@@ -4,7 +4,7 @@
 {% block page_title %}{{ 'Editar' if zona else 'Nueva' }} zona segura{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('zonas') }}" style="color:#185fa5;">Zonas Seguras</a> /
+    <a href="{{ url_for('zonas.zonas') }}" style="color:#185fa5;">Zonas Seguras</a> /
     {{ 'Editar' if zona else 'Nueva' }}
 {% endblock %}
 
@@ -19,7 +19,7 @@
         </div>
 
         <div class="card-body">
-            <form method="POST" action="{{ url_for('zonas_editar', id=zona.id_zona) if zona else url_for('zonas_nueva') }}">
+            <form method="POST" action="{{ url_for('zonas.zonas_editar', id=zona.id_zona) if zona else url_for('zonas.zonas_nueva') }}">
 
                 {% if not zona %}
                 <div class="form-group">
@@ -76,7 +76,7 @@
                         </svg>
                         {{ 'Guardar cambios' if zona else 'Guardar zona' }}
                     </button>
-                    <a href="{{ url_for('zonas') }}" class="btn btn-secondary">Cancelar</a>
+                    <a href="{{ url_for('zonas.zonas') }}" class="btn btn-secondary">Cancelar</a>
                 </div>
 
             </form>

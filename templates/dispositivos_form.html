@@ -4,7 +4,7 @@
 {% block page_title %}{{ 'Editar' if disp else 'Registrar' }} dispositivo{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('dispositivos') }}" style="color:#185fa5;">Dispositivos</a> /
+    <a href="{{ url_for('dispositivos.dispositivos') }}" style="color:#185fa5;">Dispositivos</a> /
     {{ 'Editar' if disp else 'Nuevo' }}
 {% endblock %}
 
@@ -19,7 +19,7 @@
         </div>
 
         <div class="card-body">
-            <form method="POST" action="{{ url_for('dispositivos_editar', id=disp.id_dispositivo) if disp else url_for('dispositivos_nuevo') }}">
+            <form method="POST" action="{{ url_for('dispositivos.dispositivos_editar', id=disp.id_dispositivo) if disp else url_for('dispositivos.dispositivos_nuevo') }}">
 
                 {% if not disp %}
                 <div class="form-group">
@@ -73,7 +73,7 @@
                         </svg>
                         {{ 'Guardar cambios' if disp else 'Registrar dispositivo' }}
                     </button>
-                    <a href="{{ url_for('dispositivos') }}" class="btn btn-secondary">Cancelar</a>
+                    <a href="{{ url_for('dispositivos.dispositivos') }}" class="btn btn-secondary">Cancelar</a>
                 </div>
 
             </form>

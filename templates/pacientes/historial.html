@@ -4,7 +4,7 @@
 {% block page_title %}Historial clínico{% endblock %}
 {% block breadcrumb %}
     Inicio /
-    <a href="{{ url_for('pacientes_lista') }}" style="color:#185fa5;">Pacientes</a> /
+    <a href="{{ url_for('pacientes.pacientes_lista') }}" style="color:#185fa5;">Pacientes</a> /
     Historial
 {% endblock %}
 
@@ -43,7 +43,7 @@
                     </span>
                 {% endif %}
 
-                <a href="{{ url_for('pacientes_reporte_pdf', id=paciente.id_paciente) }}"
+                <a href="{{ url_for('pacientes.pacientes_reporte_pdf', id=paciente.id_paciente) }}"
                    title="Descargar reporte PDF"
                    style="display:inline-flex; align-items:center; gap:6px;
                           font-size:12px; font-weight:600; color:#0E7490;
@@ -88,7 +88,7 @@
         <div class="card">
             <div style="padding:20px;">
                 <div style="font-size:13px; font-weight:600; color:#0F172A; margin-bottom:14px;">Registrar diagnóstico</div>
-                <form method="POST" action="{{ url_for('pacientes_agregar_enfermedad', id=paciente.id_paciente) }}"
+                <form method="POST" action="{{ url_for('pacientes.pacientes_agregar_enfermedad', id=paciente.id_paciente) }}"
                       style="display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap;">
                     <div>
                         <label class="form-label">Enfermedad</label>
@@ -142,7 +142,7 @@
                         </div>
                         <div style="font-size:11px; color:#8892a4; margin-top:1px;">Fecha de diagnóstico</div>
                     </div>
-                    <form method="POST" action="{{ url_for('pacientes_quitar_enfermedad', id=paciente.id_paciente) }}"
+                    <form method="POST" action="{{ url_for('pacientes.pacientes_quitar_enfermedad', id=paciente.id_paciente) }}"
                           onsubmit="return confirm('¿Eliminar este diagnóstico?')">
                         <input type="hidden" name="id_enfermedad" value="{{ e.id_enfermedad }}">
                         <button type="submit" style="background:none; border:none; cursor:pointer; padding:4px; color:#94A3B8;"
@@ -228,7 +228,7 @@
         <div class="card">
             <div style="padding:20px;">
                 <div style="font-size:13px; font-weight:600; color:#0F172A; margin-bottom:16px;">Nuevo contacto de emergencia</div>
-                <form method="POST" action="{{ url_for('pacientes_agregar_contacto', id=paciente.id_paciente) }}">
+                <form method="POST" action="{{ url_for('pacientes.pacientes_agregar_contacto', id=paciente.id_paciente) }}">
                     <div class="form-grid" style="margin-bottom:0;">
                         <div class="form-group">
                             <label class="form-label">Nombre(s)</label>
@@ -348,7 +348,7 @@
                     {{ 'Cambiar dispositivo GPS' if kit else 'Asignar dispositivo GPS' }}
                 </div>
                 <form method="POST"
-                      action="{{ url_for('pacientes_cambiar_kit' if kit else 'pacientes_asignar_kit', id=paciente.id_paciente) }}"
+                      action="{{ url_for('pacientes.pacientes_cambiar_kit' if kit else 'pacientes_asignar_kit', id=paciente.id_paciente) }}"
                       style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                     <select name="id_dispositivo_gps" class="form-control" required style="max-width:280px;">
                         <option value="">— Selecciona GPS —</option>
@@ -377,7 +377,7 @@
                 </div>
                 {% if nfc_disponibles %}
                 <form method="POST"
-                      action="{{ url_for('pacientes_asignar_nfc', id=paciente.id_paciente) }}"
+                      action="{{ url_for('pacientes.pacientes_asignar_nfc', id=paciente.id_paciente) }}"
                       style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                     <select name="id_dispositivo" class="form-control" required style="max-width:280px;">
                         <option value="">— Selecciona pulsera —</option>
@@ -395,7 +395,7 @@
                 {% else %}
                 <div style="font-size:13px; color:#64748B;">
                     No hay dispositivos NFC disponibles sin asignar. Registra uno en
-                    <a href="{{ url_for('dispositivos') }}" style="color:#0E7490;">Dispositivos</a>.
+                    <a href="{{ url_for('dispositivos.dispositivos') }}" style="color:#0E7490;">Dispositivos</a>.
                 </div>
                 {% endif %}
             </div>
@@ -459,7 +459,7 @@
                     Transferir a nueva sede
                 </div>
                 <form method="POST"
-                      action="{{ url_for('pacientes_transferir_sede', id=paciente.id_paciente) }}"
+                      action="{{ url_for('pacientes.pacientes_transferir_sede', id=paciente.id_paciente) }}"
                       style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                     <select name="nueva_sede_id" class="form-control" required
                             style="max-width:260px;">
@@ -705,7 +705,7 @@
     </div>
     {% endif %}
 
-    <a href="{{ url_for('pacientes_lista') }}" class="btn btn-secondary">
+    <a href="{{ url_for('pacientes.pacientes_lista') }}" class="btn btn-secondary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="19" y1="12" x2="5" y2="12"/>
             <polyline points="12 19 5 12 12 5"/>

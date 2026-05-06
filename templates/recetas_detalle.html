@@ -7,14 +7,14 @@
 {% block content %}
 
 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
-    <a href="{{ url_for('recetas_lista') }}" class="btn btn-secondary btn-sm" style="display:inline-flex;">
+    <a href="{{ url_for('recetas.recetas_lista') }}" class="btn btn-secondary btn-sm" style="display:inline-flex;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;">
             <polyline points="15 18 9 12 15 6"/>
         </svg>
         Volver a recetas
     </a>
     {% if receta.estado == 'Activa' %}
-    <form method="POST" action="{{ url_for('recetas_cerrar', id=receta.id_receta) }}"
+    <form method="POST" action="{{ url_for('recetas.recetas_cerrar', id=receta.id_receta) }}"
           onsubmit="return confirm('¿Cerrar esta receta? Se terminarán todos los vínculos NFC activos.')">
         <button type="submit" class="btn btn-sm"
                 style="background:#FFF1F2; color:#BE123C; border:1px solid #FECDD3; font-size:12px;">
@@ -60,7 +60,7 @@
                     </svg>
                     Cambiar
                 </button>
-                <form method="POST" action="{{ url_for('recetas_cerrar_nfc', id=receta.id_receta) }}"
+                <form method="POST" action="{{ url_for('recetas.recetas_cerrar_nfc', id=receta.id_receta) }}"
                       onsubmit="return confirm('¿Desvincular la pulsera NFC de esta receta?')" style="display:inline;">
                     <input type="hidden" name="id_dispositivo" value="{{ nfc.id_dispositivo }}">
                     <button type="submit" class="btn btn-sm" style="background:#FFF1F2; color:#BE123C; border:1px solid #FECDD3; font-size:11px;">
@@ -98,7 +98,7 @@
     <div class="card" style="border:1px solid #A7F3D0; background:#F0FDF4;">
         <div style="padding:16px 20px;">
             <div style="font-size:12px; font-weight:700; color:#065F46; margin-bottom:10px;">Asignar pulsera NFC</div>
-            <form method="POST" action="{{ url_for('recetas_activar_nfc', id=receta.id_receta) }}"
+            <form method="POST" action="{{ url_for('recetas.recetas_activar_nfc', id=receta.id_receta) }}"
                   style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
                 <div>
                     <label class="form-label">Dispositivo NFC</label>
@@ -123,7 +123,7 @@
     <div class="card" style="border:1px solid #C4B5FD; background:#F5F3FF;">
         <div style="padding:16px 20px;">
             <div style="font-size:12px; font-weight:700; color:#5B21B6; margin-bottom:10px;">Reemplazar pulsera NFC</div>
-            <form method="POST" action="{{ url_for('recetas_cambiar_nfc', id=receta.id_receta) }}"
+            <form method="POST" action="{{ url_for('recetas.recetas_cambiar_nfc', id=receta.id_receta) }}"
                   style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
                 <div>
                     <label class="form-label">Nueva pulsera</label>
@@ -166,7 +166,7 @@
         {% if receta.estado == 'Activa' and medicamentos_disponibles %}
         <div id="form-agregar-med" style="display:none; padding:16px 20px; border-bottom:1px solid #F1F5F9; background:#FAFCFF;">
             <div style="font-size:12px; font-weight:700; color:#0F172A; margin-bottom:12px;">Agregar medicamento</div>
-            <form method="POST" action="{{ url_for('recetas_agregar_medicamento', id=receta.id_receta) }}"
+            <form method="POST" action="{{ url_for('recetas.recetas_agregar_medicamento', id=receta.id_receta) }}"
                   style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
                 <div>
                     <label class="form-label">Medicamento</label>
@@ -196,7 +196,7 @@
         {% if receta.estado == 'Activa' %}
         <div id="form-editar-med" style="display:none; padding:16px 20px; border-bottom:1px solid #F1F5F9; background:#FFFBEB;">
             <div style="font-size:12px; font-weight:700; color:#0F172A; margin-bottom:12px;">Editar medicamento</div>
-            <form method="POST" action="{{ url_for('recetas_actualizar_medicamento', id=receta.id_receta) }}"
+            <form method="POST" action="{{ url_for('recetas.recetas_actualizar_medicamento', id=receta.id_receta) }}"
                   style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
                 <input type="hidden" name="id_detalle" id="edit-id-detalle">
                 <div>
@@ -237,7 +237,7 @@
                                     style="background:none; border:none; cursor:pointer; font-size:11px; color:#0E7490; font-weight:600; padding:0;">
                                 Editar
                             </button>
-                            <form method="POST" action="{{ url_for('recetas_quitar_medicamento', id=receta.id_receta) }}"
+                            <form method="POST" action="{{ url_for('recetas.recetas_quitar_medicamento', id=receta.id_receta) }}"
                                   style="display:inline;"
                                   onsubmit="return confirm('¿Quitar {{ m.nombre_medicamento }} de esta receta?')">
                                 <input type="hidden" name="id_detalle" value="{{ m.id_detalle }}">
