@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template, flash, redirect, url_for
+from datetime import datetime, timezone
 import db
+import mongo
 from auth import admin_requerido, iot_auth
 
 bp = Blueprint("api", __name__)
@@ -41,6 +43,18 @@ def api_nfc_lectura():
             "CALL sp_nfc_registrar_lectura(%s::integer, %s::integer, %s::integer, NOW(), %s, %s)",
             (next_id, id_dispositivo, id_receta, tipo_lectura, resultado),
         )
+        try:
+            mongo.col("lecturas_nfc").insert_one({
+                "id_lectura_nfc": next_id,
+                "id_dispositivo":  id_dispositivo,
+                "id_receta":       id_receta,
+                "tipo_lectura":    tipo_lectura,
+                "resultado":       resultado,
+                "fecha_hora":      datetime.now(timezone.utc),
+            })
+        except Exception as me:
+            from flask import current_app
+            current_app.logger.warning("MongoDB NFC write failed: %s", me)
         return jsonify({"status": "ok", "ok": True,
                         "id_lectura_nfc": next_id, "id_receta": id_receta})
     except Exception as e:
@@ -72,6 +86,9 @@ def api_beacon_deteccion():
     if not id_beacon:
         return jsonify({"status": "error", "message": "Beacon no identificado"}), 400
 
+    beacon_dev    = db.one_sp("sp_sel_dispositivo_raw", (id_beacon,))
+    serial_beacon = beacon_dev["id_serial"] if beacon_dev else f"device-{id_beacon}"
+
     cuidador       = db.one_sp("sp_sel_asignacion_beacon_cuidador", (id_beacon,))
     id_cuidador    = cuidador["id_cuidador"] if cuidador else None
     caregiver_name = cuidador["nombre"]      if cuidador else "Sin asignar"
@@ -80,10 +97,25 @@ def api_beacon_deteccion():
         db.execute("CALL sp_ins_deteccion_beacon(%s, %s, %s, %s)",
                    (id_beacon, id_cuidador, rssi, gateway_id))
         row = db.one_sp("sp_sel_ultima_deteccion_por_beacon", (id_beacon,))
+        id_deteccion = row["id_deteccion"] if row else None
+        try:
+            mongo.col("detecciones_beacon").insert_one({
+                "id_deteccion":    id_deteccion,
+                "id_beacon":       id_beacon,
+                "serial_beacon":   serial_beacon,
+                "id_cuidador":     id_cuidador,
+                "nombre_cuidador": caregiver_name,
+                "rssi":            rssi,
+                "id_gateway":      gateway_id,
+                "fecha_hora":      datetime.now(timezone.utc),
+            })
+        except Exception as me:
+            from flask import current_app
+            current_app.logger.warning("MongoDB beacon write failed: %s", me)
         return jsonify({
             "status": "ok",
             "ok": True,
-            "id_deteccion":  row["id_deteccion"] if row else None,
+            "id_deteccion":  id_deteccion,
             "caregiver_name": caregiver_name,
         })
     except Exception as e:
@@ -106,6 +138,19 @@ def sim_gps():
             db.execute("CALL sp_ins_lectura_gps(%s, %s, %s, %s, NULL)",
                        (id_dispositivo, latitud, longitud, nivel_bateria))
             id_lectura     = db.one_sp("sp_sel_last_id_lectura_gps")["id_lectura"]
+            try:
+                mongo.col("lecturas_gps").insert_one({
+                    "id_lectura":    id_lectura,
+                    "id_dispositivo": id_dispositivo,
+                    "latitud":       latitud,
+                    "longitud":      longitud,
+                    "nivel_bateria": nivel_bateria,
+                    "altura":        None,
+                    "fecha_hora":    datetime.now(timezone.utc),
+                    "source":        "sim",
+                })
+            except Exception:
+                pass
             nuevas_alertas = db.query_sp("sp_sel_alertas_sim_recientes")
             result = {
                 "id_lectura":        id_lectura,
@@ -144,6 +189,19 @@ def api_gps_lectura():
         db.execute("CALL sp_ins_lectura_gps(%s, %s, %s, %s, %s)",
                    (id_dispositivo, latitud, longitud, nivel_bateria, altura))
         id_lectura = db.one_sp("sp_sel_last_id_lectura_gps")["id_lectura"]
+        try:
+            mongo.col("lecturas_gps").insert_one({
+                "id_lectura":    id_lectura,
+                "id_dispositivo": id_dispositivo,
+                "latitud":       latitud,
+                "longitud":      longitud,
+                "nivel_bateria": nivel_bateria,
+                "altura":        altura,
+                "fecha_hora":    datetime.now(timezone.utc),
+            })
+        except Exception as me:
+            from flask import current_app
+            current_app.logger.warning("MongoDB GPS write failed: %s", me)
         return jsonify({"status": "ok", "id_lectura": id_lectura})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 422
@@ -190,6 +248,17 @@ def api_gps_osmand():
                                  id_dispositivo, latitud, longitud, nivel_bateria, altura)
         db.execute("CALL sp_ins_lectura_gps(%s, %s, %s, %s, %s)",
                    (id_dispositivo, latitud, longitud, nivel_bateria, altura))
+        try:
+            mongo.col("lecturas_gps").insert_one({
+                "id_dispositivo": id_dispositivo,
+                "latitud":        latitud,
+                "longitud":       longitud,
+                "nivel_bateria":  nivel_bateria,
+                "altura":         altura,
+                "fecha_hora":     datetime.now(timezone.utc),
+            })
+        except Exception as me:
+            current_app.logger.warning("MongoDB GPS write failed: %s", me)
         return "OK", 200
     except Exception as e:
         current_app.logger.error("OsmAnd SP error: %s", e)
