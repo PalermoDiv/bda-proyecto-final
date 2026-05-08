@@ -6,6 +6,18 @@
 
 {% block content %}
 
+{% if rondas_chart %}
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Rondas por cuidador — últimos 7 días</div>
+            <div style="font-size:11px; color:#8892a4; margin-top:2px;">Total de detecciones beacon por cuidador · fuente MongoDB</div>
+        </div>
+    </div>
+    <div id="chart-rondas-cuidador" style="height:240px;"></div>
+</div>
+{% endif %}
+
 <div class="section-header">
     <div>
         <div class="section-title">Registro de rondas beacon</div>
@@ -78,4 +90,42 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+{% if rondas_chart %}
+<script>
+(function () {
+    Highcharts.setOptions({
+        chart:   { style: { fontFamily: 'Inter, system-ui, sans-serif' }, backgroundColor: 'transparent' },
+        title:   { text: null },
+        credits: { enabled: false },
+        colors:  ['#0E7490','#059669','#D97706','#E11D48','#7C3AED','#0369A1'],
+    });
+
+    const data = {{ rondas_chart | tojson }};
+    Highcharts.chart('chart-rondas-cuidador', {
+        chart: { type: 'column', spacing: [16, 16, 12, 16] },
+        xAxis: {
+            categories: data.map(d => d.nombre),
+            labels: { style: { fontSize: '12px', color: '#475569' } },
+            tickLength: 0,
+            lineColor: '#E2E8F0',
+        },
+        yAxis: {
+            title: { text: null },
+            gridLineColor: '#F1F5F9',
+            labels: { style: { fontSize: '10px', color: '#94A3B8' } },
+            allowDecimals: false,
+        },
+        tooltip: { pointFormat: '<b>{point.y}</b> detección(es) en 7 días' },
+        plotOptions: {
+            column: { borderRadius: 4, colorByPoint: true, pointPadding: 0.1 }
+        },
+        legend: { enabled: false },
+        series: [{ name: 'Detecciones', data: data.map(d => d.total) }],
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

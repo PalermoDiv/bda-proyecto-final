@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 import db
+import mongo
 from auth import admin_requerido
 
 bp = Blueprint("recetas", __name__, url_prefix="/recetas")
@@ -11,7 +12,54 @@ bp = Blueprint("recetas", __name__, url_prefix="/recetas")
 def recetas_lista():
     recetas          = db.query_sp("sp_sel_recetas")
     adherencia_chart = db.query_sp("sp_sel_adherencia_nfc_por_paciente")
-    return render_template("recetas.html", recetas=recetas, adherencia_chart=adherencia_chart)
+
+    # Chart 3 — donut: tasa de éxito NFC (MongoDB)
+    try:
+        nfc_exito = [
+            {"resultado": r["_id"], "total": r["total"]}
+            for r in mongo.col("lecturas_nfc").aggregate([
+                {"$group": {"_id": "$resultado", "total": {"$sum": 1}}},
+                {"$sort": {"total": -1}},
+            ])
+        ]
+    except Exception:
+        nfc_exito = []
+
+    # Chart 5 — columnas apiladas: lecturas NFC por día y resultado (MongoDB)
+    try:
+        since = datetime.now(timezone.utc) - timedelta(days=14)
+        raw = list(mongo.col("lecturas_nfc").aggregate([
+            {"$match": {"fecha_hora": {"$gte": since}}},
+            {"$group": {
+                "_id": {
+                    "dia":      {"$dateToString": {"format": "%d/%m", "date": "$fecha_hora"}},
+                    "resultado": "$resultado",
+                },
+                "total": {"$sum": 1},
+            }},
+        ]))
+        hoy        = date.today()
+        dias_labels = [(hoy - timedelta(days=i)).strftime("%d/%m") for i in range(13, -1, -1)]
+        dia_map = {}
+        for r in raw:
+            dia_map.setdefault(r["_id"]["dia"], {})[r["_id"]["resultado"]] = r["total"]
+        nfc_dias_labels = dias_labels
+        nfc_exitosas    = [dia_map.get(d, {}).get("Exitosa", 0) for d in dias_labels]
+        nfc_fallidas    = [dia_map.get(d, {}).get("Fallida", 0) for d in dias_labels]
+    except Exception:
+        nfc_dias_labels = []
+        nfc_exitosas    = []
+        nfc_fallidas    = []
+
+    return render_template(
+        "recetas.html",
+        recetas=recetas,
+        adherencia_chart=adherencia_chart,
+        nfc_exito=nfc_exito,
+        nfc_dias_labels=nfc_dias_labels,
+        nfc_exitosas=nfc_exitosas,
+        nfc_fallidas=nfc_fallidas,
+    )
 
 
 @bp.route("/nueva", methods=["GET", "POST"])

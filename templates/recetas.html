@@ -31,6 +31,36 @@
 </div>
 {% endif %}
 
+{% if nfc_exito or nfc_dias_labels %}
+<div class="mob-stack" style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:20px;">
+
+    {% if nfc_exito %}
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Tasa de éxito NFC</div>
+                <div style="font-size:11px; color:#8892a4; margin-top:2px;">Distribución de resultados · fuente MongoDB</div>
+            </div>
+        </div>
+        <div id="chart-nfc-exito" style="height:240px;"></div>
+    </div>
+    {% endif %}
+
+    {% if nfc_dias_labels %}
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Lecturas NFC — últimos 14 días</div>
+                <div style="font-size:11px; color:#8892a4; margin-top:2px;">Exitosas vs fallidas por día · fuente MongoDB</div>
+            </div>
+        </div>
+        <div id="chart-nfc-dias" style="height:240px;"></div>
+    </div>
+    {% endif %}
+
+</div>
+{% endif %}
+
 <div class="card">
     <div class="table-wrapper">
         <table>
@@ -150,49 +180,87 @@
 {% endblock %}
 
 {% block extra_js %}
-{% if adherencia_chart %}
 <script>
 (function () {
     Highcharts.setOptions({
-        chart:  { style: { fontFamily: 'Inter, system-ui, sans-serif' }, backgroundColor: 'transparent' },
-        title:  { text: null },
-        credits:{ enabled: false },
+        chart:   { style: { fontFamily: 'Inter, system-ui, sans-serif' }, backgroundColor: 'transparent' },
+        title:   { text: null },
+        credits: { enabled: false },
+        colors:  ['#0E7490','#059669','#D97706','#E11D48','#7C3AED','#0369A1'],
     });
 
-    const adData = {{ adherencia_chart | tojson }};
-    const nombres     = adData.map(r => r.nombre_paciente);
-    const porcentajes = adData.map(r => {
-        const t = parseInt(r.total);
-        const e = parseInt(r.exitosas);
+    // ── Adherencia NFC por paciente (PostgreSQL) ─────────────────────────────
+    {% if adherencia_chart %}
+    const adData      = {{ adherencia_chart | tojson }};
+    const adNombres   = adData.map(r => r.nombre_paciente);
+    const adPcts      = adData.map(r => {
+        const t = parseInt(r.total), e = parseInt(r.exitosas);
         return t > 0 ? Math.round((e / t) * 100) : 0;
     });
-
     Highcharts.chart('chart-adherencia', {
         chart: { type: 'bar', spacing: [8, 12, 8, 8] },
+        xAxis: { categories: adNombres, labels: { style: { fontSize: '11px', color: '#475569' } }, lineColor: 'transparent' },
+        yAxis: { title: { text: null }, max: 100, gridLineColor: '#F1F5F9', labels: { format: '{value}%', style: { fontSize: '10px', color: '#94A3B8' } } },
+        tooltip: { valueSuffix: '%', pointFormat: '<b>{point.y}%</b> de adherencia' },
+        plotOptions: { bar: { borderRadius: 3, dataLabels: { enabled: true, format: '{y}%', style: { fontSize: '10px', fontWeight: '600' } }, colorByPoint: true, colors: adPcts.map(p => p >= 80 ? '#059669' : p >= 50 ? '#D97706' : '#E11D48') } },
+        legend: { enabled: false },
+        series: [{ name: 'Adherencia', data: adPcts }],
+    });
+    {% endif %}
+
+    // ── Chart 3: Donut tasa de éxito NFC (MongoDB) ───────────────────────────
+    {% if nfc_exito %}
+    const exitoData = {{ nfc_exito | tojson }};
+    Highcharts.chart('chart-nfc-exito', {
+        chart: { type: 'pie', margin: [8, 0, 8, 0] },
+        plotOptions: {
+            pie: {
+                innerSize: '55%',
+                dataLabels: { enabled: false },
+                showInLegend: true,
+            }
+        },
+        legend: {
+            layout: 'vertical', align: 'right', verticalAlign: 'middle',
+            itemStyle: { fontSize: '11px', fontWeight: '500', color: '#475569' },
+        },
+        tooltip: { pointFormat: '<b>{point.y}</b> lecturas ({point.percentage:.1f}%)' },
+        colors: ['#059669', '#E11D48', '#D97706'],
+        series: [{
+            name: 'Lecturas',
+            data: exitoData.map(r => ({ name: r.resultado, y: r.total })),
+        }],
+    });
+    {% endif %}
+
+    // ── Chart 5: Columnas apiladas NFC por día (MongoDB) ─────────────────────
+    {% if nfc_dias_labels %}
+    Highcharts.chart('chart-nfc-dias', {
+        chart: { type: 'column', spacing: [12, 8, 8, 8] },
         xAxis: {
-            categories: nombres,
-            labels: { style: { fontSize: '11px', color: '#475569' } },
-            lineColor: 'transparent',
+            categories: {{ nfc_dias_labels | tojson }},
+            labels: { style: { fontSize: '10px', color: '#94A3B8' } },
+            tickLength: 0,
+            lineColor: '#E2E8F0',
         },
         yAxis: {
             title: { text: null },
-            max: 100,
             gridLineColor: '#F1F5F9',
-            labels: { format: '{value}%', style: { fontSize: '10px', color: '#94A3B8' } },
+            labels: { style: { fontSize: '10px', color: '#94A3B8' } },
+            allowDecimals: false,
         },
-        tooltip: { valueSuffix: '%', pointFormat: '<b>{point.y}%</b> de adherencia' },
+        tooltip: { shared: true },
         plotOptions: {
-            bar: {
-                borderRadius: 3,
-                dataLabels: { enabled: true, format: '{y}%', style: { fontSize: '10px', fontWeight: '600' } },
-                colorByPoint: true,
-                colors: porcentajes.map(p => p >= 80 ? '#059669' : p >= 50 ? '#D97706' : '#E11D48'),
-            }
+            column: { stacking: 'normal', borderRadius: 2, pointPadding: 0.05, groupPadding: 0.1 }
         },
-        legend: { enabled: false },
-        series: [{ name: 'Adherencia', data: porcentajes }]
+        legend: { itemStyle: { fontSize: '11px', fontWeight: '500', color: '#475569' } },
+        series: [
+            { name: 'Exitosas', data: {{ nfc_exitosas | tojson }}, color: '#059669' },
+            { name: 'Fallidas', data: {{ nfc_fallidas | tojson }}, color: '#E11D48' },
+        ],
     });
+    {% endif %}
+
 })();
 </script>
-{% endif %}
 {% endblock %}

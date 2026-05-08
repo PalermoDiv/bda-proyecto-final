@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from datetime import datetime, timezone, timedelta
 import db
 import mongo
 from auth import admin_requerido
@@ -47,13 +48,28 @@ def rondas_lista():
     )
     rondas = [
         {
-            "id_deteccion":  d.get("id_deteccion"),
-            "fecha_hora":    d.get("fecha_hora"),
-            "id_gateway":    d.get("id_gateway"),
-            "serial_beacon": d.get("serial_beacon", "—"),
+            "id_deteccion":    d.get("id_deteccion"),
+            "fecha_hora":      d.get("fecha_hora"),
+            "id_gateway":      d.get("id_gateway"),
+            "serial_beacon":   d.get("serial_beacon", "—"),
             "nombre_cuidador": d.get("nombre_cuidador", "Anónimo"),
-            "rssi":          d.get("rssi"),
+            "rssi":            d.get("rssi"),
         }
         for d in docs
     ]
-    return render_template("rondas/lista.html", rondas=rondas)
+
+    try:
+        since = datetime.now(timezone.utc) - timedelta(days=7)
+        pipeline = [
+            {"$match": {"fecha_hora": {"$gte": since}}},
+            {"$group": {"_id": "$nombre_cuidador", "total": {"$sum": 1}}},
+            {"$sort": {"total": -1}},
+        ]
+        rondas_chart = [
+            {"nombre": r["_id"] or "Anónimo", "total": r["total"]}
+            for r in mongo.col("detecciones_beacon").aggregate(pipeline)
+        ]
+    except Exception:
+        rondas_chart = []
+
+    return render_template("rondas/lista.html", rondas=rondas, rondas_chart=rondas_chart)
