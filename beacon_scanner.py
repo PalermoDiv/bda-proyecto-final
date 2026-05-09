@@ -18,7 +18,7 @@ import time
 import requests
 from bleak import BleakScanner
 
-_default_url   = "https://192.168.1.2:5002/api/beacon/deteccion"
+_default_url   = "https://34.10.194.132:5002/api/beacon/deteccion"
 FLASK_URL      = os.environ.get("ALZMONITOR_URL", _default_url)
 API_KEY        = "alz-dev-2026"
 SCAN_INTERVAL  = 5    # seconds per scan cycle

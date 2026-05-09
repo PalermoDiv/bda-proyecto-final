@@ -168,7 +168,9 @@ BEGIN
     END IF;
 
     INSERT INTO receta_nfc (id_receta, id_dispositivo, fecha_inicio_gestion, fecha_fin_gestion)
-    VALUES (p_id_receta, p_id_dispositivo, p_fecha_inicio, NULL);
+    VALUES (p_id_receta, p_id_dispositivo, p_fecha_inicio, NULL)
+    ON CONFLICT (id_receta, id_dispositivo)
+    DO UPDATE SET fecha_inicio_gestion = p_fecha_inicio, fecha_fin_gestion = NULL;
 END;
 $$;
 
