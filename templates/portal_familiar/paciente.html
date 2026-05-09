@@ -274,7 +274,7 @@
     <div style="padding:12px 18px; background:#F7FCFF; border-top:1px solid #E0F2FE;
                 display:flex; align-items:center; gap:8px;">
         <span style="font-size:15px;">📍</span>
-        <span style="font-size:13px; font-weight:600;
+        <span id="gps-zona-label" style="font-size:13px; font-weight:600;
                      color:{% if dentro_zona %}#059669{% else %}#BE123C{% endif %};">
             {% if dentro_zona %}
                 {{ nombre_zona_actual or 'Zona segura' }}
@@ -283,7 +283,7 @@
             {% endif %}
         </span>
         <span style="color:#CBD5E1; font-size:12px;">—</span>
-        <span style="font-size:12px; color:#94A3B8;">
+        <span id="gps-tiempo-label" style="font-size:12px; color:#94A3B8;">
             {{ tiempo_gps or 'sin registro de tiempo' }}
         </span>
     </div>
@@ -531,7 +531,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var lat = {{ ultima_gps.latitud }};
     var lng = {{ ultima_gps.longitud }};
 
-    // Non-interactive — just a visual reference
     var map = L.map('mapa-gps', {
         zoomControl:       false,
         dragging:          false,
@@ -546,7 +545,6 @@ document.addEventListener('DOMContentLoaded', function () {
         maxZoom: 19,
     }).addTo(map);
 
-    // Safe zone circles
     {% for z in zonas_seguras %}
     L.circle([{{ z.latitud_centro }}, {{ z.longitud_centro }}], {
         radius: {{ z.radio_metros }},
@@ -556,14 +554,61 @@ document.addEventListener('DOMContentLoaded', function () {
     }).addTo(map);
     {% endfor %}
 
-    // Patient position marker
-    var dotColor = {{ 'true' if dentro_zona else 'false' }} ? '#059669' : '#F43F5E';
-    var icon = L.divIcon({
-        html: '<div style="width:14px;height:14px;border-radius:50%;background:' + dotColor +
-              ';border:3px solid #fff;box-shadow:0 0 0 2px ' + dotColor + ';"></div>',
-        iconSize: [14, 14], iconAnchor: [7, 7], className: '',
-    });
-    L.marker([lat, lng], { icon: icon, interactive: false }).addTo(map);
+    function makeIcon(dentroZona) {
+        var c = dentroZona ? '#059669' : '#F43F5E';
+        return L.divIcon({
+            html: '<div style="width:14px;height:14px;border-radius:50%;background:' + c +
+                  ';border:3px solid #fff;box-shadow:0 0 0 2px ' + c + ';"></div>',
+            iconSize: [14, 14], iconAnchor: [7, 7], className: '',
+        });
+    }
+
+    var marker = L.marker([lat, lng], {
+        icon: makeIcon({{ 'true' if dentro_zona else 'false' }}),
+        interactive: false,
+    }).addTo(map);
+
+    var POLL_MS = 8000;
+    var pacienteId = {{ paciente.id_paciente }};
+
+    function tiempoRelativo(isoStr) {
+        if (!isoStr) return 'sin registro de tiempo';
+        var diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 60000);
+        if (diff < 1)  return 'hace un momento';
+        if (diff < 60) return 'hace ' + diff + ' minuto' + (diff === 1 ? '' : 's');
+        var hrs = Math.floor(diff / 60);
+        if (hrs < 24)  return 'hace ' + hrs + ' hora' + (hrs === 1 ? '' : 's');
+        var dias = Math.floor(hrs / 24);
+        return 'hace ' + dias + ' día' + (dias === 1 ? '' : 's');
+    }
+
+    function actualizarMapa() {
+        fetch('/api/gps/ultima/' + pacienteId)
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(d) {
+                if (!d || d.status !== 'ok') return;
+
+                var newLatLng = L.latLng(d.latitud, d.longitud);
+                marker.setLatLng(newLatLng);
+                marker.setIcon(makeIcon(d.dentro_zona));
+                map.panTo(newLatLng);
+
+                var zonaLabel = document.getElementById('gps-zona-label');
+                var tiempoLabel = document.getElementById('gps-tiempo-label');
+                if (zonaLabel) {
+                    zonaLabel.textContent = d.dentro_zona
+                        ? (d.nombre_zona || 'Zona segura')
+                        : 'Fuera de zona segura';
+                    zonaLabel.style.color = d.dentro_zona ? '#059669' : '#BE123C';
+                }
+                if (tiempoLabel) {
+                    tiempoLabel.textContent = tiempoRelativo(d.fecha_hora);
+                }
+            })
+            .catch(function() {});
+    }
+
+    setInterval(actualizarMapa, POLL_MS);
 });
 </script>
 {% endif %}

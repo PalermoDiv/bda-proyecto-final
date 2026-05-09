@@ -265,6 +265,48 @@ def api_gps_osmand():
         return str(e), 422
 
 
+# ── GPS — última posición (polling) ──────────────────────────────────────────
+
+@bp.route("/api/gps/ultima/<int:id_paciente>")
+def api_gps_ultima(id_paciente):
+    from flask import session as _s
+    from utils import haversine_m
+
+    contacto_id = _s.get("contacto_id")
+    is_staff    = _s.get("admin") or _s.get("medico")
+
+    if not contacto_id and not is_staff:
+        return jsonify({"status": "error", "message": "No autorizado"}), 401
+
+    if contacto_id and not is_staff:
+        if not db.one_sp("sp_sel_contacto_verificacion", (contacto_id, id_paciente)):
+            return jsonify({"status": "error", "message": "Acceso denegado"}), 403
+
+    gps = db.one_sp("sp_sel_lecturas_gps_paciente", (id_paciente, 1))
+    if not gps:
+        return jsonify({"status": "sin_datos"})
+
+    zonas       = db.query_sp("sp_sel_zonas_por_paciente", (id_paciente,))
+    dentro_zona = False
+    nombre_zona = None
+    for z in zonas:
+        if haversine_m(gps["latitud"], gps["longitud"],
+                       z["latitud_centro"], z["longitud_centro"]) <= float(z["radio_metros"]):
+            dentro_zona = True
+            nombre_zona = z["nombre_zona"]
+            break
+
+    return jsonify({
+        "status":        "ok",
+        "latitud":       float(gps["latitud"]),
+        "longitud":      float(gps["longitud"]),
+        "nivel_bateria": gps.get("nivel_bateria"),
+        "fecha_hora":    gps["fecha_hora"].isoformat() if gps.get("fecha_hora") else None,
+        "dentro_zona":   dentro_zona,
+        "nombre_zona":   nombre_zona,
+    })
+
+
 # ── NFC test page (dev only) ──────────────────────────────────────────────────
 
 @bp.route("/test/nfc")

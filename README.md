@@ -8,16 +8,17 @@ Sistema de gestión clínica multisede para pacientes de Alzheimer, desarrollado
 
 1. [Requisitos previos](#1-requisitos-previos)
 2. [Instalación de dependencias Python](#2-instalación-de-dependencias-python)
-3. [Configurar PostgreSQL](#3-configurar-postgresql)
-4. [Aplicar el esquema y los procedimientos](#4-aplicar-el-esquema-y-los-procedimientos)
-5. [Configurar variables de entorno (.env)](#5-configurar-variables-de-entorno-env)
-6. [Generar certificado TLS](#6-generar-certificado-tls)
-7. [Abrir puertos en el firewall](#7-abrir-puertos-en-el-firewall)
-8. [Levantar la aplicación](#8-levantar-la-aplicación)
-9. [Credenciales de prueba](#9-credenciales-de-prueba)
-10. [beacon_scanner.py — escáner BLE local](#10-beacon_scannerpy--escáner-ble-local)
-11. [Agregar dispositivos propios y probarlos](#11-agregar-dispositivos-propios-y-probarlos)
-12. [Escenarios de demostración](#12-escenarios-de-demostración)
+3. [Instalar y configurar MongoDB](#3-instalar-y-configurar-mongodb)
+4. [Configurar PostgreSQL](#4-configurar-postgresql)
+5. [Aplicar el esquema y los procedimientos](#5-aplicar-el-esquema-y-los-procedimientos)
+6. [Configurar variables de entorno (.env)](#6-configurar-variables-de-entorno-env)
+7. [Generar certificado TLS](#7-generar-certificado-tls)
+8. [Abrir puertos en el firewall](#8-abrir-puertos-en-el-firewall)
+9. [Levantar la aplicación](#9-levantar-la-aplicación)
+10. [Credenciales de prueba](#10-credenciales-de-prueba)
+11. [beacon_scanner.py — escáner BLE local](#11-beacon_scannerpy--escáner-ble-local)
+12. [Agregar dispositivos propios y probarlos](#12-agregar-dispositivos-propios-y-probarlos)
+13. [Escenarios de demostración](#13-escenarios-de-demostración)
 
 ---
 
@@ -65,11 +66,59 @@ Desde el directorio del proyecto:
 pip install -r requirements.txt
 ```
 
-Dependencias incluidas: `Flask`, `psycopg` (v3), `python-dotenv`, `reportlab`, `bleak`, `requests`.
+Dependencias incluidas: `Flask`, `psycopg` (v3), `python-dotenv`, `reportlab`, `bleak`, `requests`, `pymongo`.
 
 ---
 
-## 3. Configurar PostgreSQL
+## 3. Instalar y configurar MongoDB
+
+MongoDB se usa como almacén secundario para las lecturas IoT (GPS, Beacon, NFC). Si MongoDB no está disponible, la aplicación sigue funcionando — las escrituras fallidas se registran solo en el log.
+
+### Instalar MongoDB Community Edition
+
+**Ubuntu / Debian (GCP):**
+```bash
+sudo apt install -y gnupg curl
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+sudo apt update
+sudo apt install -y mongodb-org
+sudo systemctl enable --now mongod
+```
+
+**CentOS / RHEL:**
+```bash
+cat <<EOF | sudo tee /etc/yum.repos.d/mongodb-org-7.0.repo
+[mongodb-org-7.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/\$releasever/mongodb-org/7.0/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://www.mongodb.org/static/pgp/server-7.0.asc
+EOF
+sudo dnf install -y mongodb-org
+sudo systemctl enable --now mongod
+```
+
+**macOS:**
+```bash
+brew tap mongodb/brew
+brew install mongodb-community
+brew services start mongodb-community
+```
+
+### Verificar que MongoDB esté corriendo
+
+```bash
+mongosh --eval "db.runCommand({ ping: 1 })"
+# Debe responder: { ok: 1 }
+```
+
+No se requiere crear la base de datos manualmente — la app la crea automáticamente al insertar la primera lectura.
+
+---
+
+## 4. Configurar PostgreSQL
 
 ### Crear usuario y base de datos
 
@@ -84,7 +133,7 @@ GRANT ALL PRIVILEGES ON DATABASE alzheimer TO alzadmin;
 \q
 ```
 
-> Se puede usar cualquier nombre de usuario y contraseña — solo recordarlos para el `.env` del paso 5.
+> Se puede usar cualquier nombre de usuario y contraseña — solo recordarlos para el `.env` del paso 6.
 
 ### Verificar que PostGIS esté disponible
 
@@ -118,7 +167,7 @@ sudo systemctl restart postgresql
 
 ---
 
-## 4. Aplicar el esquema y los procedimientos
+## 5. Aplicar el esquema y los procedimientos
 
 Ejecutar los archivos SQL en este orden exacto. Reemplazar `alzadmin` con el usuario creado en el paso 3.
 
@@ -142,7 +191,7 @@ El archivo `ProyectoFinalDDL.sql` incluye datos semilla completos (pacientes, cu
 
 ---
 
-## 5. Configurar variables de entorno (.env)
+## 6. Configurar variables de entorno (.env)
 
 Copiar el archivo de ejemplo y editarlo:
 
@@ -162,8 +211,11 @@ ADMIN_PASSWORD=admin123
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=alzheimer
-DB_USER=alzadmin        # usuario creado en el paso 3
-DB_PASSWORD=alzpass123  # contraseña del paso 3
+DB_USER=alzadmin        # usuario creado en el paso 4
+DB_PASSWORD=alzpass123  # contraseña del paso 4
+
+MONGO_URI=mongodb://localhost:27017/
+MONGO_DB=alzmonitor
 ```
 
 > Si se usó Unix socket en lugar de TCP (macOS con Homebrew, o instalación local sin contraseña), cambiar `DB_HOST` al path del socket:
@@ -173,7 +225,7 @@ DB_PASSWORD=alzpass123  # contraseña del paso 3
 
 ---
 
-## 6. Generar certificado TLS
+## 7. Generar certificado TLS
 
 La app requiere HTTPS porque las APIs del navegador (Web NFC, Web Bluetooth) solo funcionan en contexto seguro. El certificado es autofirmado — el navegador mostrará advertencia de seguridad (es normal).
 
@@ -203,7 +255,7 @@ Los archivos `cert.pem` y `key.pem` deben quedar en el directorio raíz del proy
 
 ---
 
-## 7. Abrir puertos en el firewall
+## 8. Abrir puertos en el firewall
 
 La app usa dos puertos:
 
@@ -235,7 +287,7 @@ sudo firewall-cmd --reload
 
 ---
 
-## 8. Levantar la aplicación
+## 9. Levantar la aplicación
 
 ```bash
 python app.py
@@ -261,7 +313,7 @@ El navegador mostrará advertencia por certificado autofirmado. Para continuar:
 
 ---
 
-## 9. Credenciales de prueba
+## 10. Credenciales de prueba
 
 | Rol | Usuario / Email | Contraseña / PIN | URL de entrada |
 |-----|----------------|-----------------|----------------|
@@ -274,7 +326,7 @@ El rol administrador tiene acceso completo a todos los módulos. El rol médico 
 
 ---
 
-## 10. beacon_scanner.py — escáner BLE local
+## 11. beacon_scanner.py — escáner BLE local
 
 Este script corre en una **Mac local** con Bluetooth (no en la VM), detecta beacons BLE de los cuidadores y los reporta a la app.
 
@@ -306,7 +358,7 @@ Intervalo de escaneo: 5s
 
 ---
 
-## 11. Agregar dispositivos propios y probarlos
+## 12. Agregar dispositivos propios y probarlos
 
 ### Registrar el dispositivo
 
@@ -364,7 +416,7 @@ curl -k -X POST https://localhost:5002/api/beacon/deteccion \
 
 ---
 
-## 12. Escenarios de demostración
+## 13. Escenarios de demostración
 
 ### Escenario 1 — Salida de zona y escalamiento de alertas
 
