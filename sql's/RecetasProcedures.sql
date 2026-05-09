@@ -10,7 +10,7 @@
 --   - Cada procedure opera dentro de una transacción implícita
 --
 -- Para aplicar:
---   psql -U palermingoat -d alzheimer -f RecetasProcedures.sql
+--   psql -U alzadmin -d alzheimer -f RecetasProcedures.sql
 -- =============================================================================
 
 

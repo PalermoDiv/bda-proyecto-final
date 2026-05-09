@@ -648,4 +648,4 @@ Rutas que lo usan:
 ===========================================
 Total: 31 procedimientos — pacientes, cuidadores, turnos, alertas, dispositivos, zonas, beacon, farmacia, visitas, GPS
 Archivo SQL: AppProcedures.sql
-Aplicar con: psql -U palermingoat -d alzheimer -f AppProcedures.sql
+Aplicar con: psql -U alzadmin -d alzheimer -f AppProcedures.sql

@@ -1,7 +1,7 @@
 -- =============================================================================
 -- ViewsDB.sql — Vistas de base de datos para AlzMonitor
 -- Todas las vistas son de solo lectura. No reemplazan stored procedures DML.
--- Aplicar: psql -U palermingoat -d alzheimer -f ViewsDB.sql
+-- Aplicar: psql -U alzadmin -d alzheimer -f ViewsDB.sql
 -- =============================================================================
 
 

@@ -1,6 +1,6 @@
 -- AppProcedures.sql
 -- DML stored procedures for app.py routes
--- Apply: psql -U palermingoat -d alzheimer -f AppProcedures.sql
+-- Apply: psql -U alzadmin -d alzheimer -f AppProcedures.sql
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- PACIENTES

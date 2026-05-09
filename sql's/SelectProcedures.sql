@@ -11,7 +11,7 @@
 --       rows = cur.fetchall()
 --       cur.execute("COMMIT")
 --
--- Aplicar: psql -U palermingoat -d alzheimer -f SelectProcedures.sql
+-- Aplicar: psql -U alzadmin -d alzheimer -f SelectProcedures.sql
 -- =============================================================================
 
 

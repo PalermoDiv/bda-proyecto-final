@@ -1,6 +1,6 @@
 -- =============================================================================
 -- TriggersDB.sql — Triggers automáticos de la base de datos AlzMonitor
--- Aplicar: psql -U palermingoat -d alzheimer -f TriggersDB.sql
+-- Aplicar: psql -U alzadmin -d alzheimer -f TriggersDB.sql
 -- =============================================================================
 -- Contenido:
 --   BLOQUE 1: fn_verificar_cobertura_zona + trg_cobertura_zona

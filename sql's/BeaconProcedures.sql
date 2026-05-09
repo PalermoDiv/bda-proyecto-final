@@ -10,7 +10,7 @@
 --   - El trigger trg_cobertura_zona se dispara automáticamente tras el INSERT
 --
 -- Para aplicar:
---   psql -U palermingoat -d alzheimer -f BeaconProcedures.sql
+--   psql -U alzadmin -d alzheimer -f BeaconProcedures.sql
 -- =============================================================================
 
 

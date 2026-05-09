@@ -2,7 +2,7 @@
 -- ProyectoFinalDDL.sql
 -- AlzMonitor — Sistema de Monitoreo de Pacientes con Alzheimer
 -- Base de datos: alzheimer
--- Uso: psql -U palermingoat -d alzheimer -f ProyectoFinalDDL.sql
+-- Uso: psql -U alzadmin -d alzheimer -f ProyectoFinalDDL.sql
 --
 -- CAMBIOS RESPECTO AL AVANCE ANTERIOR (según retroalimentación del profesor)
 --   1. Eliminación de PACIENTE_RECETAS (redundancia con id_paciente en RECETAS)

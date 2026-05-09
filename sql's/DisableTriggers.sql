@@ -2,7 +2,7 @@
 -- DisableTriggers.sql — Deshabilita todos los triggers automáticos de AlzMonitor
 -- Los triggers quedan definidos en la DB pero no se ejecutan.
 -- Para re-habilitar: ALTER TABLE ... ENABLE TRIGGER ...
--- Para aplicar: psql -U palermingoat -d alzheimer -f DisableTriggers.sql
+-- Para aplicar: psql -U alzadmin -d alzheimer -f DisableTriggers.sql
 -- =============================================================================
 
 -- trg_cobertura_zona usa beacon_zona (arquitectura antigua de paredes fijas),
