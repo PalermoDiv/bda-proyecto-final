@@ -1,4 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+import models.zona as Zona
+import models.sede as Sede
 import db
 from auth import admin_requerido
 
@@ -8,17 +10,16 @@ bp = Blueprint("zonas", __name__, url_prefix="/zonas")
 @bp.route("/")
 @admin_requerido
 def zonas():
-    zonas_list = db.query_sp("sp_sel_zonas")
-    return render_template("zonas.html", zonas=zonas_list)
+    return render_template("zonas.html", zonas=Zona.listar())
 
 
 @bp.route("/nueva", methods=["GET", "POST"])
 @admin_requerido
 def zonas_nueva():
-    sedes = db.query_sp("sp_sel_sedes")
+    sedes = Sede.listar()
     if request.method == "POST":
         try:
-            id_zona     = db.one_sp("sp_sel_next_id_zona")["next_id"]
+            id_zona     = Zona.siguiente_id()
             nombre_zona = request.form["nombre_zona"].strip()
             latitud     = float(request.form["latitud_centro"])
             longitud    = float(request.form["longitud_centro"])
@@ -45,13 +46,13 @@ def zonas_nueva():
 @bp.route("/editar/<int:id>", methods=["GET", "POST"])
 @admin_requerido
 def zonas_editar(id):
-    zona = db.one_sp("sp_sel_zona_por_id", (id,))
+    zona = Zona.obtener(id)
     if not zona:
         flash("Zona no encontrada.", "error")
         return redirect(url_for("zonas.zonas"))
 
-    sedes = db.query_sp("sp_sel_sedes")
-    sedes_asignadas = [r["id_sede"] for r in db.query_sp("sp_sel_sedes_por_zona", (id,))]
+    sedes           = Sede.listar()
+    sedes_asignadas = [r["id_sede"] for r in Zona.sedes_asignadas(id)]
 
     if request.method == "POST":
         try:
@@ -85,7 +86,7 @@ def zonas_editar(id):
 @admin_requerido
 def zonas_eliminar(id):
     try:
-        db.execute("CALL sp_del_zona(%s)", (id,))
+        Zona.eliminar(id)
         flash("Zona eliminada.", "success")
     except Exception as e:
         flash(f"Error al eliminar zona: {e}", "error")

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from datetime import date, datetime, timezone, timedelta
-import db
+import models.receta as Receta
+import models.paciente as Paciente
 import mongo
 from auth import admin_requerido
 
@@ -10,10 +11,8 @@ bp = Blueprint("recetas", __name__, url_prefix="/recetas")
 @bp.route("/")
 @admin_requerido
 def recetas_lista():
-    recetas          = db.query_sp("sp_sel_recetas")
-    adherencia_chart = db.query_sp("sp_sel_adherencia_nfc_por_paciente")
+    adherencia_chart = Receta.adherencia_chart()
 
-    # Chart 3 — donut: tasa de éxito NFC (MongoDB)
     try:
         nfc_exito = [
             {"resultado": r["_id"], "total": r["total"]}
@@ -25,14 +24,13 @@ def recetas_lista():
     except Exception:
         nfc_exito = []
 
-    # Chart 5 — columnas apiladas: lecturas NFC por día y resultado (MongoDB)
     try:
         since = datetime.now(timezone.utc) - timedelta(days=14)
         raw = list(mongo.col("lecturas_nfc").aggregate([
             {"$match": {"fecha_hora": {"$gte": since}}},
             {"$group": {
                 "_id": {
-                    "dia":      {"$dateToString": {"format": "%d/%m", "date": "$fecha_hora"}},
+                    "dia":       {"$dateToString": {"format": "%d/%m", "date": "$fecha_hora"}},
                     "resultado": "$resultado",
                 },
                 "total": {"$sum": 1},
@@ -53,7 +51,7 @@ def recetas_lista():
 
     return render_template(
         "recetas.html",
-        recetas=recetas,
+        recetas=Receta.listar(),
         adherencia_chart=adherencia_chart,
         nfc_exito=nfc_exito,
         nfc_dias_labels=nfc_dias_labels,
@@ -65,38 +63,34 @@ def recetas_lista():
 @bp.route("/nueva", methods=["GET", "POST"])
 @admin_requerido
 def recetas_nueva():
-    pacientes = db.query_sp("sp_sel_pacientes_activos")
     if request.method == "POST":
         try:
             id_paciente = int(request.form["id_paciente"])
             fecha       = request.form["fecha"]
-            next_id     = db.one_sp("sp_sel_next_id_receta")["next_id"]
-            db.execute("CALL sp_receta_crear(%s, %s, %s)", (next_id, id_paciente, fecha))
+            next_id     = Receta.siguiente_id()
+            Receta.crear(next_id, id_paciente, fecha)
             flash("Receta creada correctamente.", "success")
             return redirect(url_for("recetas.recetas_detalle", id=next_id))
         except Exception as e:
             flash(f"Error al crear receta: {e}", "error")
-    return render_template("recetas_form.html", pacientes=pacientes, today=date.today().isoformat())
+    return render_template("recetas_form.html",
+                           pacientes=Paciente.listar_activos(),
+                           today=date.today().isoformat())
 
 
 @bp.route("/<int:id>")
 @admin_requerido
 def recetas_detalle(id):
-    receta = db.one_sp("sp_sel_receta_por_id", (id,))
+    receta = Receta.obtener(id)
     if not receta:
         abort(404)
-    medicamentos             = db.query_sp("sp_sel_receta_medicamentos_por_receta", (id,))
-    medicamentos_disponibles = db.query_sp("sp_sel_medicamentos_disponibles_receta", (id,))
-    nfc                      = db.one_sp("sp_sel_nfc_activo_por_receta", (id,))
-    lecturas                 = db.query_sp("sp_sel_lecturas_nfc_por_receta", (id,))
-    nfc_disponibles          = db.query_sp("sp_sel_nfc_disponibles")
     return render_template("recetas_detalle.html",
                            receta=receta,
-                           medicamentos=medicamentos,
-                           medicamentos_disponibles=medicamentos_disponibles,
-                           nfc=nfc,
-                           nfc_disponibles=nfc_disponibles,
-                           lecturas=lecturas)
+                           medicamentos=Receta.medicamentos(id),
+                           medicamentos_disponibles=Receta.medicamentos_disponibles(id),
+                           nfc=Receta.nfc_activo(id),
+                           nfc_disponibles=Paciente.nfc_disponibles(),
+                           lecturas=Receta.lecturas_nfc(id))
 
 
 @bp.route("/<int:id>/agregar-medicamento", methods=["POST"])
@@ -106,9 +100,8 @@ def recetas_agregar_medicamento(id):
         gtin             = request.form["gtin"]
         dosis            = request.form["dosis"].strip()
         frecuencia_horas = int(request.form["frecuencia_horas"])
-        next_det = db.one_sp("sp_sel_next_id_detalle_receta")["next_id"]
-        db.execute("CALL sp_receta_agregar_medicamento(%s, %s, %s, %s, %s)",
-                   (next_det, id, gtin, dosis, frecuencia_horas))
+        next_det = Receta.siguiente_id_detalle()
+        Receta.agregar_medicamento(next_det, id, gtin, dosis, frecuencia_horas)
         flash("Medicamento agregado correctamente.", "success")
     except Exception as e:
         flash(f"Error al agregar medicamento: {e}", "error")
@@ -122,8 +115,7 @@ def recetas_actualizar_medicamento(id):
         id_detalle       = int(request.form["id_detalle"])
         dosis            = request.form["dosis"].strip()
         frecuencia_horas = int(request.form["frecuencia_horas"])
-        db.execute("CALL sp_receta_actualizar_medicamento(%s, %s, %s, %s)",
-                   (id_detalle, id, dosis, frecuencia_horas))
+        Receta.actualizar_medicamento(id_detalle, id, dosis, frecuencia_horas)
         flash("Medicamento actualizado correctamente.", "success")
     except Exception as e:
         flash(f"Error al actualizar medicamento: {e}", "error")
@@ -135,7 +127,7 @@ def recetas_actualizar_medicamento(id):
 def recetas_quitar_medicamento(id):
     try:
         id_detalle = int(request.form["id_detalle"])
-        db.execute("CALL sp_receta_quitar_medicamento(%s, %s)", (id_detalle, id))
+        Receta.quitar_medicamento(id_detalle, id)
         flash("Medicamento eliminado de la receta.", "success")
     except Exception as e:
         flash(f"Error al quitar medicamento: {e}", "error")
@@ -146,7 +138,7 @@ def recetas_quitar_medicamento(id):
 @admin_requerido
 def recetas_cerrar(id):
     try:
-        db.execute("CALL sp_receta_cerrar(%s, CURRENT_DATE)", (id,))
+        Receta.cerrar(id)
         flash("Receta cerrada correctamente.", "success")
     except Exception as e:
         flash(f"Error al cerrar receta: {e}", "error")
@@ -158,7 +150,7 @@ def recetas_cerrar(id):
 def recetas_activar_nfc(id):
     try:
         id_dispositivo = int(request.form["id_dispositivo"])
-        db.execute("CALL sp_receta_activar_nfc(%s, %s, CURRENT_DATE)", (id, id_dispositivo))
+        Receta.activar_nfc(id, id_dispositivo)
         flash("Pulsera NFC vinculada correctamente.", "success")
     except Exception as e:
         flash(f"Error al activar NFC: {e}", "error")
@@ -170,7 +162,7 @@ def recetas_activar_nfc(id):
 def recetas_cerrar_nfc(id):
     try:
         id_dispositivo = int(request.form["id_dispositivo"])
-        db.execute("CALL sp_receta_cerrar_nfc(%s, %s, CURRENT_DATE)", (id, id_dispositivo))
+        Receta.cerrar_nfc(id, id_dispositivo)
         flash("Vínculo NFC cerrado.", "success")
     except Exception as e:
         flash(f"Error al cerrar NFC: {e}", "error")
@@ -182,7 +174,7 @@ def recetas_cerrar_nfc(id):
 def recetas_cambiar_nfc(id):
     try:
         id_dispositivo_nuevo = int(request.form["id_dispositivo_nuevo"])
-        db.execute("CALL sp_receta_cambiar_nfc(%s, %s, CURRENT_DATE)", (id, id_dispositivo_nuevo))
+        Receta.cambiar_nfc(id, id_dispositivo_nuevo)
         flash("Pulsera NFC reemplazada correctamente.", "success")
     except Exception as e:
         flash(f"Error al cambiar NFC: {e}", "error")

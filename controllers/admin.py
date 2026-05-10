@@ -1,6 +1,10 @@
 from flask import Blueprint, render_template
 from datetime import date, timedelta
-import db
+import models.admin as Admin
+import models.alerta as Alerta
+import models.sede as Sede
+import models.farmacia as Farmacia
+import models.visita as Visita
 from auth import admin_requerido
 
 bp = Blueprint("admin", __name__)
@@ -9,15 +13,15 @@ bp = Blueprint("admin", __name__)
 @bp.route("/dashboard")
 @admin_requerido
 def dashboard():
-    stats = dict(db.one_sp("sp_sel_dashboard_stats"))
+    stats = dict(Admin.dashboard_stats())
 
-    sedes = db.query_sp("sp_sel_sedes")
-    sede_stats = {r["id_sede"]: r for r in db.query_sp("sp_sel_stats_por_sede")}
+    sedes      = Sede.listar()
+    sede_stats = {r["id_sede"]: r for r in Sede.stats_por_sede()}
 
     stats_por_sede = []
     for s in sedes:
         sid = s["id_sede"]
-        ss = sede_stats.get(sid, {})
+        ss  = sede_stats.get(sid, {})
         stats_por_sede.append({
             "sucursal": {
                 "id_sucursal": sid,
@@ -32,24 +36,24 @@ def dashboard():
             "alertas_activas": ss.get("alertas_activas", 0),
         })
 
-    alertas                = db.query_sp("sp_sel_alertas_recientes")
-    medicamentos_criticos  = db.query_sp("sp_sel_medicamentos_criticos")
-    suministros_pendientes = db.query_sp("sp_sel_suministros_pendientes")
-    visitas_hoy            = db.query_sp("sp_sel_visitas_hoy")
+    alertas                = Alerta.listar_recientes()
+    medicamentos_criticos  = Farmacia.medicamentos_criticos()
+    suministros_pendientes = Farmacia.suministros_pendientes()
+    visitas_hoy            = Visita.hoy()
 
-    alertas_por_tipo = db.query_sp("sp_sel_resumen_alertas_por_tipo")
-    alertas_por_dia  = db.query_sp("sp_sel_alertas_por_dia_14d")
+    alertas_por_tipo = Alerta.resumen_por_tipo()
+    alertas_por_dia  = Alerta.por_dia_14d()
     hoy = date.today()
     dia_map = {r["dia_label"]: int(r["total"]) for r in alertas_por_dia}
     alertas_dias_labels  = []
     alertas_dias_valores = []
     for i in range(13, -1, -1):
-        d = hoy - timedelta(days=i)
+        d     = hoy - timedelta(days=i)
         label = d.strftime("%d/%m")
         alertas_dias_labels.append(label)
         alertas_dias_valores.append(dia_map.get(label, 0))
 
-    stock_farmacia = db.query_sp("sp_sel_stock_farmacia_completo")
+    stock_farmacia = Farmacia.stock_completo()
 
     return render_template(
         "dashboard.html",
@@ -70,7 +74,7 @@ def dashboard():
 @bp.route("/reportes")
 @admin_requerido
 def reportes():
-    stats = dict(db.one_sp("sp_sel_reportes_stats"))
+    stats = dict(Admin.reportes_stats())
     return render_template("reportes.html", stats=stats)
 
 

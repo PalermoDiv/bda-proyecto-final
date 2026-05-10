@@ -2,7 +2,7 @@ from flask import Flask, session
 from dotenv import load_dotenv
 from datetime import datetime
 import os
-import db
+import models.alerta as Alerta
 
 load_dotenv()
 
@@ -17,7 +17,7 @@ def create_app():
         criticas = []
         if session.get("admin") or session.get("medico"):
             try:
-                rows = db.query_sp("sp_sel_alertas_banner")
+                rows = Alerta.banner()
                 now  = datetime.now()
                 for r in rows:
                     delta = now - r["fecha_hora"]
@@ -34,24 +34,24 @@ def create_app():
                 pass
         return dict(alertas_criticas=criticas)
 
-    # ── Register blueprints ────────────────────────────────────────────────────
-    from blueprints.auth          import bp as auth_bp
-    from blueprints.admin         import bp as admin_bp
-    from blueprints.pacientes     import bp as pacientes_bp
-    from blueprints.cuidadores    import bp as cuidadores_bp
-    from blueprints.turnos        import bp as turnos_bp
-    from blueprints.equipamiento  import bp as equipamiento_bp
-    from blueprints.alertas       import bp as alertas_bp
-    from blueprints.dispositivos  import bp as dispositivos_bp
-    from blueprints.zonas         import bp as zonas_bp
-    from blueprints.farmacia      import bp as farmacia_bp
-    from blueprints.visitas       import bp as visitas_bp
-    from blueprints.recetas       import bp as recetas_bp
-    from blueprints.clinica       import bp as clinica_bp
-    from blueprints.portal_familiar import bp as portal_familiar_bp
-    from blueprints.cuidador      import bp as cuidador_bp
-    from blueprints.api           import bp as api_bp
-    from blueprints.sedes         import bp as sedes_bp
+    # ── Register controllers ───────────────────────────────────────────────────
+    from controllers.auth          import bp as auth_bp
+    from controllers.admin         import bp as admin_bp
+    from controllers.pacientes     import bp as pacientes_bp
+    from controllers.cuidadores    import bp as cuidadores_bp
+    from controllers.turnos        import bp as turnos_bp
+    from controllers.equipamiento  import bp as equipamiento_bp
+    from controllers.alertas       import bp as alertas_bp
+    from controllers.dispositivos  import bp as dispositivos_bp
+    from controllers.zonas         import bp as zonas_bp
+    from controllers.farmacia      import bp as farmacia_bp
+    from controllers.visitas       import bp as visitas_bp
+    from controllers.recetas       import bp as recetas_bp
+    from controllers.clinica       import bp as clinica_bp
+    from controllers.portal_familiar import bp as portal_familiar_bp
+    from controllers.cuidador      import bp as cuidador_bp
+    from controllers.api           import bp as api_bp
+    from controllers.sedes         import bp as sedes_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)

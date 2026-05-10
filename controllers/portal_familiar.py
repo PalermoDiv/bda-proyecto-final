@@ -1,8 +1,14 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort
 from datetime import date, datetime as _dt
-import db
+import models.paciente as Paciente
+import models.alerta as Alerta
+import models.receta as Receta
+import models.visita as Visita
+import models.portal as Portal
 from auth import contacto_requerido
 from utils import haversine_m
+from models.iot import ultima_lectura_gps
+from models.zona import por_paciente as zonas_por_paciente
 
 bp = Blueprint("portal_familiar", __name__, url_prefix="/portal-familiar")
 
@@ -14,7 +20,7 @@ def portal_login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         pin   = request.form.get("pin", "").strip()
-        rows     = db.query_sp("sp_sel_contacto_login", (email,))
+        rows     = Portal.login(email)
         contacto = next((r for r in rows if r["pin_acceso"] == pin), None)
         if contacto:
             session["contacto_id"]     = contacto["id_contacto"]
@@ -35,7 +41,7 @@ def portal_logout():
 @contacto_requerido
 def portal_index():
     contacto_id = session["contacto_id"]
-    pacientes = db.query_sp("sp_sel_pacientes_por_contacto", (contacto_id,))
+    pacientes = Paciente.por_contacto(contacto_id)
     return render_template("portal_familiar/index.html", pacientes=pacientes)
 
 
@@ -44,10 +50,10 @@ def portal_index():
 def portal_paciente(id):
     contacto_id = session["contacto_id"]
 
-    if not db.one_sp("sp_sel_contacto_verificacion", (contacto_id, id)):
+    if not Paciente.verificar_contacto(contacto_id, id):
         abort(403)
 
-    paciente = db.one_sp("sp_sel_paciente_por_id", (id,))
+    paciente = Paciente.obtener(id)
     if not paciente:
         abort(404)
 
@@ -55,16 +61,16 @@ def portal_paciente(id):
     dob  = paciente["fecha_nacimiento"]
     edad = hoy.year - dob.year - ((hoy.month, hoy.day) < (dob.month, dob.day))
 
-    _cuids_raw = db.query_sp("sp_sel_cuidadores_por_paciente", (id,))
+    _cuids_raw = Paciente.cuidadores(id)
     cuidadores = [
         {"nombre": f"{r['nombre_cuidador']} {r['apellido_p']}", "telefono": r["telefono_cuid"]}
         for r in _cuids_raw
     ]
 
-    _gps_raw   = db.one_sp("sp_sel_lecturas_gps_paciente", (id, 1))
+    _gps_raw   = ultima_lectura_gps(id, 1)
     ultima_gps = {**_gps_raw, "ts": _gps_raw["fecha_hora"]} if _gps_raw else None
 
-    zonas_seguras = db.query_sp("sp_sel_zonas_por_paciente", (id,))
+    zonas_seguras = zonas_por_paciente(id)
 
     dentro_zona        = False
     nombre_zona_actual = None
@@ -93,9 +99,9 @@ def portal_paciente(id):
         return f"hace {dias} día{'s' if dias != 1 else ''}"
 
     tiempo_gps          = _t_rel(ultima_gps["ts"]) if ultima_gps else None
-    _act_row            = db.one_sp("sp_sel_ultima_actividad_ts", (id,))
+    _act_row            = Paciente.ultima_actividad(id)
     ultima_actividad_ts = _act_row["ultima_actividad"] if _act_row else None
-    alerta_critica      = db.one_sp("sp_sel_alerta_critica_por_paciente", (id,))
+    alerta_critica      = Alerta.critica_por_paciente(id)
 
     if alerta_critica:
         estado_banner = 'critica'
@@ -107,17 +113,12 @@ def portal_paciente(id):
     tiempo_actividad      = _t_rel(ultima_actividad_ts)
     tiempo_alerta_critica = _t_rel(alerta_critica["fecha_hora"]) if alerta_critica else None
 
-    alertas_activas   = db.query_sp("sp_sel_alertas_activas_por_paciente", (id,))
-    alertas_historial = db.query_sp("sp_sel_alertas_historial_por_paciente", (id,))
-    medicamentos      = db.query_sp("sp_sel_medicamentos_adherencia_por_paciente", (id,))
+    medicamentos    = Receta.adherencia_por_paciente(id)
+    _dosis_row      = Receta.dosis_nfc_hoy(id)
+    dosis_hoy       = int(_dosis_row["dosis_hoy"]) if _dosis_row else 0
+    bateria_historial = list(reversed(Portal.bateria_historial(id, 20)))
 
-    _dosis_row = db.one_sp("sp_sel_dosis_nfc_hoy", (id,))
-    dosis_hoy  = int(_dosis_row["dosis_hoy"]) if _dosis_row else 0
-
-    visitas           = db.query_sp("sp_sel_visitas_portal", (id,))
-    bateria_historial = list(reversed(db.query_sp("sp_sel_bateria_historial_gps", (id, 20))))
-
-    _ronda_row   = db.one_sp("sp_sel_ultima_ronda_por_paciente", (id,))
+    _ronda_row   = Portal.ultima_ronda_paciente(id)
     ultima_ronda = _ronda_row["ultima_ronda"] if _ronda_row else None
 
     return render_template(
@@ -128,12 +129,12 @@ def portal_paciente(id):
         ultima_gps=ultima_gps,
         zonas_seguras=zonas_seguras,
         dentro_zona=dentro_zona,
-        alertas_activas=alertas_activas,
-        alertas_historial=alertas_historial,
+        alertas_activas=Alerta.activas_por_paciente(id),
+        alertas_historial=Alerta.historial_por_paciente(id),
         medicamentos=medicamentos,
         dosis_hoy=int(dosis_hoy),
         medicamentos_total=len(medicamentos),
-        visitas=visitas,
+        visitas=Visita.portal(id),
         ultima_ronda=ultima_ronda,
         estado_banner=estado_banner,
         tiempo_actividad=tiempo_actividad,

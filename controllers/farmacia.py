@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from datetime import date
-import db
+import models.farmacia as Farmacia
+import models.sede as Sede
 from auth import admin_requerido
 
 bp = Blueprint("farmacia", __name__, url_prefix="/farmacia")
@@ -9,20 +10,16 @@ bp = Blueprint("farmacia", __name__, url_prefix="/farmacia")
 @bp.route("/")
 @admin_requerido
 def farmacia():
-    inventario   = db.query_sp("sp_sel_inventario_farmacia")
+    inventario   = Farmacia.inventario()
     criticos     = [row for row in inventario if row["stock_actual"] < row["stock_minimo"]]
-    suministros  = db.query_sp("sp_sel_suministros")
-    farmacias    = db.query_sp("sp_sel_farmacias_proveedoras")
-    medicamentos = db.query_sp("sp_sel_medicamentos_catalogo")
-    sedes        = db.query_sp("sp_sel_sedes")
     return render_template(
         "farmacia.html",
         inventario=inventario,
-        suministros=suministros,
-        farmacias=farmacias,
+        suministros=Farmacia.suministros(),
+        farmacias=Farmacia.farmacias_proveedoras(),
         criticos=criticos,
-        medicamentos=medicamentos,
-        sedes=sedes,
+        medicamentos=Farmacia.medicamentos_catalogo(),
+        sedes=Sede.listar(),
     )
 
 
@@ -33,7 +30,7 @@ def farmacia_ajustar_stock():
         gtin        = request.form["GTIN"].strip()
         id_sede     = int(request.form["id_sede"])
         stock_nuevo = int(request.form["stock_actual"])
-        db.execute("CALL sp_upd_stock(%s, %s, %s)", (gtin, id_sede, stock_nuevo))
+        Farmacia.ajustar_stock(gtin, id_sede, stock_nuevo)
         flash("Stock actualizado correctamente.", "success")
     except Exception as e:
         flash(f"Error al ajustar stock: {e}", "error")
@@ -43,13 +40,9 @@ def farmacia_ajustar_stock():
 @bp.route("/suministro/nuevo", methods=["GET", "POST"])
 @admin_requerido
 def farmacia_suministro_nuevo():
-    farmacias    = db.query_sp("sp_sel_farmacias_proveedoras")
-    sedes        = db.query_sp("sp_sel_sedes")
-    medicamentos = db.query_sp("sp_sel_medicamentos_catalogo")
-
     if request.method == "POST":
         try:
-            id_sum      = db.one_sp("sp_sel_next_id_suministro")["next_id"]
+            id_sum      = Farmacia.siguiente_id_suministro()
             id_farmacia = int(request.form["id_farmacia"])
             id_sede     = int(request.form["id_sede"])
             fecha       = request.form["fecha_entrega"]
@@ -61,14 +54,12 @@ def farmacia_suministro_nuevo():
                 flash("Debe agregar al menos un medicamento a la orden.", "error")
                 raise ValueError("sin_lineas")
 
-            db.execute("CALL sp_ins_suministro(%s, %s, %s, %s, %s)",
-                       (id_sum, id_farmacia, id_sede, fecha, estado))
+            Farmacia.crear_suministro(id_sum, id_farmacia, id_sede, fecha, estado)
 
             for gtin, cant in zip(gtins, cantidades):
                 if not gtin.strip():
                     continue
-                db.execute("CALL sp_ins_suministro_linea(%s, %s, %s)",
-                           (id_sum, gtin.strip(), int(cant)))
+                Farmacia.agregar_linea(id_sum, gtin.strip(), int(cant))
 
             flash("Orden de suministro registrada.", "success")
             return redirect(url_for("farmacia.farmacia_suministro_detalle", id=id_sum))
@@ -79,9 +70,9 @@ def farmacia_suministro_nuevo():
 
     return render_template(
         "farmacia_suministro_form.html",
-        farmacias=farmacias,
-        sedes=sedes,
-        medicamentos=medicamentos,
+        farmacias=Farmacia.farmacias_proveedoras(),
+        sedes=Sede.listar(),
+        medicamentos=Farmacia.medicamentos_catalogo(),
         fecha_hoy=date.today().isoformat(),
     )
 
@@ -89,19 +80,16 @@ def farmacia_suministro_nuevo():
 @bp.route("/suministro/<int:id>")
 @admin_requerido
 def farmacia_suministro_detalle(id):
-    suministro = db.one_sp("sp_sel_suministro_por_id", (id,))
+    suministro = Farmacia.suministro_por_id(id)
     if not suministro:
         flash("Orden no encontrada.", "error")
         return redirect(url_for("farmacia.farmacia"))
-    lineas       = db.query_sp("sp_sel_lineas_suministro_por_id", (id,))
-    estados      = db.query_sp("sp_sel_cat_estado_suministro")
-    medicamentos = db.query_sp("sp_sel_medicamentos_catalogo")
     return render_template(
         "farmacia_suministro_detalle.html",
         suministro=suministro,
-        lineas=lineas,
-        estados=estados,
-        medicamentos=medicamentos,
+        lineas=Farmacia.lineas_suministro(id),
+        estados=Farmacia.estados_suministro(),
+        medicamentos=Farmacia.medicamentos_catalogo(),
     )
 
 
@@ -109,8 +97,7 @@ def farmacia_suministro_detalle(id):
 @admin_requerido
 def farmacia_suministro_estado(id):
     try:
-        nuevo_estado = request.form["estado"]
-        db.execute("CALL sp_upd_suministro_estado(%s, %s)", (id, nuevo_estado))
+        Farmacia.actualizar_estado_suministro(id, request.form["estado"])
         flash("Estado de la orden actualizado.", "success")
     except Exception as e:
         flash(f"Error: {e}", "error")
@@ -123,7 +110,7 @@ def farmacia_suministro_agregar_linea(id):
     try:
         gtin     = request.form["GTIN"].strip()
         cantidad = int(request.form["cantidad"])
-        db.execute("CALL sp_ins_suministro_linea(%s, %s, %s)", (id, gtin, cantidad))
+        Farmacia.agregar_linea(id, gtin, cantidad)
         flash("Medicamento agregado a la orden.", "success")
     except Exception as e:
         flash(f"Error: {e}", "error")
@@ -134,7 +121,7 @@ def farmacia_suministro_agregar_linea(id):
 @admin_requerido
 def farmacia_suministro_eliminar(id):
     try:
-        db.execute("CALL sp_del_suministro(%s)", (id,))
+        Farmacia.eliminar_suministro(id)
         flash("Orden eliminada.", "success")
     except Exception as e:
         flash(f"Error al eliminar: {e}", "error")

@@ -1,4 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
+import models.paciente as Paciente
+import models.sede as Sede
+import models.visita as Visita
+import models.alerta as Alerta
 import db
 from auth import admin_requerido
 
@@ -8,16 +12,16 @@ bp = Blueprint("pacientes", __name__, url_prefix="/pacientes")
 @bp.route("/")
 @admin_requerido
 def pacientes_lista():
-    pacientes = db.query_sp("sp_sel_pacientes_activos")
-    sedes     = db.query_sp("sp_sel_sedes")
+    pacientes = Paciente.listar_activos()
+    sedes     = Sede.listar()
     return render_template("pacientes/list.html", pacientes=pacientes, sucursales=sedes)
 
 
 @bp.route("/nuevo", methods=["GET", "POST"])
 @admin_requerido
 def pacientes_nuevo():
-    estados = db.query_sp("sp_sel_estados_paciente")
-    sedes   = db.query_sp("sp_sel_sedes")
+    estados = Paciente.estados()
+    sedes   = Sede.listar()
     if request.method == "POST":
         try:
             id_pac     = int(request.form["id_paciente"])
@@ -27,8 +31,7 @@ def pacientes_nuevo():
             fecha_nac  = request.form["fecha_nacimiento"]
             id_estado  = int(request.form["id_estado"])
             id_sede    = int(request.form["id_sede"])
-            db.execute("CALL sp_ins_paciente(%s, %s, %s, %s, %s, %s, %s)",
-                       (id_pac, nombre, apellido_p, apellido_m, fecha_nac, id_estado, id_sede))
+            Paciente.crear(id_pac, nombre, apellido_p, apellido_m, fecha_nac, id_estado, id_sede)
             flash("Paciente registrado correctamente.", "success")
             return redirect(url_for("pacientes.pacientes_lista"))
         except Exception as e:
@@ -39,14 +42,14 @@ def pacientes_nuevo():
 @bp.route("/editar/<int:id>", methods=["GET", "POST"])
 @admin_requerido
 def pacientes_editar(id):
-    estados  = db.query_sp("sp_sel_estados_paciente")
-    sedes    = db.query_sp("sp_sel_sedes")
-    paciente = db.one_sp("sp_sel_paciente_por_id", (id,))
+    estados  = Paciente.estados()
+    sedes    = Sede.listar()
+    paciente = Paciente.obtener(id)
     if not paciente:
         flash("Paciente no encontrado.", "error")
         return redirect(url_for("pacientes.pacientes_lista"))
 
-    activos        = db.query_sp("sp_sel_sede_activa_por_paciente", (id,))
+    activos        = Paciente.sede_activa(id)
     sede_actual_id = activos[0]["id_sede"] if activos else None
 
     if request.method == "POST":
@@ -79,7 +82,7 @@ def pacientes_editar(id):
 @admin_requerido
 def pacientes_eliminar(id):
     try:
-        db.execute("CALL sp_del_paciente(%s)", (id,))
+        Paciente.eliminar(id)
         flash("Paciente dado de baja correctamente.", "success")
     except Exception as e:
         flash(f"Error al dar de baja: {e}", "error")
@@ -89,33 +92,36 @@ def pacientes_eliminar(id):
 @bp.route("/historial/<int:id>")
 @admin_requerido
 def pacientes_historial(id):
-    paciente = db.one_sp("sp_sel_paciente_por_id", (id,))
+    paciente = Paciente.obtener(id)
     if not paciente:
         flash("Paciente no encontrado.", "error")
         return redirect(url_for("pacientes.pacientes_lista"))
 
-    estado                   = {"desc_estado": paciente["desc_estado"]}
-    enfermedades             = db.query_sp("sp_sel_enfermedades_por_paciente", (id,))
-    cuidadores               = db.query_sp("sp_sel_cuidadores_por_paciente", (id,))
-    contactos                = db.query_sp("sp_sel_contactos_por_paciente", (id,))
-    kit                      = db.one_sp("sp_sel_kit_por_paciente", (id,))
-    historial_sedes          = db.query_sp("sp_sel_historial_sedes_por_paciente", (id,))
-    alertas_paciente         = db.query_sp("sp_sel_alertas_por_paciente", (id,))
-    visitas                  = db.query_sp("sp_sel_visitas_por_paciente", (id,))
-    entregas                 = db.query_sp("sp_sel_entregas_por_paciente", (id,))
-    nfc_asignacion           = db.one_sp("sp_sel_nfc_asignacion_por_paciente", (id,))
-    nfc_disponibles          = db.query_sp("sp_sel_nfc_disponibles")
-    enfermedades_disponibles = db.query_sp("sp_sel_enfermedades_disponibles", (id,))
-    gps_disponibles          = db.query_sp("sp_sel_gps_disponibles")
+    estado           = {"desc_estado": paciente["desc_estado"]}
+    enfermedades     = Paciente.enfermedades(id)
+    cuidadores       = Paciente.cuidadores(id)
+    contactos        = Paciente.contactos(id)
+    kit              = Paciente.kit(id)
+    historial_sedes  = Paciente.historial_sedes(id)
+    alertas_paciente = Alerta.por_paciente(id)
+    visitas          = Visita.por_paciente(id)
+    entregas         = Visita.entregas_por_paciente(id)
+    nfc_asignacion   = Paciente.nfc_asignacion(id)
+    nfc_disponibles  = Paciente.nfc_disponibles()
+    enfermedades_disponibles = Paciente.enfermedades_disponibles(id)
+    gps_disponibles  = Paciente.gps_disponibles()
+    lecturas_gps     = Paciente.sede_activa(id)
+
+    from models.iot import lecturas_gps_paciente
+    lecturas_gps = lecturas_gps_paciente(id, 50)
 
     sede_actual_id = next(
         (r["id_sede"] for r in historial_sedes if r["fecha_salida"] is None), None
     )
     sedes_disponibles = [
-        s for s in db.query_sp("sp_sel_sedes")
+        s for s in Sede.listar()
         if s["id_sede"] != (sede_actual_id or 0)
     ]
-    lecturas_gps = db.query_sp("sp_sel_lecturas_gps_paciente", (id, 50))
 
     return render_template(
         "pacientes/historial.html",
@@ -142,7 +148,7 @@ def pacientes_historial(id):
 @admin_requerido
 def pacientes_reporte_pdf(id):
     from pdf_report import generate_patient_report
-    paciente = db.one_sp("sp_sel_paciente_por_id", (id,))
+    paciente = Paciente.obtener(id)
     if not paciente:
         flash("Paciente no encontrado.", "error")
         return redirect(url_for("pacientes.pacientes_lista"))
@@ -160,7 +166,7 @@ def pacientes_reporte_pdf(id):
 def pacientes_transferir_sede(id):
     try:
         nueva_sede_id = int(request.form["nueva_sede_id"])
-        activos = db.query_sp("sp_sel_sede_activa_por_paciente", (id,))
+        activos = Paciente.sede_activa(id)
         if len(activos) > 1:
             raise Exception(
                 f"Integridad comprometida: el paciente tiene {len(activos)} "
@@ -169,8 +175,8 @@ def pacientes_transferir_sede(id):
         if activos and activos[0]["id_sede"] == nueva_sede_id:
             flash("El paciente ya está asignado a esa sede.", "error")
             return redirect(url_for("pacientes.pacientes_historial", id=id))
-        db.execute("CALL sp_transferir_sede(%s, %s)", (id, nueva_sede_id))
-        sede_row = db.one_sp("sp_sel_sede_por_id", (nueva_sede_id,))
+        Paciente.transferir_sede(id, nueva_sede_id)
+        sede_row    = Sede.obtener(nueva_sede_id)
         sede_nombre = sede_row["nombre_sede"] if sede_row else str(nueva_sede_id)
         flash(f"Paciente transferido a {sede_nombre} correctamente.", "success")
     except Exception as e:
@@ -183,7 +189,7 @@ def pacientes_transferir_sede(id):
 def pacientes_asignar_nfc(id):
     try:
         id_dispositivo = int(request.form["id_dispositivo"])
-        db.execute("CALL sp_nfc_asignar(%s, %s)", (id, id_dispositivo))
+        Paciente.asignar_nfc(id, id_dispositivo)
         flash("Pulsera NFC asignada correctamente.", "success")
     except Exception as e:
         flash(f"Error al asignar pulsera NFC: {e}", "error")
@@ -196,7 +202,7 @@ def pacientes_agregar_enfermedad(id):
     try:
         id_enfermedad = int(request.form["id_enfermedad"])
         fecha_diag    = request.form["fecha_diag"]
-        db.execute("CALL sp_ins_enfermedad(%s, %s, %s)", (id, id_enfermedad, fecha_diag))
+        Paciente.agregar_enfermedad(id, id_enfermedad, fecha_diag)
         flash("Enfermedad agregada correctamente.", "success")
     except Exception as e:
         flash(f"Error al agregar enfermedad: {e}", "error")
@@ -208,7 +214,7 @@ def pacientes_agregar_enfermedad(id):
 def pacientes_quitar_enfermedad(id):
     try:
         id_enfermedad = int(request.form["id_enfermedad"])
-        db.execute("CALL sp_del_enfermedad(%s, %s)", (id, id_enfermedad))
+        Paciente.quitar_enfermedad(id, id_enfermedad)
         flash("Diagnóstico eliminado correctamente.", "success")
     except Exception as e:
         flash(f"Error al eliminar diagnóstico: {e}", "error")
@@ -226,8 +232,8 @@ def pacientes_agregar_contacto(id):
         relacion   = request.form["relacion"].strip()
         email      = request.form.get("email", "").strip() or None
         pin_acceso = request.form.get("pin_acceso", "").strip() or None
-        db.execute("CALL sp_ins_contacto(%s, %s, %s, %s, %s, %s, %s, %s)",
-                   (id, nombre, apellido_p, apellido_m, telefono, relacion, email, pin_acceso))
+        Paciente.agregar_contacto(id, nombre, apellido_p, apellido_m,
+                                  telefono, relacion, email, pin_acceso)
         flash("Contacto de emergencia agregado correctamente.", "success")
     except Exception as e:
         flash(f"Error al agregar contacto: {e}", "error")
@@ -239,7 +245,7 @@ def pacientes_agregar_contacto(id):
 def pacientes_asignar_kit(id):
     try:
         id_gps = int(request.form["id_dispositivo_gps"])
-        db.execute("CALL sp_ins_kit(%s, %s)", (id, id_gps))
+        Paciente.asignar_kit(id, id_gps)
         flash("Kit GPS asignado correctamente.", "success")
     except Exception as e:
         flash(f"Error al asignar kit GPS: {e}", "error")
@@ -251,7 +257,7 @@ def pacientes_asignar_kit(id):
 def pacientes_cambiar_kit(id):
     try:
         id_gps = int(request.form["id_dispositivo_gps"])
-        db.execute("CALL sp_kit_reasignar(%s, %s)", (id, id_gps))
+        Paciente.cambiar_kit(id, id_gps)
         flash("Kit GPS reasignado correctamente.", "success")
     except Exception as e:
         flash(f"Error al reasignar kit GPS: {e}", "error")

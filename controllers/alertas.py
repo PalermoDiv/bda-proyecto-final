@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from datetime import date
-import db
+from datetime import date, datetime
+import models.alerta as Alerta
+import models.paciente as Paciente
 from auth import admin_requerido
 
 bp = Blueprint("alertas", __name__)
@@ -9,12 +10,12 @@ bp = Blueprint("alertas", __name__)
 @bp.route("/alertas")
 @admin_requerido
 def alertas():
-    alertas_list = db.query_sp("sp_sel_alertas")
+    alertas_list = Alerta.listar()
 
     patient_ids_set = {a["id_paciente"] for a in alertas_list if a.get("id_paciente")}
     contactos_por_paciente = {}
     if patient_ids_set:
-        all_contacts = db.query_sp("sp_sel_contactos_emergencia")
+        all_contacts = Alerta.contactos_emergencia()
         for row in all_contacts:
             pid = row["id_paciente"]
             if pid in patient_ids_set:
@@ -33,8 +34,8 @@ def alertas():
 @bp.route("/alertas/nueva", methods=["GET", "POST"])
 @admin_requerido
 def alertas_nueva():
-    pacientes = db.query_sp("sp_sel_pacientes_activos")
-    tipos     = db.query_sp("sp_sel_cat_tipo_alerta")
+    pacientes = Paciente.listar_activos()
+    tipos     = Alerta.tipos()
 
     if request.method == "POST":
         try:
@@ -43,13 +44,12 @@ def alertas_nueva():
                 id_paciente = int(id_paciente)
             tipo_alerta = request.form["tipo_alerta"]
             fecha_hora  = request.form["fecha_hora"]
-            db.execute("CALL sp_ins_alerta(%s, %s, %s)", (id_paciente, tipo_alerta, fecha_hora))
+            Alerta.crear(id_paciente, tipo_alerta, fecha_hora)
             flash("Alerta registrada.", "success")
             return redirect(url_for("alertas.alertas"))
         except Exception as e:
             flash(f"Error al registrar alerta: {e}", "error")
 
-    from datetime import datetime
     now_str = date.today().isoformat() + "T" + datetime.now().strftime("%H:%M")
     return render_template("alertas_form.html", pacientes=pacientes, tipos=tipos,
                            fecha_hoy=date.today().isoformat(), now=now_str)
@@ -59,7 +59,7 @@ def alertas_nueva():
 @admin_requerido
 def alertas_resolver(id):
     try:
-        db.execute("CALL sp_upd_alerta_atendida(%s)", (id,))
+        Alerta.resolver(id)
         flash("Alerta marcada como atendida.", "success")
     except Exception as e:
         flash(f"Error: {e}", "error")
@@ -70,7 +70,7 @@ def alertas_resolver(id):
 @admin_requerido
 def alertas_eliminar(id):
     try:
-        db.execute("CALL sp_del_alerta(%s)", (id,))
+        Alerta.eliminar(id)
         flash("Alerta eliminada.", "success")
     except Exception as e:
         flash(f"Error: {e}", "error")

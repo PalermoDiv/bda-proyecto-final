@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-import db
+import models.dispositivo as Dispositivo
 from auth import admin_requerido
 
 bp = Blueprint("dispositivos", __name__, url_prefix="/dispositivos")
@@ -8,8 +8,7 @@ bp = Blueprint("dispositivos", __name__, url_prefix="/dispositivos")
 @bp.route("/")
 @admin_requerido
 def dispositivos():
-    dispositivos_list = db.query_sp("sp_sel_dispositivos")
-    return render_template("dispositivos.html", dispositivos=dispositivos_list)
+    return render_template("dispositivos.html", dispositivos=Dispositivo.listar())
 
 
 @bp.route("/nuevo", methods=["GET", "POST"])
@@ -21,7 +20,7 @@ def dispositivos_nuevo():
             id_serial = request.form["id_serial"].strip()
             tipo      = request.form["tipo"].strip()
             modelo    = request.form["modelo"].strip()
-            db.execute("CALL sp_ins_dispositivo(%s, %s, %s, %s)", (id_disp, id_serial, tipo, modelo))
+            Dispositivo.crear(id_disp, id_serial, tipo, modelo)
             flash("Dispositivo registrado correctamente.", "success")
             return redirect(url_for("dispositivos.dispositivos"))
         except Exception as e:
@@ -32,7 +31,7 @@ def dispositivos_nuevo():
 @bp.route("/editar/<int:id>", methods=["GET", "POST"])
 @admin_requerido
 def dispositivos_editar(id):
-    disp = db.one_sp("sp_sel_dispositivo_raw", (id,))
+    disp = Dispositivo.obtener(id)
     if not disp:
         flash("Dispositivo no encontrado.", "error")
         return redirect(url_for("dispositivos.dispositivos"))
@@ -42,8 +41,7 @@ def dispositivos_editar(id):
             tipo      = request.form["tipo"].strip()
             modelo    = request.form["modelo"].strip()
             estado    = request.form["estado"].strip()
-            db.execute("CALL sp_upd_dispositivo(%s, %s, %s, %s, %s)",
-                       (id, id_serial, tipo, modelo, estado))
+            Dispositivo.actualizar(id, id_serial, tipo, modelo, estado)
             flash("Dispositivo actualizado correctamente.", "success")
             return redirect(url_for("dispositivos.dispositivos"))
         except Exception as e:
@@ -55,7 +53,7 @@ def dispositivos_editar(id):
 @admin_requerido
 def dispositivos_eliminar(id):
     try:
-        db.execute("CALL sp_del_dispositivo(%s)", (id,))
+        Dispositivo.eliminar(id)
         flash("Dispositivo eliminado.", "success")
     except Exception as e:
         flash(f"Error al eliminar dispositivo: {e}", "error")
