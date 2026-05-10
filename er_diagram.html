@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AlzMonitor — Diagrama Entidad-Relación</title>
+  <title>AlzMonitor — ER Diagram</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,631 +18,635 @@
       overflow: hidden;
     }
 
-    /* ── Header ──────────────────────────────────────────────── */
+    /* ── Header ── */
     header {
-      background: #1e2433;
+      background: #1a202c;
       border-bottom: 1px solid #2d3748;
-      padding: 12px 20px;
+      padding: 10px 20px 0;
+      flex-shrink: 0;
+    }
+    .header-top {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      flex-shrink: 0;
-      gap: 16px;
+      align-items: center;
+      margin-bottom: 10px;
     }
-    header h1 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #90cdf4;
-      white-space: nowrap;
-    }
-    header p {
-      font-size: 0.75rem;
+    header h1 { font-size: .95rem; font-weight: 600; color: #90cdf4; }
+    header p  { font-size: .7rem; color: #718096; margin-top: 1px; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 2px; overflow-x: auto; }
+    .tab-btn {
+      padding: 7px 16px;
+      font-size: .78rem;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
       color: #718096;
-      margin-top: 2px;
-    }
-
-    /* ── Legend ───────────────────────────────────────────────── */
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.68rem;
-      color: #a0aec0;
-      white-space: nowrap;
-    }
-    .legend-dot {
-      width: 10px; height: 10px;
-      border-radius: 2px;
-      flex-shrink: 0;
-    }
-
-    /* ── Controls ─────────────────────────────────────────────── */
-    .controls {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      flex-shrink: 0;
-    }
-    .controls button {
-      background: #2d3748;
-      border: 1px solid #4a5568;
-      color: #e2e8f0;
-      padding: 5px 10px;
-      border-radius: 5px;
       cursor: pointer;
-      font-size: 0.8rem;
-      transition: background .15s;
+      white-space: nowrap;
+      transition: color .15s, border-color .15s;
+      font-family: inherit;
+    }
+    .tab-btn:hover { color: #cbd5e0; }
+    .tab-btn.active { color: #90cdf4; border-bottom-color: #90cdf4; }
+
+    /* ── Controls ── */
+    .controls { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .controls button {
+      background: #2d3748; border: 1px solid #4a5568; color: #e2e8f0;
+      padding: 4px 10px; border-radius: 5px; cursor: pointer;
+      font-size: .8rem; transition: background .15s; font-family: inherit;
     }
     .controls button:hover { background: #4a5568; }
-    .controls span {
-      font-size: 0.75rem;
-      color: #718096;
-      min-width: 44px;
-      text-align: center;
-    }
+    .zoom-label { font-size: .75rem; color: #718096; min-width: 44px; text-align: center; }
 
-    /* ── Viewport ─────────────────────────────────────────────── */
+    /* ── Viewport ── */
     #viewport {
-      flex: 1;
-      overflow: hidden;
-      cursor: grab;
-      position: relative;
-      background:
-        radial-gradient(circle at 1px 1px, #2d374822 1px, transparent 0) 0 0 / 28px 28px;
+      flex: 1; overflow: hidden; cursor: grab; position: relative;
+      background: radial-gradient(circle at 1px 1px, #2d374820 1px, transparent 0)
+                  0 0 / 26px 26px;
     }
     #viewport.dragging { cursor: grabbing; }
 
-    #canvas {
-      position: absolute;
-      top: 0; left: 0;
+    .diagram-panel {
+      position: absolute; top: 0; left: 0;
       transform-origin: 0 0;
       will-change: transform;
+      display: none;
     }
+    .diagram-panel.active { display: block; }
 
-    /* ── Mermaid overrides ────────────────────────────────────── */
-    .mermaid {
-      padding: 24px;
-    }
-    .mermaid svg {
-      max-width: none !important;
-    }
+    .mermaid { padding: 28px; }
+    .mermaid svg { max-width: none !important; }
 
-    /* ── Hint ─────────────────────────────────────────────────── */
     #hint {
-      position: absolute;
-      bottom: 12px; right: 16px;
-      font-size: 0.7rem;
-      color: #4a5568;
-      pointer-events: none;
+      position: absolute; bottom: 10px; right: 14px;
+      font-size: .68rem; color: #4a5568; pointer-events: none;
     }
+
+    /* ── Crow's Foot legend ── */
+    .cf-legend {
+      position: absolute; bottom: 10px; left: 14px;
+      background: #1a202ccc; border: 1px solid #2d3748;
+      border-radius: 6px; padding: 6px 10px;
+      font-size: .67rem; color: #a0aec0; pointer-events: none;
+      display: flex; gap: 12px; align-items: center;
+    }
+    .cf-legend span { white-space: nowrap; }
   </style>
 </head>
 <body>
 
 <header>
-  <div>
-    <h1>AlzMonitor — Diagrama Entidad-Relación (Notación Crow's Foot)</h1>
-    <p>45 tablas · PostgreSQL · Proyecto Final BDA</p>
-  </div>
-
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#63b3ed"></div>Pacientes</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#68d391"></div>Empleados</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#f6ad55"></div>Dispositivos IoT</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#fc8181"></div>Alertas</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#b794f4"></div>Farmacia</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#76e4f7"></div>Sedes</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#fbb6ce"></div>Catálogos</div>
-    <div class="legend-item" style="margin-left:8px;color:#718096">
-      &#10231;&nbsp;||&#8202;uno&nbsp;&nbsp;&#10231;&nbsp;o{&nbsp;cero/muchos&nbsp;&nbsp;&#10231;&nbsp;|{&nbsp;uno/muchos
+  <div class="header-top">
+    <div>
+      <h1>AlzMonitor — Diagrama Entidad-Relación · Notación Crow's Foot</h1>
+      <p>45 tablas divididas en 6 áreas temáticas · PostgreSQL · BDA Proyecto Final</p>
+    </div>
+    <div class="controls">
+      <button onclick="zoom(-0.15)">&#8722;</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <button onclick="zoom(+0.15)">&#43;</button>
+      <button onclick="resetView()">&#8635;</button>
     </div>
   </div>
-
-  <div class="controls">
-    <button onclick="zoom(-0.15)">&#8722;</button>
-    <span id="zoomLabel">100%</span>
-    <button onclick="zoom(+0.15)">&#43;</button>
-    <button onclick="resetView()">&#8635; Reset</button>
-  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="0">Pacientes &amp; Contactos</button>
+    <button class="tab-btn" data-tab="1">Empleados &amp; Turnos</button>
+    <button class="tab-btn" data-tab="2">Dispositivos IoT</button>
+    <button class="tab-btn" data-tab="3">Recetas &amp; Alertas</button>
+    <button class="tab-btn" data-tab="4">Sedes &amp; Visitas</button>
+    <button class="tab-btn" data-tab="5">Farmacia &amp; Comedor</button>
+  </nav>
 </header>
 
 <div id="viewport">
-  <div id="canvas">
+
+  <!-- ── TAB 0: Pacientes & Contactos ─────────────────────── -->
+  <div class="diagram-panel active" id="panel-0">
     <div class="mermaid">
-%%{init: {
-  "theme": "dark",
-  "themeVariables": {
-    "primaryColor":       "#1e2433",
-    "primaryTextColor":   "#e2e8f0",
-    "primaryBorderColor": "#4a5568",
-    "lineColor":          "#718096",
-    "secondaryColor":     "#2d3748",
-    "tertiaryColor":      "#171e2e",
-    "background":         "#0f1117",
-    "fontFamily":         "Segoe UI, system-ui, sans-serif",
-    "fontSize":           "13px"
-  },
-  "er": { "diagramPadding": 40, "layoutDirection": "TB", "minEntityWidth": 100, "minEntityHeight": 75, "entityPadding": 15 }
-}}%%
+%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#1e2d3d","primaryTextColor":"#e2e8f0","primaryBorderColor":"#4a90c4","lineColor":"#718096","background":"#0f1117","fontFamily":"Segoe UI,system-ui,sans-serif","fontSize":"14px"},"er":{"layoutDirection":"LR","minEntityWidth":120,"minEntityHeight":80,"entityPadding":18,"diagramPadding":50}}}%%
 erDiagram
+    estados_paciente {
+        int     id_estado     PK
+        varchar desc_estado
+    }
+    pacientes {
+        int     id_paciente   PK
+        varchar nombre
+        varchar apellido_p
+        varchar apellido_m
+        date    fecha_nacimiento
+        int     id_estado     FK
+    }
+    enfermedades {
+        int     id_enfermedad    PK
+        varchar nombre_enfermedad
+    }
+    tiene_enfermedad {
+        int  id_paciente    PK "FK"
+        int  id_enfermedad  PK "FK"
+        date fecha_diag
+    }
+    contactos_emergencia {
+        int     id_contacto   PK
+        varchar nombre
+        varchar apellido_p
+        varchar telefono
+        varchar relacion
+        varchar email
+        varchar pin_acceso
+    }
+    paciente_contactos {
+        int id_paciente   PK "FK"
+        int id_contacto   PK "FK"
+        int prioridad
+    }
 
-  %% ── CATÁLOGOS ──────────────────────────────────────────────
-  estados_paciente {
-    int  id_estado    PK
-    text desc_estado
-  }
-  cat_tipo_dispositivo {
-    text tipo          PK
-  }
-  cat_estado_dispositivo {
-    text estado        PK
-  }
-  cat_tipo_alerta {
-    text tipo_alerta   PK
-  }
-  cat_estado_alerta {
-    text estatus       PK
-  }
-  cat_estado_suministro {
-    text estado        PK
-  }
-  cat_estado_entrega {
-    text estado        PK
-  }
-  cat_turno_comedor {
-    text turno         PK
-  }
-
-  %% ── DOMINIO CLÍNICO ─────────────────────────────────────────
-  enfermedades {
-    int  id_enfermedad   PK
-    text nombre_enfermedad
-  }
-  medicamentos {
-    text GTIN             PK
-    text nombre_medicamento
-    text descripcion
-  }
-
-  %% ── PACIENTES ───────────────────────────────────────────────
-  pacientes {
-    int  id_paciente     PK
-    text nombre
-    text apellido_p
-    text apellido_m
-    date fecha_nacimiento
-    int  id_estado       FK
-  }
-  tiene_enfermedad {
-    int  id_paciente     PK "FK"
-    int  id_enfermedad   PK "FK"
-    date fecha_diag
-  }
-  contactos_emergencia {
-    int  id_contacto     PK
-    text nombre
-    text apellido_p
-    text telefono
-    text relacion
-    text email
-    text pin_acceso
-  }
-  paciente_contactos {
-    int  id_paciente     PK "FK"
-    int  id_contacto     PK "FK"
-    int  prioridad
-  }
-
-  %% ── EMPLEADOS ───────────────────────────────────────────────
-  empleados {
-    int  id_empleado     PK
-    text nombre
-    text apellido_p
-    text CURP_pasaporte
-    text telefono
-  }
-  cuidadores {
-    int  id_empleado     PK "FK"
-    text certificacion_medica
-    text especialidad
-  }
-  cocineros {
-    int  id_empleado     PK "FK"
-  }
-  asignacion_cuidador {
-    int  id_asig_cuidador PK
-    int  id_cuidador      FK
-    int  id_paciente      FK
-    date fecha_inicio
-    date fecha_fin
-  }
-
-  %% ── DISPOSITIVOS E IOT ──────────────────────────────────────
-  dispositivos {
-    int       id_dispositivo  PK
-    text      id_serial
-    text      modelo
-    text      tipo            FK
-    text      estado          FK
-    timestamp ultima_conexion
-  }
-  zonas {
-    int     id_zona           PK
-    text    nombre_zona
-    numeric latitud_centro
-    numeric longitud_centro
-    numeric radio_metros
-  }
-  beacon_zona {
-    int  id_dispositivo  PK "FK"
-    int  id_zona         FK
-  }
-  turno_cuidador {
-    int  id_turno        PK
-    int  id_cuidador     FK
-    int  id_zona         FK
-    time hora_inicio
-    time hora_fin
-    bool lunes
-    bool martes
-    bool miercoles
-    bool jueves
-    bool viernes
-    bool sabado
-    bool domingo
-    bool activo
-  }
-  asignacion_kit {
-    int  id_monitoreo         PK
-    int  id_paciente          FK
-    int  id_dispositivo_gps   FK
-    date fecha_entrega
-    date fecha_fin
-  }
-  asignacion_nfc {
-    int  id_asignacion  PK
-    int  id_paciente    FK
-    int  id_dispositivo FK
-    date fecha_inicio
-    date fecha_fin
-  }
-  asignacion_beacon {
-    int  id_asignacion  PK
-    int  id_dispositivo FK
-    int  id_cuidador    FK
-    date fecha_inicio
-    date fecha_fin
-  }
-
-  %% ── RECETAS ─────────────────────────────────────────────────
-  recetas {
-    int  id_receta   PK
-    date fecha
-    int  id_paciente FK
-    text estado
-  }
-  receta_medicamentos {
-    int  id_detalle       PK
-    int  id_receta        FK
-    text GTIN             FK
-    text dosis
-    int  frecuencia_horas
-  }
-  receta_nfc {
-    int  id_receta              PK "FK"
-    int  id_dispositivo         PK "FK"
-    date fecha_inicio_gestion
-    date fecha_fin_gestion
-  }
-
-  %% ── EVENTOS IoT ─────────────────────────────────────────────
-  lecturas_gps {
-    int       id_lectura    PK
-    int       id_dispositivo FK
-    timestamp fecha_hora
-    numeric   latitud
-    numeric   longitud
-    numeric   altura
-    int       nivel_bateria
-  }
-  detecciones_beacon {
-    int       id_deteccion   PK
-    int       id_dispositivo FK
-    int       id_cuidador    FK
-    timestamp fecha_hora
-    int       rssi
-    text      id_gateway
-  }
-  lecturas_nfc {
-    int       id_lectura_nfc PK
-    int       id_dispositivo FK
-    int       id_receta      FK
-    timestamp fecha_hora
-    text      tipo_lectura
-    text      resultado
-  }
-
-  %% ── ALERTAS ─────────────────────────────────────────────────
-  alertas {
-    int       id_alerta   PK
-    int       id_paciente FK
-    int       id_zona     FK
-    text      tipo_alerta FK
-    timestamp fecha_hora
-    text      estatus     FK
-  }
-  alerta_evento_origen {
-    int  id_origen         PK
-    int  id_alerta         FK
-    text tipo_evento
-    int  id_lectura_gps    FK
-    text regla_disparada
-  }
-
-  %% ── SEDES ───────────────────────────────────────────────────
-  sedes {
-    int  id_sede    PK
-    text nombre_sede
-    text calle
-    text numero
-    text municipio
-    text estado
-  }
-  sede_zonas {
-    int  id_sede PK "FK"
-    int  id_zona PK "FK"
-  }
-  sede_empleados {
-    int  id_sede_empleado PK
-    int  id_sede          FK
-    int  id_empleado      FK
-    date fecha_ingreso
-    date fecha_salida
-  }
-  sede_pacientes {
-    int  id_sede_paciente PK
-    int  id_sede          FK
-    int  id_paciente      FK
-    date fecha_ingreso
-    date fecha_salida
-  }
-
-  %% ── VISITAS ─────────────────────────────────────────────────
-  visitantes {
-    int  id_visitante PK
-    text nombre
-    text apellido_p
-    text relacion
-    text telefono
-  }
-  visitas {
-    int  id_visita    PK
-    int  id_paciente  FK
-    int  id_visitante FK
-    int  id_sede      FK
-    date fecha_entrada
-    date fecha_salida
-  }
-  entregas_externas {
-    int  id_entrega      PK
-    int  id_paciente     FK
-    int  id_visitante    FK
-    int  id_cuidador     FK
-    text descripcion
-    text estado          FK
-    date fecha_recepcion
-  }
-
-  %% ── FARMACIA ────────────────────────────────────────────────
-  farmacias_proveedoras {
-    int  id_farmacia PK
-    text nombre
-    text RFC
-    text municipio
-    text estado
-  }
-  inventario_medicinas {
-    text GTIN        PK "FK"
-    int  id_sede     PK "FK"
-    int  stock_actual
-    int  stock_minimo
-  }
-  suministros {
-    int  id_suministro PK
-    int  id_farmacia   FK
-    int  id_sede       FK
-    date fecha_entrega
-    text estado        FK
-  }
-  suministro_medicinas {
-    int  id_suministro PK "FK"
-    text GTIN          PK "FK"
-    int  cantidad
-  }
-
-  %% ── COMEDOR ─────────────────────────────────────────────────
-  bitacora_comedor {
-    int  id_bitacora     PK
-    int  id_sede         FK
-    int  id_cocinero     FK
-    date fecha
-    text turno           FK
-    text menu_nombre
-    int  cantidad_platos
-  }
-
-  %% ═══════════════════════════════════════════════════════════
-  %% RELACIONES
-  %% ═══════════════════════════════════════════════════════════
-
-  %% Catálogos → entidades principales
-  estados_paciente       ||--|{ pacientes               : "clasifica"
-  cat_tipo_dispositivo   ||--|{ dispositivos             : "tipo"
-  cat_estado_dispositivo ||--|{ dispositivos             : "estado"
-  cat_tipo_alerta        ||--|{ alertas                  : "tipo"
-  cat_estado_alerta      ||--|{ alertas                  : "estatus"
-  cat_estado_suministro  ||--|{ suministros              : "estado"
-  cat_estado_entrega     ||--|{ entregas_externas        : "estado"
-  cat_turno_comedor      ||--|{ bitacora_comedor         : "turno"
-
-  %% Pacientes
-  pacientes ||--o{ tiene_enfermedad      : "padece"
-  enfermedades ||--o{ tiene_enfermedad   : "diagnosticada en"
-  pacientes ||--o{ paciente_contactos    : "tiene"
-  contactos_emergencia ||--o{ paciente_contactos : "vinculado a"
-
-  %% Empleados
-  empleados ||--o| cuidadores            : "es"
-  empleados ||--o| cocineros             : "es"
-  cuidadores ||--o{ asignacion_cuidador  : "asignado a"
-  pacientes  ||--o{ asignacion_cuidador  : "atendido por"
-
-  %% Dispositivos y zonas
-  dispositivos ||--o| beacon_zona        : "ubicado en"
-  zonas        ||--o{ beacon_zona        : "tiene beacons"
-  cuidadores   ||--o{ turno_cuidador     : "trabaja en"
-  zonas        ||--o{ turno_cuidador     : "cubierto por"
-  pacientes    ||--o{ asignacion_kit     : "monitorado con"
-  dispositivos ||--o{ asignacion_kit     : "asignado en"
-  pacientes    ||--o{ asignacion_nfc     : "porta pulsera"
-  dispositivos ||--o{ asignacion_nfc     : "asignado a"
-  dispositivos ||--o{ asignacion_beacon  : "portado por"
-  cuidadores   ||--o{ asignacion_beacon  : "porta"
-
-  %% Recetas
-  pacientes    ||--o{ recetas                : "prescrito en"
-  recetas      ||--o{ receta_medicamentos    : "contiene"
-  medicamentos ||--o{ receta_medicamentos    : "incluido en"
-  recetas      ||--o{ receta_nfc             : "gestionada por"
-  dispositivos ||--o{ receta_nfc             : "gestiona"
-
-  %% Lecturas IoT
-  dispositivos ||--o{ lecturas_gps           : "registra"
-  dispositivos ||--o{ detecciones_beacon     : "detectado"
-  cuidadores   ||--o{ detecciones_beacon     : "realiza ronda"
-  dispositivos ||--o{ lecturas_nfc           : "registra"
-  recetas      ||--o{ lecturas_nfc           : "verifica adherencia"
-
-  %% Alertas
-  pacientes    ||--o{ alertas                : "genera"
-  zonas        ||--o{ alertas                : "genera"
-  alertas      ||--o| alerta_evento_origen   : "originada por"
-  lecturas_gps ||--o{ alerta_evento_origen   : "fuente"
-
-  %% Sedes
-  sedes ||--o{ sede_zonas      : "tiene"
-  zonas ||--o{ sede_zonas      : "pertenece a"
-  sedes    ||--o{ sede_empleados : "alberga"
-  empleados ||--o{ sede_empleados : "trabaja en"
-  sedes    ||--o{ sede_pacientes  : "alberga"
-  pacientes ||--o{ sede_pacientes : "internado en"
-
-  %% Visitas y entregas
-  pacientes  ||--o{ visitas             : "recibe"
-  visitantes ||--o{ visitas             : "realiza"
-  sedes      ||--o{ visitas             : "sede de"
-  pacientes  ||--o{ entregas_externas   : "recibe"
-  visitantes ||--o{ entregas_externas   : "trae"
-  cuidadores ||--o{ entregas_externas   : "recibe"
-
-  %% Farmacia
-  farmacias_proveedoras ||--o{ suministros       : "provee"
-  sedes                 ||--o{ suministros       : "recibe"
-  suministros           ||--|{ suministro_medicinas : "incluye"
-  medicamentos          ||--o{ suministro_medicinas : "en orden"
-  medicamentos          ||--o{ inventario_medicinas : "stock en"
-  sedes                 ||--o{ inventario_medicinas : "almacena"
-
-  %% Comedor
-  sedes     ||--o{ bitacora_comedor    : "registra"
-  cocineros ||--o{ bitacora_comedor    : "prepara"
+    estados_paciente      ||--|{ pacientes            : "clasifica"
+    pacientes             ||--o{ tiene_enfermedad     : "padece"
+    enfermedades          ||--o{ tiene_enfermedad     : "diagnosticada en"
+    pacientes             ||--o{ paciente_contactos   : "tiene"
+    contactos_emergencia  ||--o{ paciente_contactos   : "vinculado a"
     </div>
+  </div>
+
+  <!-- ── TAB 1: Empleados & Turnos ────────────────────────── -->
+  <div class="diagram-panel" id="panel-1">
+    <div class="mermaid">
+%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#1a3d2b","primaryTextColor":"#e2e8f0","primaryBorderColor":"#48bb78","lineColor":"#718096","background":"#0f1117","fontFamily":"Segoe UI,system-ui,sans-serif","fontSize":"14px"},"er":{"layoutDirection":"LR","minEntityWidth":120,"minEntityHeight":80,"entityPadding":18,"diagramPadding":50}}}%%
+erDiagram
+    empleados {
+        int     id_empleado    PK
+        varchar nombre
+        varchar apellido_p
+        varchar CURP_pasaporte
+        varchar telefono
+    }
+    cuidadores {
+        int     id_empleado         PK "FK"
+        varchar certificacion_medica
+        varchar especialidad
+    }
+    cocineros {
+        int id_empleado  PK "FK"
+    }
+    asignacion_cuidador {
+        int  id_asig_cuidador  PK
+        int  id_cuidador       FK
+        int  id_paciente       FK
+        date fecha_inicio
+        date fecha_fin
+    }
+    zonas {
+        int     id_zona        PK
+        varchar nombre_zona
+        numeric latitud_centro
+        numeric longitud_centro
+        numeric radio_metros
+    }
+    turno_cuidador {
+        int  id_turno     PK
+        int  id_cuidador  FK
+        int  id_zona      FK
+        time hora_inicio
+        time hora_fin
+        bool lunes
+        bool martes
+        bool miercoles
+        bool jueves
+        bool viernes
+        bool sabado
+        bool domingo
+        bool activo
+    }
+    pacientes {
+        int id_paciente  PK
+    }
+
+    empleados   ||--o| cuidadores           : "es"
+    empleados   ||--o| cocineros            : "es"
+    cuidadores  ||--o{ asignacion_cuidador  : "asignado a"
+    pacientes   ||--o{ asignacion_cuidador  : "atendido por"
+    cuidadores  ||--o{ turno_cuidador       : "trabaja en"
+    zonas       ||--o{ turno_cuidador       : "cubierta por"
+    </div>
+  </div>
+
+  <!-- ── TAB 2: Dispositivos IoT ──────────────────────────── -->
+  <div class="diagram-panel" id="panel-2">
+    <div class="mermaid">
+%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#3d2b1a","primaryTextColor":"#e2e8f0","primaryBorderColor":"#ed8936","lineColor":"#718096","background":"#0f1117","fontFamily":"Segoe UI,system-ui,sans-serif","fontSize":"14px"},"er":{"layoutDirection":"LR","minEntityWidth":120,"minEntityHeight":80,"entityPadding":18,"diagramPadding":50}}}%%
+erDiagram
+    cat_tipo_dispositivo {
+        varchar tipo  PK
+    }
+    cat_estado_dispositivo {
+        varchar estado  PK
+    }
+    dispositivos {
+        int       id_dispositivo   PK
+        varchar   id_serial
+        varchar   modelo
+        varchar   tipo             FK
+        varchar   estado           FK
+        timestamp ultima_conexion
+    }
+    zonas {
+        int id_zona  PK
+    }
+    beacon_zona {
+        int id_dispositivo  PK "FK"
+        int id_zona         FK
+    }
+    asignacion_kit {
+        int  id_monitoreo         PK
+        int  id_paciente          FK
+        int  id_dispositivo_gps   FK
+        date fecha_entrega
+        date fecha_fin
+    }
+    asignacion_nfc {
+        int  id_asignacion   PK
+        int  id_paciente     FK
+        int  id_dispositivo  FK
+        date fecha_inicio
+        date fecha_fin
+    }
+    asignacion_beacon {
+        int  id_asignacion   PK
+        int  id_dispositivo  FK
+        int  id_cuidador     FK
+        date fecha_inicio
+        date fecha_fin
+    }
+    lecturas_gps {
+        int       id_lectura     PK
+        int       id_dispositivo FK
+        timestamp fecha_hora
+        numeric   latitud
+        numeric   longitud
+        numeric   altura
+        int       nivel_bateria
+    }
+    detecciones_beacon {
+        int       id_deteccion   PK
+        int       id_dispositivo FK
+        int       id_cuidador    FK
+        timestamp fecha_hora
+        int       rssi
+        varchar   id_gateway
+    }
+    lecturas_nfc {
+        int       id_lectura_nfc  PK
+        int       id_dispositivo  FK
+        int       id_receta       FK
+        timestamp fecha_hora
+        varchar   tipo_lectura
+        varchar   resultado
+    }
+    pacientes  { int id_paciente  PK }
+    cuidadores { int id_empleado  PK }
+    recetas    { int id_receta    PK }
+
+    cat_tipo_dispositivo   ||--|{ dispositivos         : "tipo"
+    cat_estado_dispositivo ||--|{ dispositivos         : "estado"
+    dispositivos           ||--o| beacon_zona          : "ubicado en"
+    zonas                  ||--o{ beacon_zona          : "contiene"
+    pacientes              ||--o{ asignacion_kit       : "monitorado con"
+    dispositivos           ||--o{ asignacion_kit       : "asignado en kit"
+    pacientes              ||--o{ asignacion_nfc       : "porta pulsera"
+    dispositivos           ||--o{ asignacion_nfc       : "asignado como NFC"
+    dispositivos           ||--o{ asignacion_beacon    : "portado por"
+    cuidadores             ||--o{ asignacion_beacon    : "porta beacon"
+    dispositivos           ||--o{ lecturas_gps         : "registra"
+    dispositivos           ||--o{ detecciones_beacon   : "detectado"
+    cuidadores             ||--o{ detecciones_beacon   : "realiza ronda"
+    dispositivos           ||--o{ lecturas_nfc         : "registra"
+    recetas                ||--o{ lecturas_nfc         : "verifica adherencia"
+    </div>
+  </div>
+
+  <!-- ── TAB 3: Recetas & Alertas ─────────────────────────── -->
+  <div class="diagram-panel" id="panel-3">
+    <div class="mermaid">
+%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#3d1a1a","primaryTextColor":"#e2e8f0","primaryBorderColor":"#fc8181","lineColor":"#718096","background":"#0f1117","fontFamily":"Segoe UI,system-ui,sans-serif","fontSize":"14px"},"er":{"layoutDirection":"LR","minEntityWidth":120,"minEntityHeight":80,"entityPadding":18,"diagramPadding":50}}}%%
+erDiagram
+    medicamentos {
+        varchar GTIN               PK
+        varchar nombre_medicamento
+        varchar descripcion
+    }
+    recetas {
+        int     id_receta    PK
+        date    fecha
+        int     id_paciente  FK
+        varchar estado
+    }
+    receta_medicamentos {
+        int     id_detalle        PK
+        int     id_receta         FK
+        varchar GTIN              FK
+        varchar dosis
+        int     frecuencia_horas
+    }
+    receta_nfc {
+        int  id_receta              PK "FK"
+        int  id_dispositivo         PK "FK"
+        date fecha_inicio_gestion
+        date fecha_fin_gestion
+    }
+    cat_tipo_alerta {
+        varchar tipo_alerta  PK
+    }
+    cat_estado_alerta {
+        varchar estatus  PK
+    }
+    alertas {
+        int       id_alerta   PK
+        int       id_paciente FK
+        int       id_zona     FK
+        varchar   tipo_alerta FK
+        timestamp fecha_hora
+        varchar   estatus     FK
+    }
+    alerta_evento_origen {
+        int     id_origen        PK
+        int     id_alerta        FK
+        varchar tipo_evento
+        int     id_lectura_gps   FK
+        varchar regla_disparada
+    }
+    pacientes    { int id_paciente    PK }
+    dispositivos { int id_dispositivo PK }
+    zonas        { int id_zona        PK }
+    lecturas_gps { int id_lectura     PK }
+
+    pacientes      ||--o{ recetas               : "prescrito en"
+    recetas        ||--o{ receta_medicamentos   : "contiene"
+    medicamentos   ||--o{ receta_medicamentos   : "incluido en"
+    recetas        ||--o{ receta_nfc            : "gestionada por NFC"
+    dispositivos   ||--o{ receta_nfc            : "gestiona"
+    cat_tipo_alerta  ||--|{ alertas             : "tipo"
+    cat_estado_alerta ||--|{ alertas            : "estatus"
+    pacientes        ||--o{ alertas             : "genera"
+    zonas            ||--o{ alertas             : "genera"
+    alertas          ||--o| alerta_evento_origen : "originada por"
+    lecturas_gps     ||--o{ alerta_evento_origen : "fuente GPS"
+    </div>
+  </div>
+
+  <!-- ── TAB 4: Sedes & Visitas ────────────────────────────── -->
+  <div class="diagram-panel" id="panel-4">
+    <div class="mermaid">
+%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#1a2d3d","primaryTextColor":"#e2e8f0","primaryBorderColor":"#76e4f7","lineColor":"#718096","background":"#0f1117","fontFamily":"Segoe UI,system-ui,sans-serif","fontSize":"14px"},"er":{"layoutDirection":"LR","minEntityWidth":120,"minEntityHeight":80,"entityPadding":18,"diagramPadding":50}}}%%
+erDiagram
+    sedes {
+        int     id_sede      PK
+        varchar nombre_sede
+        varchar calle
+        varchar numero
+        varchar municipio
+        varchar estado
+    }
+    sede_zonas {
+        int id_sede  PK "FK"
+        int id_zona  PK "FK"
+    }
+    sede_empleados {
+        int  id_sede_empleado  PK
+        int  id_sede           FK
+        int  id_empleado       FK
+        date fecha_ingreso
+        date fecha_salida
+    }
+    sede_pacientes {
+        int  id_sede_paciente  PK
+        int  id_sede           FK
+        int  id_paciente       FK
+        date fecha_ingreso
+        date fecha_salida
+    }
+    visitantes {
+        int     id_visitante  PK
+        varchar nombre
+        varchar apellido_p
+        varchar relacion
+        varchar telefono
+    }
+    visitas {
+        int  id_visita    PK
+        int  id_paciente  FK
+        int  id_visitante FK
+        int  id_sede      FK
+        date fecha_entrada
+        date fecha_salida
+    }
+    cat_estado_entrega {
+        varchar estado  PK
+    }
+    entregas_externas {
+        int  id_entrega       PK
+        int  id_paciente      FK
+        int  id_visitante     FK
+        int  id_cuidador      FK
+        text descripcion
+        varchar estado        FK
+        date fecha_recepcion
+    }
+    pacientes  { int id_paciente  PK }
+    empleados  { int id_empleado  PK }
+    cuidadores { int id_empleado  PK }
+    zonas      { int id_zona      PK }
+
+    sedes      ||--o{ sede_zonas       : "tiene zonas"
+    zonas      ||--o{ sede_zonas       : "pertenece a"
+    sedes      ||--o{ sede_empleados   : "alberga"
+    empleados  ||--o{ sede_empleados   : "trabaja en"
+    sedes      ||--o{ sede_pacientes   : "alberga"
+    pacientes  ||--o{ sede_pacientes   : "internado en"
+    pacientes  ||--o{ visitas          : "recibe"
+    visitantes ||--o{ visitas          : "realiza"
+    sedes      ||--o{ visitas          : "sede de"
+    pacientes  ||--o{ entregas_externas : "recibe"
+    visitantes ||--o{ entregas_externas : "trae"
+    cuidadores ||--o{ entregas_externas : "recibe entrega"
+    cat_estado_entrega ||--|{ entregas_externas : "estado"
+    </div>
+  </div>
+
+  <!-- ── TAB 5: Farmacia & Comedor ────────────────────────── -->
+  <div class="diagram-panel" id="panel-5">
+    <div class="mermaid">
+%%{init:{"theme":"dark","themeVariables":{"primaryColor":"#2d1a3d","primaryTextColor":"#e2e8f0","primaryBorderColor":"#b794f4","lineColor":"#718096","background":"#0f1117","fontFamily":"Segoe UI,system-ui,sans-serif","fontSize":"14px"},"er":{"layoutDirection":"LR","minEntityWidth":120,"minEntityHeight":80,"entityPadding":18,"diagramPadding":50}}}%%
+erDiagram
+    farmacias_proveedoras {
+        int     id_farmacia  PK
+        varchar nombre
+        varchar RFC
+        varchar municipio
+        varchar estado
+    }
+    cat_estado_suministro {
+        varchar estado  PK
+    }
+    suministros {
+        int     id_suministro  PK
+        int     id_farmacia    FK
+        int     id_sede        FK
+        date    fecha_entrega
+        varchar estado         FK
+    }
+    suministro_medicinas {
+        int     id_suministro  PK "FK"
+        varchar GTIN           PK "FK"
+        int     cantidad
+    }
+    medicamentos {
+        varchar GTIN               PK
+        varchar nombre_medicamento
+    }
+    inventario_medicinas {
+        varchar GTIN         PK "FK"
+        int     id_sede      PK "FK"
+        int     stock_actual
+        int     stock_minimo
+    }
+    cocineros {
+        int id_empleado  PK "FK"
+    }
+    cat_turno_comedor {
+        varchar turno  PK
+    }
+    bitacora_comedor {
+        int     id_bitacora     PK
+        int     id_sede         FK
+        int     id_cocinero     FK
+        date    fecha
+        varchar turno           FK
+        varchar menu_nombre
+        int     cantidad_platos
+    }
+    sedes    { int id_sede    PK }
+    empleados { int id_empleado PK }
+
+    farmacias_proveedoras  ||--o{ suministros          : "provee"
+    sedes                  ||--o{ suministros          : "recibe"
+    cat_estado_suministro  ||--|{ suministros          : "estado"
+    suministros            ||--|{ suministro_medicinas : "incluye"
+    medicamentos           ||--o{ suministro_medicinas : "en orden"
+    medicamentos           ||--o{ inventario_medicinas : "stock en"
+    sedes                  ||--o{ inventario_medicinas : "almacena"
+    sedes                  ||--o{ bitacora_comedor     : "registra"
+    cocineros              ||--o{ bitacora_comedor     : "prepara"
+    cat_turno_comedor      ||--|{ bitacora_comedor     : "turno"
+    empleados              ||--o| cocineros            : "es cocinero"
+    </div>
+  </div>
+
+  <div class="cf-legend">
+    <span><strong>||</strong> exactamente uno</span>
+    <span><strong>o|</strong> cero o uno</span>
+    <span><strong>o{</strong> cero o muchos</span>
+    <span><strong>|{</strong> uno o muchos</span>
+    <span style="color:#718096">· Entidades en gris = referencia de otra área</span>
   </div>
   <div id="hint">Scroll para zoom · Arrastrar para mover</div>
 </div>
 
 <script>
-  mermaid.initialize({
-    startOnLoad: true,
-    securityLevel: 'loose',
-    theme: 'dark'
-  });
+mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
 
-  /* ── Pan & Zoom ─────────────────────────────────────────── */
-  const viewport = document.getElementById('viewport');
-  const canvas   = document.getElementById('canvas');
-  const zoomLabel = document.getElementById('zoomLabel');
+/* ── Tab switching ── */
+let activeTab = 0;
+const panels = document.querySelectorAll('.diagram-panel');
+const btns   = document.querySelectorAll('.tab-btn');
 
-  let scale = 1, tx = 40, ty = 40;
-  let dragging = false, startX, startY, startTx, startTy;
+function switchTab(idx) {
+  panels[activeTab].classList.remove('active');
+  btns[activeTab].classList.remove('active');
+  activeTab = idx;
+  panels[activeTab].classList.add('active');
+  btns[activeTab].classList.add('active');
+  resetView();
+}
 
-  function applyTransform() {
-    canvas.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
-    zoomLabel.textContent  = Math.round(scale * 100) + '%';
-  }
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (btn) switchTab(+btn.dataset.tab);
+});
 
-  function zoom(delta) {
-    scale = Math.min(3, Math.max(0.15, scale + delta));
+/* ── Pan & Zoom (per active panel) ── */
+const viewport = document.getElementById('viewport');
+let scale = 1, tx = 40, ty = 30;
+let dragging = false, startX, startY, startTx, startTy;
+const zoomLabel = document.getElementById('zoomLabel');
+
+function activePanel() { return panels[activeTab]; }
+
+function applyTransform() {
+  activePanel().style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+  zoomLabel.textContent = Math.round(scale * 100) + '%';
+}
+
+function zoom(delta) {
+  scale = Math.min(4, Math.max(0.1, scale + delta));
+  applyTransform();
+}
+
+function resetView() {
+  scale = 1; tx = 40; ty = 30;
+  /* auto-fit to viewport */
+  setTimeout(() => {
+    const svg = activePanel().querySelector('svg');
+    if (!svg) return;
+    const vw = viewport.clientWidth - 60;
+    const vh = viewport.clientHeight - 60;
+    const sw = svg.scrollWidth || 900;
+    const sh = svg.scrollHeight || 600;
+    scale = Math.min(1.2, Math.min(vw / sw, vh / sh) * 0.95);
+    tx = Math.max(20, (viewport.clientWidth  - sw * scale) / 2);
+    ty = Math.max(20, (viewport.clientHeight - sh * scale) / 2);
     applyTransform();
-  }
+  }, 50);
+}
 
-  function resetView() {
-    scale = 1; tx = 40; ty = 40;
-    applyTransform();
-  }
+viewport.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = viewport.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const d  = e.deltaY < 0 ? 0.12 : -0.12;
+  const ns = Math.min(4, Math.max(0.1, scale + d));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, { passive: false });
 
-  viewport.addEventListener('wheel', e => {
-    e.preventDefault();
-    const rect  = viewport.getBoundingClientRect();
-    const mx    = e.clientX - rect.left;
-    const my    = e.clientY - rect.top;
-    const delta = e.deltaY < 0 ? 0.1 : -0.1;
-    const newScale = Math.min(3, Math.max(0.15, scale + delta));
-    tx = mx - (mx - tx) * (newScale / scale);
-    ty = my - (my - ty) * (newScale / scale);
-    scale = newScale;
-    applyTransform();
-  }, { passive: false });
+viewport.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  dragging = true;
+  startX = e.clientX; startY = e.clientY;
+  startTx = tx; startTy = ty;
+  viewport.classList.add('dragging');
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  tx = startTx + (e.clientX - startX);
+  ty = startTy + (e.clientY - startY);
+  applyTransform();
+});
+window.addEventListener('mouseup', () => {
+  dragging = false;
+  viewport.classList.remove('dragging');
+});
 
-  viewport.addEventListener('mousedown', e => {
-    if (e.button !== 0) return;
-    dragging = true;
-    startX = e.clientX; startY = e.clientY;
-    startTx = tx; startTy = ty;
-    viewport.classList.add('dragging');
-  });
-  window.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    tx = startTx + (e.clientX - startX);
-    ty = startTy + (e.clientY - startY);
-    applyTransform();
-  });
-  window.addEventListener('mouseup', () => {
-    dragging = false;
-    viewport.classList.remove('dragging');
-  });
-
-  /* ── Auto-fit after render ──────────────────────────────── */
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      const svg = canvas.querySelector('svg');
-      if (!svg) return;
-      const vw = viewport.clientWidth;
-      const vh = viewport.clientHeight;
-      const sw = svg.scrollWidth || 800;
-      const sh = svg.scrollHeight || 600;
-      scale = Math.min(0.85, Math.min(vw / sw, vh / sh) * 0.9);
-      tx = (vw - sw * scale) / 2;
-      ty = 20;
-      applyTransform();
-    }, 1200);
-  });
+/* ── Auto-fit on load ── */
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(resetView, 1400);
+});
 </script>
 </body>
 </html>
