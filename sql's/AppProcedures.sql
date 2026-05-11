@@ -19,13 +19,25 @@ LANGUAGE plpgsql AS $$
 DECLARE
     v_next_sp INT;
 BEGIN
+    IF EXISTS (SELECT 1 FROM pacientes WHERE id_paciente = p_id_paciente) THEN
+        RAISE EXCEPTION 'Ya existe un paciente con ID %.', p_id_paciente;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM estados_paciente WHERE id_estado = p_id_estado) THEN
+        RAISE EXCEPTION 'Estado % no existe en el catálogo.', p_id_estado;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM sedes WHERE id_sede = p_id_sede) THEN
+        RAISE EXCEPTION 'Sede % no encontrada.', p_id_sede;
+    END IF;
+    IF p_fecha_nacimiento > CURRENT_DATE THEN
+        RAISE EXCEPTION 'La fecha de nacimiento no puede ser futura.';
+    END IF;
     SELECT COALESCE(MAX(id_sede_paciente), 0) + 1 INTO v_next_sp FROM sede_pacientes;
-
     INSERT INTO pacientes (id_paciente, nombre, apellido_p, apellido_m, fecha_nacimiento, id_estado)
     VALUES (p_id_paciente, p_nombre, p_apellido_p, p_apellido_m, p_fecha_nacimiento, p_id_estado);
-
     INSERT INTO sede_pacientes (id_sede_paciente, id_sede, id_paciente, fecha_ingreso, hora_ingreso)
     VALUES (v_next_sp, p_id_sede, p_id_paciente, CURRENT_DATE, CURRENT_TIME);
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_ins_paciente: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -40,13 +52,21 @@ CREATE OR REPLACE PROCEDURE sp_upd_paciente(
 )
 LANGUAGE plpgsql AS $$
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pacientes WHERE id_paciente = p_id_paciente) THEN
+        RAISE EXCEPTION 'Paciente % no encontrado.', p_id_paciente;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM estados_paciente WHERE id_estado = p_id_estado) THEN
+        RAISE EXCEPTION 'Estado % no existe en el catálogo.', p_id_estado;
+    END IF;
+    IF p_fecha_nacimiento > CURRENT_DATE THEN
+        RAISE EXCEPTION 'La fecha de nacimiento no puede ser futura.';
+    END IF;
     UPDATE pacientes
-    SET nombre = p_nombre,
-        apellido_p = p_apellido_p,
-        apellido_m = p_apellido_m,
-        fecha_nacimiento = p_fecha_nacimiento,
-        id_estado = p_id_estado
+    SET nombre = p_nombre, apellido_p = p_apellido_p, apellido_m = p_apellido_m,
+        fecha_nacimiento = p_fecha_nacimiento, id_estado = p_id_estado
     WHERE id_paciente = p_id_paciente;
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_upd_paciente: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -56,7 +76,12 @@ CREATE OR REPLACE PROCEDURE sp_del_paciente(
 )
 LANGUAGE plpgsql AS $$
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pacientes WHERE id_paciente = p_id_paciente) THEN
+        RAISE EXCEPTION 'Paciente % no encontrado.', p_id_paciente;
+    END IF;
     UPDATE pacientes SET id_estado = 3 WHERE id_paciente = p_id_paciente;
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_del_paciente: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -131,12 +156,26 @@ CREATE OR REPLACE PROCEDURE sp_ins_kit(
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_next_id INT;
+    v_next_id INT; v_tipo VARCHAR(10); v_estado VARCHAR(20);
 BEGIN
+    SELECT tipo, estado INTO v_tipo, v_estado FROM dispositivos WHERE id_dispositivo = p_id_dispositivo_gps;
+    IF v_tipo IS NULL THEN
+        RAISE EXCEPTION 'Dispositivo % no encontrado.', p_id_dispositivo_gps;
+    END IF;
+    IF v_tipo != 'GPS' THEN
+        RAISE EXCEPTION 'El dispositivo % es de tipo "%" — se requiere tipo GPS.', p_id_dispositivo_gps, v_tipo;
+    END IF;
+    IF v_estado != 'Activo' THEN
+        RAISE EXCEPTION 'El dispositivo GPS % tiene estado "%" y no puede asignarse.', p_id_dispositivo_gps, v_estado;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pacientes WHERE id_paciente = p_id_paciente) THEN
+        RAISE EXCEPTION 'Paciente % no encontrado.', p_id_paciente;
+    END IF;
     SELECT COALESCE(MAX(id_monitoreo), 0) + 1 INTO v_next_id FROM asignacion_kit;
-
     INSERT INTO asignacion_kit (id_monitoreo, id_paciente, id_dispositivo_gps, fecha_entrega)
     VALUES (v_next_id, p_id_paciente, p_id_dispositivo_gps, CURRENT_DATE);
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_ins_kit: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -147,16 +186,27 @@ CREATE OR REPLACE PROCEDURE sp_kit_reasignar(
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_next_id INT;
+    v_next_id INT; v_tipo VARCHAR(10); v_estado VARCHAR(20);
 BEGIN
-    UPDATE asignacion_kit
-    SET fecha_fin = CURRENT_DATE
-    WHERE id_paciente = p_id_paciente AND fecha_fin IS NULL;
-
+    IF NOT EXISTS (SELECT 1 FROM asignacion_kit WHERE id_paciente = p_id_paciente AND fecha_fin IS NULL) THEN
+        RAISE EXCEPTION 'El paciente % no tiene un kit GPS activo para reasignar.', p_id_paciente;
+    END IF;
+    SELECT tipo, estado INTO v_tipo, v_estado FROM dispositivos WHERE id_dispositivo = p_id_dispositivo_nuevo;
+    IF v_tipo IS NULL THEN
+        RAISE EXCEPTION 'Dispositivo % no encontrado.', p_id_dispositivo_nuevo;
+    END IF;
+    IF v_tipo != 'GPS' THEN
+        RAISE EXCEPTION 'El dispositivo % es de tipo "%" — se requiere tipo GPS.', p_id_dispositivo_nuevo, v_tipo;
+    END IF;
+    IF v_estado != 'Activo' THEN
+        RAISE EXCEPTION 'El dispositivo GPS % tiene estado "%" y no puede asignarse.', p_id_dispositivo_nuevo, v_estado;
+    END IF;
+    UPDATE asignacion_kit SET fecha_fin = CURRENT_DATE WHERE id_paciente = p_id_paciente AND fecha_fin IS NULL;
     SELECT COALESCE(MAX(id_monitoreo), 0) + 1 INTO v_next_id FROM asignacion_kit;
-
     INSERT INTO asignacion_kit (id_monitoreo, id_paciente, id_dispositivo_gps, fecha_entrega)
     VALUES (v_next_id, p_id_paciente, p_id_dispositivo_nuevo, CURRENT_DATE);
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_kit_reasignar: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -175,16 +225,26 @@ CREATE OR REPLACE PROCEDURE sp_transferir_sede(
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_next_sp INT;
+    v_next_sp INT; v_sede_actual INT;
 BEGIN
-    UPDATE sede_pacientes
-    SET fecha_salida = CURRENT_DATE, hora_salida = CURRENT_TIME
+    IF NOT EXISTS (SELECT 1 FROM pacientes WHERE id_paciente = p_id_paciente) THEN
+        RAISE EXCEPTION 'Paciente % no encontrado.', p_id_paciente;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM sedes WHERE id_sede = p_nueva_sede_id) THEN
+        RAISE EXCEPTION 'Sede destino % no encontrada.', p_nueva_sede_id;
+    END IF;
+    SELECT id_sede INTO v_sede_actual FROM sede_pacientes
+    WHERE id_paciente = p_id_paciente AND fecha_salida IS NULL LIMIT 1;
+    IF v_sede_actual = p_nueva_sede_id THEN
+        RAISE EXCEPTION 'El paciente % ya se encuentra en la sede %.', p_id_paciente, p_nueva_sede_id;
+    END IF;
+    UPDATE sede_pacientes SET fecha_salida = CURRENT_DATE, hora_salida = CURRENT_TIME
     WHERE id_paciente = p_id_paciente AND fecha_salida IS NULL;
-
     SELECT COALESCE(MAX(id_sede_paciente), 0) + 1 INTO v_next_sp FROM sede_pacientes;
-
     INSERT INTO sede_pacientes (id_sede_paciente, id_sede, id_paciente, fecha_ingreso, hora_ingreso)
     VALUES (v_next_sp, p_nueva_sede_id, p_id_paciente, CURRENT_DATE, CURRENT_TIME);
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_transferir_sede: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -225,8 +285,16 @@ CREATE OR REPLACE PROCEDURE sp_ins_dispositivo(
 )
 LANGUAGE plpgsql AS $$
 BEGIN
+    IF EXISTS (SELECT 1 FROM dispositivos WHERE id_serial = p_id_serial) THEN
+        RAISE EXCEPTION 'Ya existe un dispositivo con serial "%".', p_id_serial;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM cat_tipo_dispositivo WHERE tipo = p_tipo) THEN
+        RAISE EXCEPTION 'Tipo de dispositivo "%" no válido.', p_tipo;
+    END IF;
     INSERT INTO dispositivos (id_dispositivo, id_serial, tipo, modelo, estado)
     VALUES (p_id_dispositivo, p_id_serial, p_tipo, p_modelo, 'Activo');
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_ins_dispositivo: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -252,7 +320,18 @@ CREATE OR REPLACE PROCEDURE sp_del_dispositivo(
 )
 LANGUAGE plpgsql AS $$
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM dispositivos WHERE id_dispositivo = p_id_dispositivo) THEN
+        RAISE EXCEPTION 'Dispositivo % no encontrado.', p_id_dispositivo;
+    END IF;
+    IF EXISTS (SELECT 1 FROM asignacion_kit WHERE id_dispositivo_gps = p_id_dispositivo AND fecha_fin IS NULL) THEN
+        RAISE EXCEPTION 'El dispositivo % tiene una asignación GPS activa y no puede eliminarse.', p_id_dispositivo;
+    END IF;
+    IF EXISTS (SELECT 1 FROM asignacion_beacon WHERE id_dispositivo = p_id_dispositivo AND fecha_fin IS NULL) THEN
+        RAISE EXCEPTION 'El dispositivo % tiene una asignación beacon activa y no puede eliminarse.', p_id_dispositivo;
+    END IF;
     DELETE FROM dispositivos WHERE id_dispositivo = p_id_dispositivo;
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_del_dispositivo: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -400,10 +479,21 @@ CREATE OR REPLACE PROCEDURE sp_ins_turno(
 )
 LANGUAGE plpgsql AS $$
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM cuidadores WHERE id_empleado = p_id_cuidador) THEN
+        RAISE EXCEPTION 'Cuidador % no encontrado.', p_id_cuidador;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM zonas WHERE id_zona = p_id_zona) THEN
+        RAISE EXCEPTION 'Zona % no encontrada.', p_id_zona;
+    END IF;
+    IF p_hora_fin <= p_hora_inicio THEN
+        RAISE EXCEPTION 'La hora de fin debe ser posterior a la hora de inicio.';
+    END IF;
     INSERT INTO turno_cuidador (id_turno, id_cuidador, id_zona, hora_inicio, hora_fin,
         lunes, martes, miercoles, jueves, viernes, sabado, domingo, activo)
     VALUES (p_id_turno, p_id_cuidador, p_id_zona, p_hora_inicio, p_hora_fin,
         p_lunes, p_martes, p_miercoles, p_jueves, p_viernes, p_sabado, p_domingo, TRUE);
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_ins_turno: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -467,11 +557,17 @@ CREATE OR REPLACE PROCEDURE sp_ins_cuidador(
 )
 LANGUAGE plpgsql AS $$
 BEGIN
+    IF EXISTS (SELECT 1 FROM empleados WHERE CURP_pasaporte = p_curp) THEN
+        RAISE EXCEPTION 'Ya existe un empleado con CURP/pasaporte "%".', p_curp;
+    END IF;
+    IF EXISTS (SELECT 1 FROM empleados WHERE id_empleado = p_id_empleado) THEN
+        RAISE EXCEPTION 'Ya existe un empleado con ID %.', p_id_empleado;
+    END IF;
     INSERT INTO empleados (id_empleado, nombre, apellido_p, apellido_m, CURP_pasaporte, telefono)
     VALUES (p_id_empleado, p_nombre, p_apellido_p, p_apellido_m, p_curp, p_telefono);
-
-    INSERT INTO cuidadores (id_empleado)
-    VALUES (p_id_empleado);
+    INSERT INTO cuidadores (id_empleado) VALUES (p_id_empleado);
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_ins_cuidador: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -499,8 +595,16 @@ CREATE OR REPLACE PROCEDURE sp_del_cuidador(
 )
 LANGUAGE plpgsql AS $$
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM cuidadores WHERE id_empleado = p_id_empleado) THEN
+        RAISE EXCEPTION 'Cuidador % no encontrado.', p_id_empleado;
+    END IF;
+    IF EXISTS (SELECT 1 FROM asignacion_cuidador WHERE id_cuidador = p_id_empleado AND fecha_fin IS NULL) THEN
+        RAISE EXCEPTION 'El cuidador % tiene pacientes asignados activos y no puede eliminarse.', p_id_empleado;
+    END IF;
     DELETE FROM cuidadores WHERE id_empleado = p_id_empleado;
     DELETE FROM empleados  WHERE id_empleado = p_id_empleado;
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_del_cuidador: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -518,9 +622,17 @@ LANGUAGE plpgsql AS $$
 DECLARE
     v_id INT;
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM cat_tipo_alerta WHERE tipo_alerta = p_tipo_alerta) THEN
+        RAISE EXCEPTION 'Tipo de alerta "%" no existe en el catálogo.', p_tipo_alerta;
+    END IF;
+    IF p_id_paciente IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pacientes WHERE id_paciente = p_id_paciente) THEN
+        RAISE EXCEPTION 'Paciente % no encontrado.', p_id_paciente;
+    END IF;
     SELECT COALESCE(MAX(id_alerta), 0) + 1 INTO v_id FROM alertas;
     INSERT INTO alertas (id_alerta, id_paciente, tipo_alerta, fecha_hora, estatus)
     VALUES (v_id, p_id_paciente, p_tipo_alerta, p_fecha_hora, 'Activa');
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_ins_alerta: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -536,9 +648,15 @@ CREATE OR REPLACE PROCEDURE sp_upd_stock(
 )
 LANGUAGE plpgsql AS $$
 BEGIN
-    UPDATE inventario_medicinas
-    SET stock_actual = p_stock_nuevo
-    WHERE GTIN = p_gtin AND id_sede = p_id_sede;
+    IF p_stock_nuevo < 0 THEN
+        RAISE EXCEPTION 'El stock no puede ser negativo (valor recibido: %).', p_stock_nuevo;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM inventario_medicinas WHERE GTIN = p_gtin AND id_sede = p_id_sede) THEN
+        RAISE EXCEPTION 'No existe inventario para GTIN "%" en la sede %.', p_gtin, p_id_sede;
+    END IF;
+    UPDATE inventario_medicinas SET stock_actual = p_stock_nuevo WHERE GTIN = p_gtin AND id_sede = p_id_sede;
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_upd_stock: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
@@ -627,15 +745,30 @@ CREATE OR REPLACE PROCEDURE sp_ins_lectura_gps(
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_id INT;
+    v_id INT; v_tipo VARCHAR(10);
 BEGIN
+    SELECT tipo INTO v_tipo FROM dispositivos WHERE id_dispositivo = p_id_dispositivo;
+    IF v_tipo IS NULL THEN
+        RAISE EXCEPTION 'Dispositivo % no encontrado.', p_id_dispositivo;
+    END IF;
+    IF v_tipo != 'GPS' THEN
+        RAISE EXCEPTION 'El dispositivo % es de tipo "%" — se esperaba GPS.', p_id_dispositivo, v_tipo;
+    END IF;
+    IF p_latitud < -90 OR p_latitud > 90 THEN
+        RAISE EXCEPTION 'Latitud % fuera de rango [-90, 90].', p_latitud;
+    END IF;
+    IF p_longitud < -180 OR p_longitud > 180 THEN
+        RAISE EXCEPTION 'Longitud % fuera de rango [-180, 180].', p_longitud;
+    END IF;
+    IF p_nivel_bateria IS NOT NULL AND (p_nivel_bateria < 0 OR p_nivel_bateria > 100) THEN
+        RAISE EXCEPTION 'Nivel de batería % fuera de rango [0, 100].', p_nivel_bateria;
+    END IF;
     SELECT COALESCE(MAX(id_lectura), 0) + 1 INTO v_id FROM lecturas_gps;
-    INSERT INTO lecturas_gps
-        (id_lectura, id_dispositivo, fecha_hora, latitud, longitud, altura, nivel_bateria, geom)
-    VALUES (
-        v_id, p_id_dispositivo, NOW(), p_latitud, p_longitud, p_altura, p_nivel_bateria,
-        ST_SetSRID(ST_MakePoint(p_longitud, p_latitud), 4326)::geography
-    );
+    INSERT INTO lecturas_gps (id_lectura, id_dispositivo, fecha_hora, latitud, longitud, altura, nivel_bateria, geom)
+    VALUES (v_id, p_id_dispositivo, NOW(), p_latitud, p_longitud, p_altura, p_nivel_bateria,
+        ST_SetSRID(ST_MakePoint(p_longitud, p_latitud), 4326)::geography);
+EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'sp_ins_lectura_gps: % — %', SQLERRM, SQLSTATE;
 END;
 $$;
 
