@@ -16,3 +16,8 @@ key.pem
 
 # Claude Code
 .claude/
+# macOS
+.DS_Store
+
+# Archivos accidentales
+=*
