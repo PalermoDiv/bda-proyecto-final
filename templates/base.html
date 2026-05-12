@@ -183,13 +183,6 @@
 
         <div class="nav-section">
             <span class="nav-label">Dev</span>
-            <a href="{{ url_for('admin.procedimientos') }}" class="nav-item {% if request.endpoint == 'procedimientos' %}active{% endif %}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="16 18 22 12 16 6"/>
-                    <polyline points="8 6 2 12 8 18"/>
-                </svg>
-                Procedimientos
-            </a>
             <a href="{{ url_for('api.sim_gps') }}" class="nav-item {% if request.endpoint == 'sim_gps' %}active{% endif %}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -202,15 +195,6 @@
                     <path d="M2 10h20"/>
                 </svg>
                 Escáner NFC
-            </a>
-            <a href="{{ url_for('cuidador.cuidador_ronda') }}" class="nav-item {% if request.endpoint == 'cuidador_ronda' %}active{% endif %}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                    <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-                    <circle cx="12" cy="20" r="1"/>
-                </svg>
-                Ronda Beacon
             </a>
             <a href="{{ url_for('equipamiento.rondas_lista') }}" class="nav-item {% if request.endpoint == 'rondas_lista' %}active{% endif %}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
