@@ -21,14 +21,6 @@
         <div class="card-body">
             <form method="POST" action="{{ url_for('dispositivos.dispositivos_editar', id=disp.id_dispositivo) if disp else url_for('dispositivos.dispositivos_nuevo') }}">
 
-                {% if not disp %}
-                <div class="form-group">
-                    <label class="form-label" for="id_dispositivo">ID del dispositivo</label>
-                    <input type="number" id="id_dispositivo" name="id_dispositivo"
-                           class="form-control" placeholder="Ej. 10" required>
-                </div>
-                {% endif %}
-
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label" for="id_serial">Código / Serial</label>

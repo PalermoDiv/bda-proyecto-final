@@ -13,10 +13,10 @@ def staff_en_turno(id_sede):
     return db.one_sp("sp_sel_staff_en_turno", (id_sede,))
 
 
-def crear(id_turno, id_cuidador, id_zona, hora_inicio, hora_fin, dias):
+def crear(id_cuidador, id_zona, hora_inicio, hora_fin, dias):
     db.execute(
-        "CALL sp_ins_turno(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-        (id_turno, id_cuidador, id_zona, hora_inicio, hora_fin,
+        "CALL sp_ins_turno(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (id_cuidador, id_zona, hora_inicio, hora_fin,
          dias["lunes"], dias["martes"], dias["miercoles"], dias["jueves"],
          dias["viernes"], dias["sabado"], dias["domingo"]),
     )

@@ -50,9 +50,9 @@ def alertas_nueva():
         except Exception as e:
             flash(f"Error al registrar alerta: {e}", "error")
 
-    now_str = date.today().isoformat() + "T" + datetime.now().strftime("%H:%M")
+    default_dt = date.today().isoformat() + "T" + datetime.now().strftime("%H:%M")
     return render_template("alertas_form.html", pacientes=pacientes, tipos=tipos,
-                           fecha_hoy=date.today().isoformat(), now=now_str)
+                           fecha_hoy=date.today().isoformat(), default_dt=default_dt)
 
 
 @bp.route("/alertas/resolver/<int:id>", methods=["POST"])

@@ -20,13 +20,12 @@ def turnos_lista():
 def turnos_nuevo():
     if request.method == "POST":
         try:
-            id_turno    = int(request.form["id_turno"])
             id_cuidador = int(request.form["id_cuidador"])
             id_zona     = int(request.form["id_zona"])
             hora_inicio = request.form["hora_inicio"]
             hora_fin    = request.form["hora_fin"]
             dias = {d: d in request.form for d in _DIAS}
-            Turno.crear(id_turno, id_cuidador, id_zona, hora_inicio, hora_fin, dias)
+            Turno.crear(id_cuidador, id_zona, hora_inicio, hora_fin, dias)
             flash("Turno registrado correctamente.", "success")
             return redirect(url_for("turnos.turnos_lista"))
         except Exception as e:

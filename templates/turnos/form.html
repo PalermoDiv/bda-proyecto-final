@@ -17,14 +17,6 @@
     <div class="card-body" style="padding:28px 32px;">
         <form method="POST">
 
-            {% if not turno %}
-            <div class="form-group">
-                <label class="form-label">ID de turno <span style="color:#e11d48;">*</span></label>
-                <input type="number" name="id_turno" class="form-control" required min="1"
-                       placeholder="Número entero único">
-            </div>
-            {% endif %}
-
             <div class="form-group">
                 <label class="form-label">Zona <span style="color:#e11d48;">*</span></label>
                 <select name="id_zona" class="form-control" required>

@@ -32,7 +32,7 @@ def create_app():
                     criticas.append({**dict(r), "tiempo": tiempo})
             except Exception:
                 pass
-        return dict(alertas_criticas=criticas)
+        return dict(alertas_criticas=criticas, now=datetime.now())
 
     # ── Register controllers ───────────────────────────────────────────────────
     from controllers.auth          import bp as auth_bp

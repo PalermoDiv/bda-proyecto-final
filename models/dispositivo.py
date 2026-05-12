@@ -25,8 +25,8 @@ def beacons_disponibles():
     return db.query_sp("sp_sel_beacons_disponibles_asig")
 
 
-def crear(id_disp, id_serial, tipo, modelo):
-    db.execute("CALL sp_ins_dispositivo(%s, %s, %s, %s)", (id_disp, id_serial, tipo, modelo))
+def crear(id_serial, tipo, modelo):
+    db.execute("CALL sp_ins_dispositivo(%s, %s, %s)", (id_serial, tipo, modelo))
 
 
 def actualizar(id, id_serial, tipo, modelo, estado):

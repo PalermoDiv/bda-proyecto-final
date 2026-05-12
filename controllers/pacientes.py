@@ -24,14 +24,13 @@ def pacientes_nuevo():
     sedes   = Sede.listar()
     if request.method == "POST":
         try:
-            id_pac     = int(request.form["id_paciente"])
             nombre     = request.form["nombre_paciente"].strip()
             apellido_p = request.form["apellido_p_pac"].strip()
             apellido_m = request.form["apellido_m_pac"].strip()
             fecha_nac  = request.form["fecha_nacimiento"]
             id_estado  = int(request.form["id_estado"])
             id_sede    = int(request.form["id_sede"])
-            Paciente.crear(id_pac, nombre, apellido_p, apellido_m, fecha_nac, id_estado, id_sede)
+            Paciente.crear(nombre, apellido_p, apellido_m, fecha_nac, id_estado, id_sede)
             flash("Paciente registrado correctamente.", "success")
             return redirect(url_for("pacientes.pacientes_lista"))
         except Exception as e:

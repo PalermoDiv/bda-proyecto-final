@@ -19,19 +19,13 @@
         <div class="card-body">
             <form method="POST" action="{{ url_for('visitas.visitas_nueva') }}">
 
-                <div class="form-group">
-                    <label class="form-label" for="id_visita">ID de visita</label>
-                    <input type="number" id="id_visita" name="id_visita"
-                           class="form-control" placeholder="Ej. 10" required>
-                </div>
-
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label" for="id_paciente">Paciente</label>
                         <select id="id_paciente" name="id_paciente" class="form-control" required>
                             <option value="" disabled selected>Seleccionar paciente...</option>
                             {% for p in pacientes %}
-                            <option value="{{ p.id_paciente }}">{{ p.nombre }}</option>
+                            <option value="{{ p.id_paciente }}">{{ p.nombre_completo }}</option>
                             {% endfor %}
                         </select>
                     </div>

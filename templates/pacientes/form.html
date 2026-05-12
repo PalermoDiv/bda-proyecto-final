@@ -26,19 +26,6 @@
             <form method="POST"
                   action="{{ url_for('pacientes.pacientes_editar', id=paciente.id_paciente) if paciente else url_for('pacientes.pacientes_nuevo') }}">
 
-                <!-- ID del paciente (solo en creación) -->
-                {% if not paciente %}
-                <div class="form-group">
-                    <label class="form-label" for="id_paciente">ID del paciente</label>
-                    <input type="number"
-                           id="id_paciente"
-                           name="id_paciente"
-                           class="form-control"
-                           placeholder="Ej. 4"
-                           required>
-                </div>
-                {% endif %}
-
                 <!-- Nombre y apellidos -->
                 <div class="form-grid">
                     <div class="form-group">

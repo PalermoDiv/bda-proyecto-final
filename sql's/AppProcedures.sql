@@ -7,7 +7,6 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE PROCEDURE sp_ins_paciente(
-    p_id_paciente INT,
     p_nombre VARCHAR,
     p_apellido_p VARCHAR,
     p_apellido_m VARCHAR,
@@ -17,11 +16,9 @@ CREATE OR REPLACE PROCEDURE sp_ins_paciente(
 )
 LANGUAGE plpgsql AS $$
 DECLARE
+    v_id_pac INT;
     v_next_sp INT;
 BEGIN
-    IF EXISTS (SELECT 1 FROM pacientes WHERE id_paciente = p_id_paciente) THEN
-        RAISE EXCEPTION 'Ya existe un paciente con ID %.', p_id_paciente;
-    END IF;
     IF NOT EXISTS (SELECT 1 FROM estados_paciente WHERE id_estado = p_id_estado) THEN
         RAISE EXCEPTION 'Estado % no existe en el catálogo.', p_id_estado;
     END IF;
@@ -31,11 +28,12 @@ BEGIN
     IF p_fecha_nacimiento > CURRENT_DATE THEN
         RAISE EXCEPTION 'La fecha de nacimiento no puede ser futura.';
     END IF;
+    SELECT COALESCE(MAX(id_paciente), 0) + 1 INTO v_id_pac FROM pacientes;
     SELECT COALESCE(MAX(id_sede_paciente), 0) + 1 INTO v_next_sp FROM sede_pacientes;
     INSERT INTO pacientes (id_paciente, nombre, apellido_p, apellido_m, fecha_nacimiento, id_estado)
-    VALUES (p_id_paciente, p_nombre, p_apellido_p, p_apellido_m, p_fecha_nacimiento, p_id_estado);
+    VALUES (v_id_pac, p_nombre, p_apellido_p, p_apellido_m, p_fecha_nacimiento, p_id_estado);
     INSERT INTO sede_pacientes (id_sede_paciente, id_sede, id_paciente, fecha_ingreso, hora_ingreso)
-    VALUES (v_next_sp, p_id_sede, p_id_paciente, CURRENT_DATE, CURRENT_TIME);
+    VALUES (v_next_sp, p_id_sede, v_id_pac, CURRENT_DATE, CURRENT_TIME);
 EXCEPTION WHEN OTHERS THEN
     RAISE EXCEPTION 'sp_ins_paciente: % — %', SQLERRM, SQLSTATE;
 END;
@@ -278,12 +276,13 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE PROCEDURE sp_ins_dispositivo(
-    p_id_dispositivo INT,
     p_id_serial VARCHAR,
     p_tipo VARCHAR,
     p_modelo VARCHAR
 )
 LANGUAGE plpgsql AS $$
+DECLARE
+    v_id INT;
 BEGIN
     IF EXISTS (SELECT 1 FROM dispositivos WHERE id_serial = p_id_serial) THEN
         RAISE EXCEPTION 'Ya existe un dispositivo con serial "%".', p_id_serial;
@@ -291,8 +290,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM cat_tipo_dispositivo WHERE tipo = p_tipo) THEN
         RAISE EXCEPTION 'Tipo de dispositivo "%" no válido.', p_tipo;
     END IF;
+    SELECT COALESCE(MAX(id_dispositivo), 0) + 1 INTO v_id FROM dispositivos;
     INSERT INTO dispositivos (id_dispositivo, id_serial, tipo, modelo, estado)
-    VALUES (p_id_dispositivo, p_id_serial, p_tipo, p_modelo, 'Activo');
+    VALUES (v_id, p_id_serial, p_tipo, p_modelo, 'Activo');
 EXCEPTION WHEN OTHERS THEN
     RAISE EXCEPTION 'sp_ins_dispositivo: % — %', SQLERRM, SQLSTATE;
 END;
@@ -464,7 +464,6 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE PROCEDURE sp_ins_turno(
-    p_id_turno INT,
     p_id_cuidador INT,
     p_id_zona INT,
     p_hora_inicio TIME,
@@ -478,6 +477,8 @@ CREATE OR REPLACE PROCEDURE sp_ins_turno(
     p_domingo BOOLEAN
 )
 LANGUAGE plpgsql AS $$
+DECLARE
+    v_id INT;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM cuidadores WHERE id_empleado = p_id_cuidador) THEN
         RAISE EXCEPTION 'Cuidador % no encontrado.', p_id_cuidador;
@@ -488,9 +489,10 @@ BEGIN
     IF p_hora_fin <= p_hora_inicio THEN
         RAISE EXCEPTION 'La hora de fin debe ser posterior a la hora de inicio.';
     END IF;
+    SELECT COALESCE(MAX(id_turno), 0) + 1 INTO v_id FROM turno_cuidador;
     INSERT INTO turno_cuidador (id_turno, id_cuidador, id_zona, hora_inicio, hora_fin,
         lunes, martes, miercoles, jueves, viernes, sabado, domingo, activo)
-    VALUES (p_id_turno, p_id_cuidador, p_id_zona, p_hora_inicio, p_hora_fin,
+    VALUES (v_id, p_id_cuidador, p_id_zona, p_hora_inicio, p_hora_fin,
         p_lunes, p_martes, p_miercoles, p_jueves, p_viernes, p_sabado, p_domingo, TRUE);
 EXCEPTION WHEN OTHERS THEN
     RAISE EXCEPTION 'sp_ins_turno: % — %', SQLERRM, SQLSTATE;
@@ -717,7 +719,6 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE PROCEDURE sp_ins_visita(
-    p_id_visita     INT,
     p_id_paciente   INT,
     p_id_visitante  INT,
     p_id_sede       INT,
@@ -725,9 +726,12 @@ CREATE OR REPLACE PROCEDURE sp_ins_visita(
     p_hora_entrada  TIME
 )
 LANGUAGE plpgsql AS $$
+DECLARE
+    v_id INT;
 BEGIN
+    SELECT COALESCE(MAX(id_visita), 0) + 1 INTO v_id FROM visitas;
     INSERT INTO visitas (id_visita, id_paciente, id_visitante, id_sede, fecha_entrada, hora_entrada)
-    VALUES (p_id_visita, p_id_paciente, p_id_visitante, p_id_sede, p_fecha_entrada, p_hora_entrada);
+    VALUES (v_id, p_id_paciente, p_id_visitante, p_id_sede, p_fecha_entrada, p_hora_entrada);
 END;
 $$;
 

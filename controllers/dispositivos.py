@@ -16,11 +16,10 @@ def dispositivos():
 def dispositivos_nuevo():
     if request.method == "POST":
         try:
-            id_disp   = int(request.form["id_dispositivo"])
             id_serial = request.form["id_serial"].strip()
             tipo      = request.form["tipo"].strip()
             modelo    = request.form["modelo"].strip()
-            Dispositivo.crear(id_disp, id_serial, tipo, modelo)
+            Dispositivo.crear(id_serial, tipo, modelo)
             flash("Dispositivo registrado correctamente.", "success")
             return redirect(url_for("dispositivos.dispositivos"))
         except Exception as e:

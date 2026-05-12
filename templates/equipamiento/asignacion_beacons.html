@@ -33,7 +33,7 @@
             <select name="id_cuidador" required style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.12); background:#0d2535; color:#f1f5f9; font-size:13px;">
                 <option value="">Selecciona un cuidador</option>
                 {% for c in cuidadores %}
-                <option value="{{ c.id_empleado }}">{{ c.nombre }}</option>
+                <option value="{{ c.id_cuidador }}">{{ c.nombre_cuidador }}</option>
                 {% endfor %}
             </select>
         </div>

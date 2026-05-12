@@ -398,9 +398,9 @@
     {% if cuidadores %}
         {% for c in cuidadores %}
         <div class="sf-call-row">
-            <div class="sf-call-avatar">{{ c.nombre[0] }}</div>
+            <div class="sf-call-avatar">{{ c.nombre_cuidador[0] }}</div>
             <div style="flex:1; min-width:0;">
-                <div class="sf-call-name">{{ c.nombre }}</div>
+                <div class="sf-call-name">{{ c.nombre_cuidador }}</div>
                 <div class="sf-call-role">Cuidador asignado</div>
             </div>
             {% if c.telefono %}

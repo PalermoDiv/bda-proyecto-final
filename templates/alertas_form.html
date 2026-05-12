@@ -27,7 +27,7 @@
                     <select id="id_paciente" name="id_paciente" class="form-control">
                         <option value="">— Sin paciente específico —</option>
                         {% for p in pacientes %}
-                        <option value="{{ p.id_paciente }}">{{ p.nombre }}</option>
+                        <option value="{{ p.id_paciente }}">{{ p.nombre_completo }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -46,7 +46,7 @@
                         <label class="form-label" for="fecha_hora">Fecha y hora</label>
                         <input type="datetime-local" id="fecha_hora" name="fecha_hora"
                                class="form-control"
-                               value="{{ now }}" required>
+                               value="{{ default_dt }}" required>
                     </div>
                 </div>
 

@@ -69,9 +69,9 @@ def ultima_actividad(id):
     return db.one_sp("sp_sel_ultima_actividad_ts", (id,))
 
 
-def crear(id_pac, nombre, apellido_p, apellido_m, fecha_nac, id_estado, id_sede):
-    db.execute("CALL sp_ins_paciente(%s, %s, %s, %s, %s, %s, %s)",
-               (id_pac, nombre, apellido_p, apellido_m, fecha_nac, id_estado, id_sede))
+def crear(nombre, apellido_p, apellido_m, fecha_nac, id_estado, id_sede):
+    db.execute("CALL sp_ins_paciente(%s, %s, %s, %s, %s, %s)",
+               (nombre, apellido_p, apellido_m, fecha_nac, id_estado, id_sede))
 
 
 def actualizar(id, nombre, apellido_p, apellido_m, fecha_nac, id_estado):

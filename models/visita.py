@@ -33,6 +33,6 @@ def portal(id_paciente):
     return db.query_sp("sp_sel_visitas_portal", (id_paciente,))
 
 
-def crear(id_visita, id_paciente, id_visitante, id_sede, fecha, hora):
-    db.execute("CALL sp_ins_visita(%s, %s, %s, %s, %s, %s)",
-               (id_visita, id_paciente, id_visitante, id_sede, fecha, hora))
+def crear(id_paciente, id_visitante, id_sede, fecha, hora):
+    db.execute("CALL sp_ins_visita(%s, %s, %s, %s, %s)",
+               (id_paciente, id_visitante, id_sede, fecha, hora))

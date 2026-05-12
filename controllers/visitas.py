@@ -25,13 +25,12 @@ def visitas():
 def visitas_nueva():
     if request.method == "POST":
         try:
-            id_visita    = int(request.form["id_visita"])
             id_paciente  = int(request.form["id_paciente"])
             id_visitante = int(request.form["id_visitante"])
             id_sede      = int(request.form["id_sede"])
             fecha        = request.form["fecha_entrada"]
             hora         = request.form["hora_entrada"]
-            Visita.crear(id_visita, id_paciente, id_visitante, id_sede, fecha, hora)
+            Visita.crear(id_paciente, id_visitante, id_sede, fecha, hora)
             flash("Visita registrada correctamente.", "success")
             return redirect(url_for("visitas.visitas"))
         except Exception as e:
