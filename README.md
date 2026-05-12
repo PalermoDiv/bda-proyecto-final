@@ -492,9 +492,9 @@ Las lecturas y el porcentaje de adherencia (últimos 30 días) se visualizan en 
 | Base de datos relacional | PostgreSQL 15 · PostGIS 3 |
 | Base de datos documental | MongoDB 8 |
 | Acceso a datos | `psycopg` v3 · `pymongo` · sin SQL embebido en Python |
-| Procedimientos almacenados | 138 SPs `sp_sel_*` · 32 SPs DML · 10 SPs módulo receta/NFC |
-| Vistas | 114 vistas de solo lectura |
-| Triggers | 3 triggers de base de datos (zona GPS, batería baja, cobertura beacon) |
+| Procedimientos almacenados | 142 SPs `sp_sel_*` · 40 SPs DML · 10 SPs módulo receta/NFC |
+| Vistas | 115 vistas de solo lectura |
+| Triggers | 10 triggers de base de datos |
 | Reportes PDF | ReportLab |
 | Frontend | Jinja2 · CSS custom properties · Vanilla JS |
 | IoT | GPS/GPRS via Traccar · BLE 5.1 via `bleak` · NFC ISO 14443A via Web NFC API |

@@ -1,8 +1,6 @@
-# IoT Hardware — Dispositivos y Plan de Integración
+# IoT Hardware — Dispositivos e Integración
 
-Documentación de los dispositivos físicos y arquitectura actualizada de AlzMonitor.
-
-> **Estado actual:** dispositivos adquiridos, pendientes de configuración. Ningún endpoint de recepción de datos está implementado todavía. Este documento describe la arquitectura objetivo.
+Documentación de los dispositivos físicos integrados en AlzMonitor.
 
 ---
 
@@ -11,7 +9,7 @@ Documentación de los dispositivos físicos y arquitectura actualizada de AlzMon
 | Rol | Modelo | Tecnología | Lo porta |
 |-----|--------|-----------|----------|
 | GPS | PG12 GPS Tracker — Luejnbogty | GPRS / 4G + GPS | Paciente (oculto en ropa) |
-| Beacon | FeasyBeacon FSC-BP104D Waterproof | Bluetooth 5.1 BLE | Fijo en paredes/techo del edificio |
+| Beacon | FeasyBeacon FSC-BP104D Waterproof | Bluetooth 5.1 BLE | Cuidador (portátil) |
 | NFC | NFC DESFire wristband | ISO 14443A (pasivo) | Paciente (pulsera, sin batería) |
 
 ---
@@ -20,183 +18,172 @@ Documentación de los dispositivos físicos y arquitectura actualizada de AlzMon
 
 ### Layer 1 — GPS (Exterior, flujo de seguridad crítico)
 
-**El GPS es el mecanismo central de seguridad de la app.**
-
-El paciente lleva el PG12 oculto en ropa/cinturón/zapato. No interactúa con él. Flask hace polling a la API cloud del PG12 cada 30–60 segundos, obtiene coordenadas, y evalúa si el paciente está dentro de alguna zona segura.
+El paciente lleva el tracker GPS oculto en ropa/cinturón/zapato. El dispositivo envía coordenadas directamente a Flask usando el protocolo OsmAnd/Traccar (push, no polling).
 
 #### Flujo de datos
+
 ```
-PG12 → API cloud del fabricante
-           ↓  polling cada 30-60s
-       Flask (tarea de background / APScheduler)
-           ↓
-       MongoDB  gps_events  ← almacenamiento principal (alto volumen)
-           ↓
-       PostGIS ST_DWithin(point, zone_geometry, radio)
-           ↓  fuera de zona
-       PostgreSQL alertas (tipo='Salida de Zona', estado='Activa')
-                + alerta_evento_origen (FK → referencia al evento MongoDB)
-           ↓  sin atender después de 5 min
-       Escalación + notificación a contacto de emergencia
+Traccar Client / OsmAnd (en teléfono Android)
+    ↓  GET http://<VM>:5003/api/gps/osmand?id=<serial>&lat=&lon=&batt=
+Flask — api/gps_osmand
+    ↓  CALL sp_ins_lectura_gps(...)
+PostgreSQL  lecturas_gps  ← registro principal con FK a dispositivo y paciente
+    ↓  triggers automáticos
+    ├── trg_bateria_baja_gps  → alerta "Batería crítica" si nivel ≤ 15 %
+    └── trg_zona_exit_gps    → alerta "Salida de Zona" si punto fuera de geocercas
+MongoDB  lecturas_gps  ← espejo de lectura (fire-and-forget)
 ```
 
-#### MongoDB collection: `gps_events`
+#### MongoDB — colección `lecturas_gps`
+
 ```js
 {
-  device_id: "PG12-001",
-  patient_id: 42,
-  timestamp: ISODate(),
-  location: { type: "Point", coordinates: [lng, lat] },
-  speed: 1.2,
-  battery: 78,
-  inside_zone: true
+  id_lectura:     42,
+  id_dispositivo: 3,
+  latitud:        19.4326,
+  longitud:       -99.1332,
+  nivel_bateria:  80,
+  altura:         2240.0,
+  fecha_hora:     ISODate("2026-05-12T14:00:00Z")
 }
-// Índices: 2dsphere en location, compuesto {patient_id, timestamp}
 ```
 
-#### Endpoint a implementar
-```
-GET /api/gps/poll  (interno, llamado por scheduler)
-```
-No es un endpoint público — es una tarea interna que Flask ejecuta periódicamente.
+#### Endpoints disponibles
 
-#### Configuración pendiente
-1. Insertar SIM con datos en el PG12.
-2. Obtener credenciales de la API cloud del fabricante (Luejnbogty).
-3. Registrar el dispositivo en `dispositivos` con tipo `GPS` y número de serie.
-4. Asignarlo al paciente via `asignacion_kit`.
-5. Configurar MongoDB con índice 2dsphere.
+| Endpoint | Método | Autenticación | Uso |
+|----------|--------|--------------|-----|
+| `/api/gps/osmand` | GET/POST | ninguna | Traccar Client / OsmAnd (puerto 5003) |
+| `/api/gps/lectura` | POST | `X-AlzMonitor-Key` | API directa con JSON |
+| `/api/gps/ultima/<id_paciente>` | GET | sesión | Polling del mapa cada 8 s |
+| `/sim/gps` | GET/POST | admin | Simulador web desde el panel |
+
+#### Configuración del Traccar Client en el teléfono
+
+1. **Identificador de dispositivo:** el serial registrado en **Admin → Dispositivos** (ej. `traccar-001`)
+2. **URL del servidor:** `http://<IP_DE_LA_VM>:5003` (HTTP, puerto 5003)
+3. Activar el seguimiento — el teléfono empieza a enviar coordenadas automáticamente
 
 ---
 
 ### Layer 2 — BLE Beacon (Interior, rondas del cuidador)
 
-Los beacons son **fijos en el edificio** — no los porta el paciente. Están en puntos estratégicos: puerta principal, salida de emergencia, salida al jardín, sala común, comedor, escaleras.
-
-El cuidador lleva su teléfono Android (Chrome). Durante las rondas, el teléfono escanea beacons cercanos via **Web Bluetooth API** y hace POST a Flask. Esto registra qué zonas visitó el cuidador y cuándo — no es rastreo del paciente.
-
-**No se requieren gateways BLE.** El teléfono del cuidador es el receptor.
+El cuidador porta el beacon Bluetooth mientras hace sus rondas. `beacon_scanner.py` corre en una computadora cercana con Bluetooth, detecta los beacons y reporta a Flask. Cada detección registra qué cuidador estuvo presente y cuándo.
 
 #### Flujo de datos
+
 ```
-Beacon (fijo en pared/techo)
-    ↓  BLE advertisement
-Teléfono Android del cuidador (Chrome, Web Bluetooth API)
-    ↓  POST
-/api/beacon/deteccion
-    ↓
-MongoDB  ble_events  ← almacenamiento (volumen medio durante rondas)
+Beacon FSC-BP104D (portado por el cuidador)
+    ↓  BLE advertisement (iBeacon UUID-major-minor)
+beacon_scanner.py  (computadora local con Bluetooth + bleak)
+    ↓  POST /api/beacon/deteccion  (JSON)
+Flask — api/beacon_deteccion
+    ↓  CALL sp_ins_deteccion_beacon(...)
+PostgreSQL  detecciones_beacon
+MongoDB  detecciones_beacon  ← espejo de detección (fire-and-forget)
 ```
 
-#### MongoDB collection: `ble_events`
+#### MongoDB — colección `detecciones_beacon`
+
 ```js
 {
-  beacon_id: "FEASY-003",
-  zone_name: "Puerta Principal",
-  caregiver_id: 5,
-  timestamp: ISODate(),
-  rssi: -45,
-  estimated_distance_m: 2.3
+  id_deteccion:    15,
+  id_beacon:       2,
+  serial_beacon:   "FDA50693-1000-1001",
+  id_cuidador:     5,
+  nombre_cuidador: "Juan Martínez",
+  rssi:            -68,
+  id_gateway:      "central",
+  fecha_hora:      ISODate("2026-05-12T14:05:00Z")
 }
-// Índice: compuesto {caregiver_id, timestamp}
 ```
 
-#### Endpoint a implementar
-```
-POST /api/beacon/deteccion
-Body: { "beacon_id": "FEASY-003", "zone_name": "Puerta Principal",
-        "caregiver_id": 5, "rssi": -45, "timestamp": "..." }
+#### Ejecutar el escáner BLE
+
+```bash
+# Apunta al servidor en la VM (requiere bleak y requests instalados)
+ALZMONITOR_URL="https://<IP_DE_LA_VM>:5002/api/beacon/deteccion" python3 beacon_scanner.py
 ```
 
-#### Configuración pendiente
-1. Configurar UUID/Major/Minor en cada FeasyBeacon con la app del fabricante.
-2. Asignar nombre de zona a cada beacon (registrar en tabla `gateways` o nueva tabla de beacons fijos).
-3. Registrar los beacons en `dispositivos` con tipo `BEACON`.
-4. Implementar la página de rondas del cuidador (Web Bluetooth scan).
+Salida esperada al detectar un beacon:
+
+```
+==================================================
+AlzMonitor — Escáner BLE
+Reportando a: https://35.x.x.x:5002/api/beacon/deteccion
+==================================================
+[OK] Beacon 1001-1 | RSSI -68 dBm | Cuidador: Juan Martínez
+```
+
+#### Simular sin hardware
+
+```bash
+curl -k -X POST https://<IP>:5002/api/beacon/deteccion \
+  -H "X-AlzMonitor-Key: alz-dev-2026" \
+  -H "Content-Type: application/json" \
+  -d '{"uuid": "FDA50693-1000-1001", "major": 1001, "minor": 1, "rssi": -70}'
+```
 
 ---
 
 ### Layer 3 — NFC (Checkpoint, adherencia terapéutica)
 
-El paciente lleva una **pulsera NFC DESFire** (pasiva, sin batería — como pulsera de hospital). El cuidador acerca su teléfono a la pulsera via **Web NFC API** para verificar identidad, confirmar administración de medicamento, o registrar un checkpoint.
-
-**Web NFC: solo Chrome Android.**
+El paciente lleva una pulsera NFC DESFire (pasiva, sin batería). El cuidador acerca su teléfono Android (Chrome) a la pulsera para registrar la administración de medicamentos.
 
 #### Flujo de datos
+
 ```
 Cuidador acerca teléfono a pulsera NFC del paciente
-    ↓  Web NFC API (Chrome Android)
-App Flask (Jinja2 + JS)
-    ↓  POST
-/api/nfc/lectura
-    ↓
-PostgreSQL  lecturas_nfc  ← bajo volumen, alta integridad clínica
-    (FK a recetas, FK a dispositivos)
+    ↓  Web NFC API (Chrome Android) — solo en HTTPS
+Flask — /cuidador/escanear (Jinja2 + JS)
+    ↓  POST /api/nfc/lectura  (JSON)
+Flask — api/nfc_lectura
+    ↓  CALL sp_nfc_registrar_lectura(...)
+PostgreSQL  lecturas_nfc  ← registro con FK a receta y dispositivo
+MongoDB  lecturas_nfc  ← espejo (fire-and-forget)
 ```
 
-#### Endpoint a implementar
+#### MongoDB — colección `lecturas_nfc`
+
+```js
+{
+  id_lectura_nfc: 200,
+  id_dispositivo: 5,
+  id_receta:      10,
+  tipo_lectura:   "Administración",
+  resultado:      "Exitosa",
+  fecha_hora:     ISODate("2026-05-12T14:10:00Z")
+}
 ```
-POST /api/nfc/lectura
-Body: { "id_serial_nfc": "...", "id_receta": 1,
-        "tipo_lectura": "Administración", "resultado": "Exitosa" }
+
+#### Simular sin hardware
+
+```bash
+curl -k -X POST https://<IP>:5002/api/nfc/lectura \
+  -H "X-AlzMonitor-Key: alz-dev-2026" \
+  -H "Content-Type: application/json" \
+  -d '{"serial": "<SERIAL_NFC>", "tipo_lectura": "Administración", "resultado": "Exitosa"}'
 ```
 
-#### Configuración pendiente
-1. Grabar en cada pulsera el ID de receta con NFC Tools u otra app.
-2. Registrar la pulsera en `dispositivos` con tipo `NFC` y número de serie.
-3. Crear `receta_nfc` que vincula la pulsera a la receta del paciente desde `/recetas/<id>/editar`.
+> Web NFC solo funciona en Chrome para Android en contexto HTTPS. Para pruebas de escritorio usar el endpoint directo con curl o la página `/test/nfc`.
 
 ---
 
-## Resumen de tablas afectadas
+## Resumen de almacenamiento
 
-| Dispositivo | Almacenamiento principal | Tabla PostgreSQL afectada |
-|-------------|--------------------------|--------------------------|
-| GPS PG12 | MongoDB `gps_events` | `alertas` + `alerta_evento_origen` |
-| Beacon FSC-BP104D | MongoDB `ble_events` | — (presencia del cuidador) |
-| NFC DESFire | PostgreSQL `lecturas_nfc` | `lecturas_nfc` (FK a `recetas`, `dispositivos`) |
+| Dispositivo | Colección MongoDB | Tabla PostgreSQL principal |
+|-------------|------------------|--------------------------|
+| GPS | `lecturas_gps` | `lecturas_gps` + `alertas` (vía triggers) |
+| Beacon | `detecciones_beacon` | `detecciones_beacon` |
+| NFC | `lecturas_nfc` | `lecturas_nfc` (FK a `recetas`, `dispositivos`) |
 
-`asignacion_kit` vincula un paciente a su dispositivo GPS. Los beacons no tienen asignación por paciente.
-
----
-
-## Requisitos técnicos del webapp del cuidador
-
-- **HTTPS obligatorio** — Web Bluetooth y Web NFC requieren contexto seguro.
-- Servir Flask con SSL (certificado autofirmado para desarrollo, Let's Encrypt para producción).
-- El webapp del cuidador es una página Jinja2 servida por Flask que usa las APIs del navegador y hace POST a Flask.
+Los tres siguen el mismo patrón: PostgreSQL es la fuente de verdad, MongoDB es espejo secundario. Si Mongo falla, la operación no se revierte.
 
 ---
 
-## Endpoints API a implementar (resumen)
+## Triggers activados por lecturas IoT
 
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/api/beacon/deteccion` | POST | Recibe detección BLE del teléfono del cuidador, inserta en MongoDB `ble_events` |
-| `/api/nfc/lectura` | POST | Recibe escaneo NFC, inserta en PostgreSQL `lecturas_nfc` |
-| `/api/gps/sos` | POST | Botón SOS del GPS → alerta tipo `'Botón SOS'` inmediata en PostgreSQL |
-
-El flujo GPS es interno (polling) — no es un endpoint público.
-
-Todos los endpoints externos requieren autenticación mínima por API key (header `X-API-Key`).
-
----
-
-## Orden de implementación recomendado
-
-1. **MongoDB primero** — configurar conexión, definir colecciones e índices.
-2. **GPS polling** — implementar tarea de background con APScheduler, conectar a API del PG12, almacenar en MongoDB, evaluar zonas con PostGIS, generar alertas en PostgreSQL.
-3. **NFC** — el más sencillo de los endpoints externos. Grabar pulseras, probar POST manual, validar en `lecturas_nfc`.
-4. **Beacon** — implementar página de rondas del cuidador con Web Bluetooth, endpoint `/api/beacon/deteccion`.
-
----
-
-## Escenarios requeridos por el profesor (5)
-
-Deben documentarse y demostrarse con datos reales end-to-end:
-
-1. **Escape de zona + escalación** — paciente sale de geofence → alerta → notificar cuidador + contacto de emergencia. Integridad: paciente, dispositivo, zona, lectura GPS, alerta, seguimiento.
-2. **Transferencia de sede sin pérdida de historial** — paciente cambia de Sede Norte a Sede Sur. Control de rangos de fecha en `sede_pacientes`, continuidad de historial de alertas/visitas.
-3. **Cambio de tratamiento + adherencia NFC** — médico modifica receta. Consistencia entre `recetas`, `receta_medicamentos`, asignación NFC, y lecturas NFC del período.
-4. **Falla de batería + reemplazo de kit** — GPS reporta batería baja → dispositivo reemplazado. Sin duplicado de asignación activa por paciente + trazabilidad del reemplazo.
-5. **Suministro crítico en múltiples sedes** — medicamento bajo mínimo en 2 sedes → órdenes a diferentes farmacias. Integridad en `inventario_medicinas`, `suministros`, `suministro_medicinas`, estado de entrega.
+| Trigger | Evento | Condición | Efecto |
+|---------|--------|-----------|--------|
+| `trg_bateria_baja_gps` | INSERT en `lecturas_gps` | `nivel_bateria ≤ 15` | Inserta alerta tipo "Batería crítica" |
+| `trg_zona_exit_gps` | INSERT en `lecturas_gps` | Punto fuera de todas las geocercas del paciente | Inserta alerta tipo "Salida de Zona" |
+| `trg_cobertura_zona` | INSERT en `detecciones_beacon` | Siempre | Registra cobertura del cuidador en zona |

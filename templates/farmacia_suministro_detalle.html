@@ -116,7 +116,7 @@
                     <select name="GTIN" class="form-control" required>
                         <option value="" disabled selected>Seleccionar...</option>
                         {% for m in medicamentos %}
-                        <option value="{{ m.GTIN }}">{{ m.nombre_medicamento }}</option>
+                        <option value="{{ m.gtin }}">{{ m.nombre_medicamento }}</option>
                         {% endfor %}
                     </select>
                 </div>
