@@ -586,6 +586,26 @@ $$;
 
 
 -- 52
+
+-- NFC lecturas agrupadas por día para los últimos N días (chart de adherencia)
+CREATE OR REPLACE PROCEDURE sp_sel_nfc_por_dia(
+    IN  p_dias INTEGER,
+    INOUT io_resultados REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN io_resultados FOR
+        SELECT
+            TO_CHAR(fecha_hora, 'DD/MM') AS dia,
+            resultado,
+            COUNT(*)::INTEGER            AS total
+        FROM lecturas_nfc
+        WHERE fecha_hora >= NOW() - (p_dias || ' days')::INTERVAL
+        GROUP BY TO_CHAR(fecha_hora, 'DD/MM'), resultado
+        ORDER BY dia;
+END;
+$$;
+
 CREATE OR REPLACE PROCEDURE sp_sel_adherencia_nfc_por_paciente(
     INOUT io_resultados REFCURSOR
 )
@@ -1465,7 +1485,7 @@ CREATE OR REPLACE PROCEDURE sp_sel_medicamentos_adherencia_por_paciente(
 LANGUAGE plpgsql AS $$
 BEGIN
     OPEN io_resultados FOR
-        SELECT * FROM v_adherencia_nfc_por_paciente
+        SELECT * FROM v_medicamentos_adherencia_paciente
         WHERE id_paciente = p_id_paciente;
 END;
 $$;

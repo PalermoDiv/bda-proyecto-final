@@ -41,6 +41,10 @@ def adherencia_chart():
     return db.query_sp("sp_sel_adherencia_nfc_por_paciente")
 
 
+def nfc_por_dia(dias=14):
+    return db.query_sp("sp_sel_nfc_por_dia", (dias,))
+
+
 def adherencia_por_paciente(id_paciente):
     return db.query_sp("sp_sel_medicamentos_adherencia_por_paciente", (id_paciente,))
 

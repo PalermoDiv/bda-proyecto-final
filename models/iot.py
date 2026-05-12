@@ -41,7 +41,7 @@ def siguiente_id_nfc():
 
 def registrar_nfc(next_id, id_dispositivo, id_receta, tipo_lectura, resultado):
     db.execute(
-        "CALL sp_nfc_registrar_lectura(%s::integer, %s::integer, %s::integer, NOW(), %s, %s)",
+        "CALL sp_nfc_registrar_lectura(%s::integer, %s::integer, %s::integer, NOW()::timestamp, %s::varchar, %s::varchar)",
         (next_id, id_dispositivo, id_receta, tipo_lectura, resultado),
     )
     try:

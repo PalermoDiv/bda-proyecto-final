@@ -1173,6 +1173,30 @@ GROUP BY p.id_paciente, p.nombre, p.apellido_p
 HAVING COUNT(ln.id_lectura_nfc) > 0
 ORDER BY COUNT(ln.id_lectura_nfc) FILTER (WHERE ln.resultado = 'Exitosa')::float / NULLIF(COUNT(ln.id_lectura_nfc), 0) DESC;
 
+-- -----------------------------------------------------------------------------
+-- Per-medication adherence for portal familiar (nombre_medicamento + tomada_hoy)
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW v_medicamentos_adherencia_paciente AS
+SELECT
+    p.id_paciente,
+    r.id_receta,
+    m.nombre_medicamento,
+    rm.dosis,
+    rm.frecuencia_horas,
+    (
+        SELECT TO_CHAR(MAX(ln.fecha_hora), 'HH24:MI')
+        FROM lecturas_nfc ln
+        WHERE ln.id_receta  = r.id_receta
+          AND ln.fecha_hora::DATE = CURRENT_DATE
+          AND ln.resultado  = 'Exitosa'
+    ) AS tomada_hoy
+FROM pacientes p
+JOIN recetas r              ON r.id_paciente = p.id_paciente AND r.estado = 'Activa'
+JOIN receta_medicamentos rm ON rm.id_receta  = r.id_receta
+JOIN medicamentos m         ON m.gtin        = rm.gtin
+WHERE p.id_estado != 3
+ORDER BY p.id_paciente, m.nombre_medicamento;
+
 
 -- -----------------------------------------------------------------------------
 -- 53. Historial de batería GPS por paciente (portal familiar sparkline)

@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, timedelta
 import models.receta as Receta
 import models.paciente as Paciente
-import mongo
 from auth import admin_requerido
 
 bp = Blueprint("recetas", __name__, url_prefix="/recetas")
@@ -13,41 +12,29 @@ bp = Blueprint("recetas", __name__, url_prefix="/recetas")
 def recetas_lista():
     adherencia_chart = Receta.adherencia_chart()
 
-    try:
-        nfc_exito = [
-            {"resultado": r["_id"], "total": r["total"]}
-            for r in mongo.col("lecturas_nfc").aggregate([
-                {"$group": {"_id": "$resultado", "total": {"$sum": 1}}},
-                {"$sort": {"total": -1}},
-            ])
-        ]
-    except Exception:
-        nfc_exito = []
+    raw_nfc = Receta.nfc_por_dia(14)
 
-    try:
-        since = datetime.now(timezone.utc) - timedelta(days=14)
-        raw = list(mongo.col("lecturas_nfc").aggregate([
-            {"$match": {"fecha_hora": {"$gte": since}}},
-            {"$group": {
-                "_id": {
-                    "dia":       {"$dateToString": {"format": "%d/%m", "date": "$fecha_hora"}},
-                    "resultado": "$resultado",
-                },
-                "total": {"$sum": 1},
-            }},
-        ]))
-        hoy        = date.today()
-        dias_labels = [(hoy - timedelta(days=i)).strftime("%d/%m") for i in range(13, -1, -1)]
-        dia_map = {}
-        for r in raw:
-            dia_map.setdefault(r["_id"]["dia"], {})[r["_id"]["resultado"]] = r["total"]
-        nfc_dias_labels = dias_labels
-        nfc_exitosas    = [dia_map.get(d, {}).get("Exitosa", 0) for d in dias_labels]
-        nfc_fallidas    = [dia_map.get(d, {}).get("Fallida", 0) for d in dias_labels]
-    except Exception:
-        nfc_dias_labels = []
-        nfc_exitosas    = []
-        nfc_fallidas    = []
+    nfc_exito_map = {}
+    total_exitosas = total_fallidas = 0
+    for r in raw_nfc:
+        if r["resultado"] == "Exitosa":
+            total_exitosas += r["total"]
+        else:
+            total_fallidas += r["total"]
+    nfc_exito = []
+    if total_exitosas:
+        nfc_exito.append({"resultado": "Exitosa", "total": total_exitosas})
+    if total_fallidas:
+        nfc_exito.append({"resultado": "Fallida", "total": total_fallidas})
+
+    hoy = date.today()
+    dias_labels = [(hoy - timedelta(days=i)).strftime("%d/%m") for i in range(13, -1, -1)]
+    dia_map = {}
+    for r in raw_nfc:
+        dia_map.setdefault(r["dia"], {})[r["resultado"]] = r["total"]
+    nfc_dias_labels = dias_labels
+    nfc_exitosas    = [dia_map.get(d, {}).get("Exitosa", 0) for d in dias_labels]
+    nfc_fallidas    = [dia_map.get(d, {}).get("Fallida", 0) for d in dias_labels]
 
     return render_template(
         "recetas.html",

@@ -348,7 +348,7 @@
                     {{ 'Cambiar dispositivo GPS' if kit else 'Asignar dispositivo GPS' }}
                 </div>
                 <form method="POST"
-                      action="{{ url_for('pacientes.pacientes_cambiar_kit' if kit else 'pacientes_asignar_kit', id=paciente.id_paciente) }}"
+                      action="{{ url_for('pacientes.pacientes_cambiar_kit' if kit else 'pacientes.pacientes_asignar_kit', id=paciente.id_paciente) }}"
                       style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                     <select name="id_dispositivo_gps" class="form-control" required style="max-width:280px;">
                         <option value="">— Selecciona GPS —</option>

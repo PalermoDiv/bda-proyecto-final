@@ -315,8 +315,9 @@ BEGIN
     SET fecha_fin_gestion = p_fecha_fin
     WHERE id_receta = p_id_receta AND fecha_fin_gestion IS NULL;
 
-    -- (Opcional) Si en el futuro la tabla recetas tiene campo activo/inactivo,
-    -- aquí se haría el UPDATE correspondiente.
+    UPDATE recetas
+    SET estado = 'Cerrada'
+    WHERE id_receta = p_id_receta;
 END;
 $$;
 
