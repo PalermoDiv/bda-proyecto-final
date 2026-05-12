@@ -143,7 +143,6 @@ psql -U alzadmin -d alzheimer -f RecetasProcedures.sql
 psql -U alzadmin -d alzheimer -f BeaconProcedures.sql
 psql -U alzadmin -d alzheimer -f AppProcedures.sql
 psql -U alzadmin -d alzheimer -f TriggersDB.sql
-psql -U alzadmin -d alzheimer -f DisableTriggers.sql
 psql -U alzadmin -d alzheimer -f ViewsDB.sql
 psql -U alzadmin -d alzheimer -f SelectProcedures.sql
 ```
